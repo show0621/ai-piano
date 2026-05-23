@@ -8,12 +8,20 @@ import streamlit.components.v1 as components
 
 from audio_processor import (
     HAS_BASIC_PITCH,
+    detect_chorus_bounds,
     download_youtube_audio,
+    extract_section,
     get_demo_score,
     process_audio_to_json,
 )
+from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
 
-st.set_page_config(page_title="AI 互動鋼琴教學", layout="wide", page_icon="🎹")
+st.set_page_config(
+    page_title="音ノ手帖 · AI 鋼琴",
+    layout="wide",
+    page_icon="🎹",
+    initial_sidebar_state="expanded",
+)
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(APP_DIR, "uploads")
@@ -21,9 +29,66 @@ OUTPUT_DIR = os.path.join(APP_DIR, "output")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-IS_CLOUD = os.environ.get("STREAMLIT_SHARING_MODE") is not None or bool(
-    os.environ.get("STREAMLIT_RUNTIME_ENVIRONMENT")
-)
+IS_CLOUD = bool(os.environ.get("STREAMLIT_RUNTIME_ENVIRONMENT"))
+
+# ── 日系文青 UI ──
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@300;400&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
+    color: #4A4035;
+}
+h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {
+    font-family: 'Noto Serif JP', 'Noto Serif TC', serif !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.12em;
+    color: #4A4035 !important;
+}
+.stApp {
+    background: linear-gradient(165deg, #F7F3EB 0%, #EFEBE3 45%, #E8E2D8 100%);
+}
+[data-testid="stSidebar"] {
+    background: #EFEBE3;
+    border-right: 1px solid #D4C9B8;
+}
+.stButton > button[kind="primary"] {
+    background: #8B7355 !important;
+    color: #F7F3EB !important;
+    border: none !important;
+    border-radius: 2px !important;
+    letter-spacing: 0.08em;
+}
+.stButton > button {
+    border-radius: 2px !important;
+    border: 1px solid #C9B8A4 !important;
+    background: #F7F3EB !important;
+    color: #4A4035 !important;
+}
+.hero-sub {
+    font-family: 'Noto Serif JP', serif;
+    color: #8B7355;
+    letter-spacing: 0.2em;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+}
+.hero-title {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.85rem;
+    letter-spacing: 0.15em;
+    color: #3D3530;
+    margin: 0 0 0.5rem 0;
+}
+.card {
+    background: rgba(255,252,247,0.75);
+    border: 1px solid #D4C9B8;
+    border-radius: 4px;
+    padding: 1.2rem 1.4rem;
+    margin-bottom: 1rem;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 def audio_to_data_uri(path: str) -> str:
@@ -34,16 +99,29 @@ def audio_to_data_uri(path: str) -> str:
     return f"data:{mime};base64,{b64}"
 
 
-def render_piano(score_data: list, audio_src: str, title: str):
-    template_path = os.path.join(APP_DIR, "frontend.html")
-    with open(template_path, "r", encoding="utf-8") as f:
+def render_piano(
+    score_data: list,
+    audio_src: str,
+    title: str,
+    chorus_start: float = 0,
+    chorus_end: float = 0,
+    practice_mode: str = "full",
+    audio_offset: float = 0,
+    auto_play: bool = False,
+):
+    with open(os.path.join(APP_DIR, "frontend.html"), "r", encoding="utf-8") as f:
         html = f.read()
 
     html = html.replace("{{SCORE_JSON_PLACEHOLDER}}", json.dumps(score_data, ensure_ascii=False))
     html = html.replace("{{AUDIO_SRC_PLACEHOLDER}}", audio_src)
     html = html.replace("{{SONG_TITLE}}", title.replace('"', "'"))
+    html = html.replace("{{CHORUS_START}}", str(chorus_start))
+    html = html.replace("{{CHORUS_END}}", str(chorus_end))
+    html = html.replace("{{PRACTICE_MODE}}", practice_mode)
+    html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
+    html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    components.html(html, height=920, scrolling=False)
+    components.html(html, height=960, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
@@ -55,11 +133,8 @@ def save_upload(uploaded_file) -> str:
 
 
 def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
-    """上傳 / YouTube 音檔一律走真實 AI，不再使用模擬樂譜。"""
     if not HAS_BASIC_PITCH:
-        raise RuntimeError(
-            "未安裝 basic-pitch。請執行：pip install -r requirements.txt"
-        )
+        raise RuntimeError("未安裝 basic-pitch。請執行：pip install -r requirements.txt")
 
     cache_key = f"{audio_path}|{simplify_melody}"
     if cache_key in st.session_state:
@@ -67,142 +142,249 @@ def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
 
     notes = process_audio_to_json(audio_path, OUTPUT_DIR, simplify=simplify_melody)
     if not notes:
-        raise ValueError(
-            "AI 未辨識到有效音符。請嘗試：較短的純鋼琴片段、提高音量、或關閉主旋律簡化。"
-        )
+        raise ValueError("AI 未辨識到有效音符，請換一首或上傳較清晰的音檔。")
 
     st.session_state[cache_key] = notes
     return notes
 
 
-# --- UI ---
-st.title("🎹 AI 互動鋼琴：上傳 / YouTube → 自動抓譜 → 鍵盤教學")
-st.caption(
-    "上傳 MP3、貼上 YouTube 連結，或用示範曲。AI（basic-pitch）辨識後以 Synthesia 式下落音符教學，"
-    "雙八度鍵盤標示要按哪一鍵、按多久。"
-)
+def get_spotify_credentials():
+    try:
+        s = st.secrets.get("spotify", {})
+        return s.get("client_id"), s.get("client_secret")
+    except Exception:
+        return None, None
+
+
+def prepare_score(notes: list, practice_scope: str):
+    """依練習範圍回傳 (score, chorus_start, chorus_end, audio_offset, mode)."""
+    c0, c1 = detect_chorus_bounds(notes)
+    if practice_scope == "僅副歌":
+        return extract_section(notes, c0, c1), c0, c1, c0, "chorus"
+    return notes, c0, c1, 0.0, "full"
+
+
+# ── Header ──
+st.markdown('<p class="hero-sub">音ノ手帖 · Oto no Techō</p>', unsafe_allow_html=True)
+st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_html=True)
+st.caption("輸入歌名搜尋 · AI 抓譜 · 副歌專練 · 自動彈奏示範")
 
 if IS_CLOUD:
-    st.info("☁️ Streamlit Cloud 模式：建議 Memory 設為 2GB+，首次 AI 抓譜需下載模型。")
-
+    st.info("☁️ 雲端模式：Memory 建議 2GB+，首次 AI 需下載模型。")
 if not HAS_BASIC_PITCH:
-    st.error("❌ 未偵測到 basic-pitch，上傳 / YouTube 無法抓譜。請執行 `pip install -r requirements.txt`")
-    st.code("pip install basic-pitch tensorflow-cpu", language="bash")
+    st.warning("未偵測到 basic-pitch，搜尋/上傳抓譜不可用；仍可使用「內建示範曲」。")
 
-col_side, col_main = st.columns([1, 2])
+# ── Sidebar ──
+with st.sidebar:
+    st.markdown("### 練習設定")
+    practice_scope = st.radio(
+        "練習範圍",
+        ["整首歌曲", "僅副歌"],
+        help="副歌由 AI 依音符密度自動估算，可在教學區微調 A-B 循環。",
+    )
+    simplify_melody = st.checkbox("簡化主旋律", value=True)
+    auto_play_demo = st.checkbox("載入後自動彈奏示範", value=False)
 
-with col_side:
-    st.subheader("① 選擇音源")
-    source = st.radio(
-        "音源類型",
-        ["上傳音檔", "YouTube 連結", "內建示範曲"],
+    st.markdown("---")
+    st.markdown("### Spotify（選填）")
+    st.caption("在 Secrets 設定 `spotify.client_id` 與 `client_secret` 即可啟用 Spotify 搜尋。")
+    cid, csec = get_spotify_credentials()
+    if cid and csec:
+        st.success("Spotify API 已連線")
+    else:
+        st.caption("未設定時，Spotify 結果將改以 YouTube 搜尋代替。")
+
+# ── Main tabs ──
+tab_search, tab_upload, tab_url, tab_demo = st.tabs([
+    "🔍 搜尋歌曲", "📁 上傳音檔", "🔗 YouTube 連結", "🌸 示範曲",
+])
+
+score_data = None
+audio_path = None
+song_title = "未命名"
+chorus_start, chorus_end, audio_offset, practice_mode = 0, 0, 0, "full"
+
+with tab_search:
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    query = st.text_input(
+        "輸入歌名或「歌手 + 歌名」",
+        placeholder="例：宇多田ヒカル First Love、周杰倫 晴天",
+    )
+    platform = st.radio(
+        "搜尋來源",
+        ["YouTube", "Spotify → YouTube", "兩者都搜"],
+        horizontal=True,
         label_visibility="collapsed",
     )
 
-    simplify_melody = st.checkbox(
-        "簡化為主旋律（建議，流行歌適用）",
-        value=True,
-        help="關閉可保留更多和弦音，但難度較高。",
-    )
+    if query and st.button("搜尋", type="primary", key="btn_search"):
+        results = []
+        with st.spinner("正在搜尋…"):
+            if platform in ("YouTube", "兩者都搜"):
+                results.extend(search_youtube(query))
+            if platform in ("Spotify → YouTube", "兩者都搜"):
+                sp = search_spotify(query, cid, csec)
+                if sp:
+                    results.extend(sp)
+                else:
+                    results.extend(search_youtube(f"{query} spotify", max_results=3))
+        st.session_state["search_results"] = results
+        st.session_state["search_query"] = query
 
-    if source != "內建示範曲":
-        st.caption("✅ 已啟用真實 AI 抓譜（basic-pitch）")
+    results = st.session_state.get("search_results", [])
+    if results:
+        labels = [f"[{r['source'].upper()}] {r['title']}" for r in results]
+        pick = st.selectbox("選擇曲目", range(len(labels)), format_func=lambda i: labels[i])
+        picked = results[pick]
 
-    st.subheader("② 學習紀錄")
-    mistake_json = st.text_area(
-        "貼上前端複製的失誤 JSON（選填）",
-        height=120,
-        placeholder='[{"pitch":60,"start_time":1.2}, ...]',
-    )
-    if st.button("分析弱點段落") and mistake_json.strip():
-        try:
-            mistakes = json.loads(mistake_json)
-            times = sorted(m["start_time"] for m in mistakes if "start_time" in m)
-            segments = []
-            if times:
-                start, end = times[0], times[0]
-                for t in times[1:]:
-                    if t - end <= 3:
-                        end = t
-                    else:
-                        segments.append({"start": max(0, start - 2), "end": end + 2})
-                        start = end = t
-                segments.append({"start": max(0, start - 2), "end": end + 2})
-            st.session_state.practice_segments = segments
-            st.success(f"找到 {len(segments)} 個建議練習段落")
-            for i, seg in enumerate(segments, 1):
-                st.write(f"段落 {i}: {seg['start']:.1f}s – {seg['end']:.1f}s")
-        except json.JSONDecodeError:
-            st.error("JSON 格式錯誤")
+        if st.button("解析並開始教學", type="primary", key="btn_parse_search"):
+            st.session_state["pending_track"] = picked
+            st.session_state.pop("lesson_ready", None)
 
-with col_main:
-    score_data = None
-    audio_path = None
-    song_title = "示範曲"
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if source == "上傳音檔":
-        if not HAS_BASIC_PITCH:
-            st.warning("請先安裝 basic-pitch 後再上傳音檔。")
-        else:
-            uploaded = st.file_uploader("上傳 MP3 / WAV", type=["mp3", "wav", "m4a"])
-            if uploaded:
-                audio_path = save_upload(uploaded)
-                song_title = uploaded.name
+with tab_upload:
+    uploaded = st.file_uploader("MP3 / WAV / M4A", type=["mp3", "wav", "m4a"])
+    if uploaded and st.button("上傳並抓譜", type="primary", key="btn_upload"):
+        st.session_state["pending_upload"] = save_upload(uploaded)
+        st.session_state["pending_title"] = uploaded.name
+        st.session_state.pop("lesson_ready", None)
 
-    elif source == "YouTube 連結":
-        if not HAS_BASIC_PITCH:
-            st.warning("請先安裝 basic-pitch。")
-        else:
-            yt_url = st.text_input(
-                "貼上 YouTube 網址",
-                placeholder="https://www.youtube.com/watch?v=...",
-            )
-            if yt_url and st.button("下載並 AI 抓譜", type="primary"):
-                with st.spinner("正在下載 YouTube 音檔…"):
-                    try:
-                        audio_path = download_youtube_audio(
-                            yt_url, os.path.join(UPLOAD_DIR, "yt_audio")
-                        )
-                        song_title = "YouTube 歌曲"
-                        st.session_state["yt_audio_path"] = audio_path
-                        st.success("下載完成，開始 AI 抓譜…")
-                    except Exception as e:
-                        st.error(f"下載失敗：{e}")
-            if "yt_audio_path" in st.session_state and not audio_path:
-                audio_path = st.session_state["yt_audio_path"]
-                song_title = "YouTube 歌曲"
+with tab_url:
+    yt_url = st.text_input("YouTube 網址", placeholder="https://www.youtube.com/watch?v=...")
+    if yt_url and st.button("下載並抓譜", type="primary", key="btn_yt"):
+        st.session_state["pending_yt"] = yt_url
+        st.session_state.pop("lesson_ready", None)
 
-    else:
-        demo = st.selectbox("選擇示範曲（免 AI）", ["小星星", "笑傲江湖（滄海一聲笑）"])
+with tab_demo:
+    demo = st.selectbox("內建示範", ["小星星", "笑傲江湖（滄海一聲笑）"])
+    if st.button("載入示範曲", type="primary", key="btn_demo"):
         demo_id = "xiaoaojianghu" if "笑傲" in demo else "twinkle"
-        score_data = get_demo_score(demo_id)
-        song_title = demo
-
-    # 真實 AI 抓譜（上傳 / YouTube）
-    if audio_path and score_data is None and HAS_BASIC_PITCH:
-        size_mb = os.path.getsize(audio_path) / (1024 * 1024)
-        if size_mb > 12:
-            st.warning(f"音檔 {size_mb:.1f} MB，嵌入播放可能較慢，建議 3 分鐘內。")
-
-        with st.spinner("🤖 AI 正在解析樂譜（basic-pitch）… 首次需下載模型"):
-            try:
-                score_data = run_ai_transcription(audio_path, simplify_melody)
-            except Exception as e:
-                st.error(f"抓譜失敗：{e}")
-                st.stop()
-
-    if score_data:
-        st.success(f"樂譜就緒：{len(score_data)} 個音符 · {song_title}")
-
-        if audio_path and os.path.exists(audio_path):
-            st.audio(audio_path)
-            audio_src = audio_to_data_uri(audio_path)
-        else:
-            audio_src = ""
-
-        st.markdown("### 🎮 互動教學區")
-        st.markdown(
-            "**下排** A–J = C4–B4 · **上排** Q–U = C5–B5。"
-            "跟彈模式：音符落到紅線時按對應鍵。"
+        full = get_demo_score(demo_id)
+        score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+            full, practice_scope
         )
-        render_piano(score_data, audio_src, song_title)
+        song_title = demo
+        st.session_state["lesson_ready"] = True
+        st.session_state["lesson"] = {
+            "score": score_data,
+            "title": song_title,
+            "audio_path": None,
+            "chorus_start": chorus_start,
+            "chorus_end": chorus_end,
+            "audio_offset": audio_offset,
+            "practice_mode": practice_mode,
+            "auto_play": auto_play_demo,
+        }
+
+# ── Process pending jobs ──
+if "pending_track" in st.session_state and HAS_BASIC_PITCH:
+    track = st.session_state.pop("pending_track")
+    with st.spinner("取得音源並 AI 抓譜中…"):
+        try:
+            if track["source"] == "spotify":
+                yt_candidates = resolve_spotify_to_youtube(track)
+                if not yt_candidates:
+                    raise ValueError("找不到對應 YouTube 音源")
+                url = yt_candidates[0]["url"]
+                song_title = track["title"]
+            else:
+                url = track["url"]
+                song_title = track["title"]
+            audio_path = download_youtube_audio(url, os.path.join(UPLOAD_DIR, "search_audio"))
+            notes = run_ai_transcription(audio_path, simplify_melody)
+            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+                notes, practice_scope
+            )
+            st.session_state["lesson"] = {
+                "score": score_data,
+                "title": song_title,
+                "audio_path": audio_path,
+                "chorus_start": chorus_start,
+                "chorus_end": chorus_end,
+                "audio_offset": audio_offset,
+                "practice_mode": practice_mode,
+                "auto_play": auto_play_demo,
+            }
+            st.session_state["lesson_ready"] = True
+            st.success(f"完成：{song_title}")
+        except Exception as e:
+            st.error(f"解析失敗：{e}")
+
+if "pending_upload" in st.session_state and HAS_BASIC_PITCH:
+    path = st.session_state.pop("pending_upload")
+    title = st.session_state.pop("pending_title", "上傳歌曲")
+    with st.spinner("AI 抓譜中…"):
+        try:
+            notes = run_ai_transcription(path, simplify_melody)
+            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+                notes, practice_scope
+            )
+            st.session_state["lesson"] = {
+                "score": score_data,
+                "title": title,
+                "audio_path": path,
+                "chorus_start": chorus_start,
+                "chorus_end": chorus_end,
+                "audio_offset": audio_offset,
+                "practice_mode": practice_mode,
+                "auto_play": auto_play_demo,
+            }
+            st.session_state["lesson_ready"] = True
+        except Exception as e:
+            st.error(f"抓譜失敗：{e}")
+
+if "pending_yt" in st.session_state and HAS_BASIC_PITCH:
+    url = st.session_state.pop("pending_yt")
+    with st.spinner("下載並抓譜…"):
+        try:
+            audio_path = download_youtube_audio(url, os.path.join(UPLOAD_DIR, "yt_audio"))
+            notes = run_ai_transcription(audio_path, simplify_melody)
+            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+                notes, practice_scope
+            )
+            st.session_state["lesson"] = {
+                "score": score_data,
+                "title": "YouTube 歌曲",
+                "audio_path": audio_path,
+                "chorus_start": chorus_start,
+                "chorus_end": chorus_end,
+                "audio_offset": audio_offset,
+                "practice_mode": practice_mode,
+                "auto_play": auto_play_demo,
+            }
+            st.session_state["lesson_ready"] = True
+        except Exception as e:
+            st.error(f"失敗：{e}")
+
+# ── Render lesson ──
+if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
+    L = st.session_state["lesson"]
+    st.markdown("---")
+    mode_label = "副歌練習" if L["practice_mode"] == "chorus" else "整首練習"
+    st.markdown(f"**{L['title']}** · {len(L['score'])} 音符 · {mode_label}")
+
+    if L["practice_mode"] == "full" and L["chorus_end"] > L["chorus_start"]:
+        st.caption(
+            f"偵測副歌約 {L['chorus_start']:.1f}s – {L['chorus_end']:.1f}s"
+            "（可在下方切換「僅副歌」重新載入）"
+        )
+
+    audio_src = ""
+    if L.get("audio_path") and os.path.exists(L["audio_path"]):
+        st.audio(L["audio_path"])
+        audio_src = audio_to_data_uri(L["audio_path"])
+
+    render_piano(
+        L["score"],
+        audio_src,
+        L["title"],
+        chorus_start=L["chorus_start"],
+        chorus_end=L["chorus_end"],
+        practice_mode=L["practice_mode"],
+        audio_offset=L["audio_offset"],
+        auto_play=L.get("auto_play", False),
+    )
+
+    if L.get("auto_play"):
+        st.caption("已啟用「載入後自動彈奏」— 請在教學區點擊播放或等待自動開始。")

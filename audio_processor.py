@@ -183,6 +183,64 @@ def get_demo_score(demo_id: str) -> list:
             "end_time": round(start + dur, 3),
             "duration": dur,
             "isHit": False,
-            "isMissed": False,
         })
     return notes
+
+
+def get_song_duration(notes: list) -> float:
+    if not notes:
+        return 0.0
+    return max(n["start_time"] + n["duration"] for n in notes)
+
+
+def detect_chorus_bounds(notes: list, window: float = 28.0) -> tuple[float, float]:
+    """
+    以音符密度啟發式估算副歌段落（常見於中後段高密度區）。
+    回傳 (start_sec, end_sec)。
+    """
+    if not notes:
+        return 0.0, 30.0
+
+    total = get_song_duration(notes)
+    if total < window + 5:
+        return 0.0, total
+
+    search_from = total * 0.22
+    search_to = max(search_from + window, total * 0.88)
+    step = 4.0
+
+    best_start = search_from
+    best_score = -1.0
+    t = search_from
+    while t + window <= search_to:
+        seg = [n for n in notes if t <= n["start_time"] < t + window]
+        if not seg:
+            t += step
+            continue
+        density = len(seg) / window
+        pitch_variety = len({n["pitch"] for n in seg}) / 14.0
+        center_bias = 1.0 - abs((t + window / 2) - total * 0.55) / (total * 0.5)
+        score = density * 0.55 + pitch_variety * 0.25 + center_bias * 0.2
+        if score > best_score:
+            best_score = score
+            best_start = t
+        t += step
+
+    end = min(best_start + window, total)
+    return round(best_start, 2), round(end, 2)
+
+
+def extract_section(notes: list, start: float, end: float) -> list:
+    """截取段落並將時間軸归零。"""
+    sliced = []
+    for n in notes:
+        if n["start_time"] < start or n["start_time"] >= end:
+            continue
+        item = dict(n)
+        item["start_time"] = round(n["start_time"] - start, 3)
+        item["end_time"] = round(n.get("end_time", n["start_time"] + n["duration"]) - start, 3)
+        item["duration"] = round(n["duration"], 3)
+        item["isHit"] = False
+        item["isMissed"] = False
+        sliced.append(item)
+    return sliced
