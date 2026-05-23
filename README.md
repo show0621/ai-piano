@@ -32,6 +32,19 @@ streamlit run app.py
 pip install -r requirements.txt -r requirements-ml.txt
 ```
 
+## Spotify API 與金鑰安全
+
+**不要把** `client_id` / `client_secret` 寫進程式或 push 到 GitHub。
+
+| 環境 | 金鑰放哪裡 |
+|------|------------|
+| **Streamlit Cloud** | App → **Settings** → **Secrets**（加密，不進 repo） |
+| **本機** | `.streamlit/secrets.toml` 或 `.env`（已在 `.gitignore`） |
+| **GitHub Actions** | Repo → **Settings** → **Secrets and variables** → **Actions** |
+
+`secrets.toml` 範例見 `.streamlit/secrets.toml.example`。  
+CI 會執行 `.github/workflows/secret-hygiene.yml`，防止誤提交金鑰檔。
+
 ## 部署到 Streamlit Cloud
 
 1. 將專案推送到 **GitHub**

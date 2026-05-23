@@ -13,6 +13,7 @@ from audio_processor import (
     get_demo_score,
     process_audio_to_json,
 )
+from config_secrets import get_spotify_credentials, mask_secret, spotify_configured
 from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
 from youtube_dl import YouTubeDownloadError, download_audio_from_url, format_youtube_error
 
@@ -146,14 +147,6 @@ def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
 
     st.session_state[cache_key] = notes
     return notes
-
-
-def get_spotify_credentials():
-    try:
-        s = st.secrets.get("spotify", {})
-        return s.get("client_id"), s.get("client_secret")
-    except Exception:
-        return None, None
 
 
 def get_youtube_cookies_path() -> str | None:
@@ -302,33 +295,33 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### Spotify（選填）")
     cid, csec = get_spotify_credentials()
-    if cid and csec:
+    if spotify_configured():
         st.success("Spotify API 已連線")
+        st.caption(f"Client ID：`{mask_secret(cid)}`")
     else:
         st.caption("尚未設定 — 展開下方教學")
-    with st.expander("📖 如何設定 Spotify API"):
+    with st.expander("📖 Spotify API 與金鑰安全（勿提交 GitHub）"):
         st.markdown(
-            "**1. 申請金鑰**\n"
-            "- 開啟 [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)\n"
-            "- 登入 Spotify 帳號 → **Create app**\n"
-            "- 名稱、說明隨意填；**Redirect URI** 可填：\n"
-            "  `http://localhost:8501`（本機 Streamlit 預設）\n"
-            "- 勾選同意條款 → **Save**\n"
-            "- 進入該 App → **Settings** → 複製 **Client ID**\n"
-            "- 點 **View client secret** → 複製 **Client secret**\n\n"
-            "**2. 雲端（Streamlit Cloud）**\n"
-            "- [share.streamlit.io](https://share.streamlit.io) → 你的 App\n"
-            "- **Settings** → **Secrets**，貼上：\n"
-            "```toml\n"
-            "[spotify]\n"
-            'client_id = "貼上_Client_ID"\n'
-            'client_secret = "貼上_Client_Secret"\n'
-            "```\n"
-            "- **Save** → **Reboot**\n\n"
-            "**3. 本機**\n"
-            "- 複製 `.streamlit/secrets.toml.example` 為 `.streamlit/secrets.toml`\n"
-            "- 填入同上 `[spotify]` 區塊（勿提交到 GitHub）\n\n"
-            "**注意**：Spotify 僅供**搜尋歌名**；抓譜音訊仍靠 YouTube 或 **📁 上傳 MP3**。"
+            "### 原則\n"
+            "- **GitHub 倉庫只放程式**，`client_id` / `client_secret` **絕不 push**\n"
+            "- 金鑰放在 **Streamlit Cloud Secrets**（加密、不進 repo）或本機 `.streamlit/secrets.toml`\n\n"
+            "### 1. 申請 Spotify 金鑰\n"
+            "1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) → **Create app**\n"
+            "2. Redirect URI：`http://localhost:8501`\n"
+            "3. **Settings** → 複製 **Client ID**、**Client secret**\n\n"
+            "### 2. 雲端 Streamlit（推薦）\n"
+            "1. [share.streamlit.io](https://share.streamlit.io) → 你的 App → **Settings** → **Secrets**\n"
+            "2. 貼上後 **Save** → **Reboot**：\n"
+            "```toml\n[spotify]\nclient_id = \"你的ID\"\nclient_secret = \"你的Secret\"\n```\n\n"
+            "### 3. 本機開發\n"
+            "- 複製 `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml`（已在 .gitignore）\n"
+            "- 或複製 `.env.example` → `.env`，填入 `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET`\n\n"
+            "### 4. GitHub Actions 加密 Secrets（進階 / CI）\n"
+            "Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**\n"
+            "- `SPOTIFY_CLIENT_ID`\n"
+            "- `SPOTIFY_CLIENT_SECRET`\n\n"
+            "僅供 Action 使用；**Streamlit Cloud 仍要在第 2 步單獨設定**。\n\n"
+            "**注意**：Spotify 只負責搜尋歌名；音訊請用 **📁 上傳 MP3**（雲端最穩）。"
         )
 
     st.markdown("---")
