@@ -296,6 +296,7 @@
         .piano-wrap {
             display: flex; justify-content: center;
             gap: 2px; overflow-x: auto; padding-bottom: 4px;
+            touch-action: none;
         }
         .piano-section { width: 100%; max-width: 1100px; margin: 0 auto; }
         .p-key {
@@ -322,9 +323,9 @@
         .touch-hint { display: none; margin-top: 8px; }
         .touch-device .keyboard-hint-desktop { display: none; }
         .touch-device .touch-hint { display: block; }
-        /* 平板橫向 / 手機橫向：雙排鍵併排、大觸控區 */
-        @media (max-width: 1024px) and (orientation: landscape) {
-            body { padding: 4px 2px 6px; }
+        /* 平板橫向 / 手機橫向（含倒掛）：由 JS 加 mode-mobile-land */
+        body.mode-mobile-land {
+            padding: 4px 2px 6px;
             .game-header h3 { font-size: 0.9rem; letter-spacing: 0.1em; }
             .game-header .subtitle { font-size: 0.65rem; margin-bottom: 4px; }
             .stats-bar { font-size: 0.72rem; gap: 14px; margin: 4px 0; }
@@ -338,15 +339,16 @@
                 font-size: 0.78rem;
             }
             .octave-label { display: none; }
-            .piano-section {
+            .piano-section .piano-rows {
                 display: flex;
                 flex-direction: row;
                 justify-content: center;
                 align-items: stretch;
                 gap: 8px;
+                width: 100%;
                 padding: 0 2px;
             }
-            .piano-wrap {
+            .piano-section .piano-wrap {
                 flex: 1;
                 min-width: 0;
                 max-width: 50%;
@@ -355,12 +357,16 @@
             #comboNumber.mega { font-size: 2.8rem; }
             #judgmentPop { font-size: 1.6rem; }
         }
-        /* 手機直向：提示橫放 */
-        @media (max-width: 768px) and (orientation: portrait) {
-            body.mode-mobile-portrait .game-shell {
-                opacity: 0.35;
-                pointer-events: none;
-            }
+        body.mode-mobile-land .p-key {
+            min-height: 52px;
+        }
+        /* 手機／平板直向：提示橫放 */
+        body.mode-mobile-portrait .game-shell {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+        body.touch-play .keyboard-hint-desktop {
+            display: none !important;
         }
         /* 電腦寬螢幕 */
         @media (min-width: 1025px) {
@@ -384,7 +390,7 @@
     <div id="rotateHint">
         <div class="icon">📱↻</div>
         <p><strong>請將裝置橫放</strong></p>
-        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向模式可完整顯示音符與琴鍵，方便觸控彈奏</p>
+        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向即可（左右橫放皆可），用手指點琴鍵彈奏</p>
     </div>
 
     <div class="game-shell">
@@ -433,7 +439,7 @@
     <p class="keyboard-hint keyboard-hint-desktop">
         電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
     </p>
-    <p class="keyboard-hint touch-hint">👆 點擊下方琴鍵彈奏（建議橫放裝置）</p>
+    <p class="keyboard-hint touch-hint">👆 用手指點下方琴鍵彈奏（不需鍵盤；請橫放裝置）</p>
 
     <section class="piano-section">
         <div class="piano-rows">
@@ -502,11 +508,37 @@
             pianoTop: 366, judgeY: 362,
         };
 
-        function isMobileView() {
-            return window.matchMedia('(max-width: 1024px)').matches;
+        function isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         }
+        function isIPadLike() {
+            const ua = navigator.userAgent || '';
+            return /iPad/i.test(ua)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        /** 手機／平板（含 iPad 橫向寬螢幕） */
+        function isMobileView() {
+            if (isIPadLike()) return true;
+            if (window.matchMedia('(max-width: 1024px)').matches) return true;
+            if (isTouchDevice() && Math.min(window.innerWidth, window.innerHeight) <= 1024) {
+                return true;
+            }
+            return false;
+        }
+        /** 以實際寬高判斷橫向（支援倒掛 landscape-secondary） */
         function isLandscapeView() {
-            return window.matchMedia('(orientation: landscape)').matches;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            if (w > h) return true;
+            const o = screen.orientation;
+            if (o && typeof o.angle === 'number') {
+                const a = ((o.angle % 360) + 360) % 360;
+                return a === 90 || a === 270;
+            }
+            if (typeof window.orientation === 'number') {
+                return Math.abs(window.orientation) === 90;
+            }
+            return false;
         }
         function noteW() { return layout.keyWidth - 5; }
 
@@ -555,6 +587,9 @@
             document.documentElement.style.setProperty('--key-w', keyW + 'px');
             document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
 
+            document.body.classList.toggle('layout-landscape', land);
+            document.body.classList.toggle('layout-portrait', !land);
+
             const rh = document.getElementById('rotateHint');
             if (rh) rh.classList.toggle('show', mobile && !land);
         }
@@ -591,12 +626,19 @@
         const pianoLow = document.getElementById('piano-low');
         const pianoHigh = document.getElementById('piano-high');
         function bindPianoKey(el, key) {
+            let lastFire = 0;
             const tap = (e) => {
+                if (e.pointerType === 'mouse' && e.buttons !== 1 && e.type === 'pointerdown') return;
                 if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                const now = performance.now();
+                if (now - lastFire < 70) return;
+                lastFire = now;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
                 onKeyPress(key);
             };
-            el.addEventListener('click', tap);
-            el.addEventListener('touchstart', tap, { passive: false });
+            el.addEventListener('pointerdown', tap);
+            el.addEventListener('contextmenu', (e) => e.preventDefault());
         }
 
         PITCH_MAP.forEach(p => {
@@ -609,7 +651,9 @@
             keyEls[p.key] = el;
         });
 
-        if ('ontouchstart' in window) document.body.classList.add('touch-device');
+        if (isTouchDevice()) {
+            document.body.classList.add('touch-device', 'touch-play');
+        }
 
         function midiToFreq(midi) {
             return 440 * Math.pow(2, (midi - 69) / 12);
@@ -880,6 +924,7 @@
         }
 
         window.addEventListener('keydown', e => {
+            if (isMobileView() && isTouchDevice()) return;
             if (e.repeat) return;
             const k = e.key.toLowerCase();
             if (keyToPitch[k]) { e.preventDefault(); onKeyPress(k); }
@@ -1293,7 +1338,14 @@
 
         applyLayout();
         window.addEventListener('resize', applyLayout);
-        window.addEventListener('orientationchange', () => setTimeout(applyLayout, 280));
+        window.addEventListener('orientationchange', () => setTimeout(applyLayout, 120));
+        if (screen.orientation && screen.orientation.addEventListener) {
+            screen.orientation.addEventListener('change', () => setTimeout(applyLayout, 120));
+        }
+        if (window.visualViewport) {
+            visualViewport.addEventListener('resize', applyLayout);
+            visualViewport.addEventListener('scroll', applyLayout);
+        }
 
         updateStatsUI();
         draw();
