@@ -36,12 +36,14 @@ streamlit run app.py
 
 | 檔案 | 用途 |
 |------|------|
+| `.python-version` | 鎖定 **Python 3.11**（TensorFlow / basic-pitch 不支援 3.14） |
 | `requirements.txt` | Python 依賴（含 `tensorflow-cpu`） |
 | `packages.txt` | 系統套件 `ffmpeg`（YouTube 用） |
 | `.streamlit/config.toml` | 主題與上傳大小上限 |
 
 ### Cloud 注意事項
 
+- **Python 版本**：必須 3.11（已用 `.python-version` 鎖定；Cloud 若用 3.14 會導致 TensorFlow 安裝失敗）
 - **記憶體**：`basic-pitch` 推論建議 Streamlit **Memory 2GB+**（App settings → Advanced）
 - **冷啟動**：首次抓譜較慢，可能超過預設 timeout
 - **YouTube**：雲端環境可能受網路/政策限制，建議以**上傳音檔**為主
