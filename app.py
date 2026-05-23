@@ -248,23 +248,36 @@ with tab_search:
         picked = results[pick]
 
         if st.button("解析並開始教學", type="primary", key="btn_parse_search"):
-            st.session_state["pending_track"] = picked
             st.session_state.pop("lesson_ready", None)
+            if not HAS_BASIC_PITCH:
+                st.error(
+                    "**無法 AI 抓譜**：目前環境未安裝 TensorFlow / basic-pitch。"
+                    " 請先用「🌸 示範曲」體驗教學；"
+                    "雲端部署請在 `requirements.txt` 取消 `-r requirements-ml.txt` 註解並以 **Python 3.11** 重新部署。"
+                )
+            else:
+                st.session_state["pending_track"] = picked
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 with tab_upload:
     uploaded = st.file_uploader("MP3 / WAV / M4A", type=["mp3", "wav", "m4a"])
     if uploaded and st.button("上傳並抓譜", type="primary", key="btn_upload"):
-        st.session_state["pending_upload"] = save_upload(uploaded)
-        st.session_state["pending_title"] = uploaded.name
         st.session_state.pop("lesson_ready", None)
+        if not HAS_BASIC_PITCH:
+            st.error("**無法 AI 抓譜**：請先安裝 ML 依賴（見上方黃色提示）或使用「示範曲」。")
+        else:
+            st.session_state["pending_upload"] = save_upload(uploaded)
+            st.session_state["pending_title"] = uploaded.name
 
 with tab_url:
     yt_url = st.text_input("YouTube 網址", placeholder="https://www.youtube.com/watch?v=...")
     if yt_url and st.button("下載並抓譜", type="primary", key="btn_yt"):
-        st.session_state["pending_yt"] = yt_url
         st.session_state.pop("lesson_ready", None)
+        if not HAS_BASIC_PITCH:
+            st.error("**無法 AI 抓譜**：請先安裝 ML 依賴（見上方黃色提示）或使用「示範曲」。")
+        else:
+            st.session_state["pending_yt"] = yt_url
 
 with tab_demo:
     demo = st.selectbox("內建示範", ["小星星", "笑傲江湖（滄海一聲笑）"])
@@ -288,6 +301,16 @@ with tab_demo:
         }
 
 # ── Process pending jobs ──
+if "pending_track" in st.session_state and not HAS_BASIC_PITCH:
+    st.session_state.pop("pending_track", None)
+
+if "pending_upload" in st.session_state and not HAS_BASIC_PITCH:
+    st.session_state.pop("pending_upload", None)
+    st.session_state.pop("pending_title", None)
+
+if "pending_yt" in st.session_state and not HAS_BASIC_PITCH:
+    st.session_state.pop("pending_yt", None)
+
 if "pending_track" in st.session_state and HAS_BASIC_PITCH:
     track = st.session_state.pop("pending_track")
     with st.spinner("取得音源並 AI 抓譜中…"):
