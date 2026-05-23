@@ -39,12 +39,10 @@ pip install -r requirements.txt -r requirements-ml.txt
 3. **重要（Python 版本）**：日誌若顯示 `Using Python 3.14.x`，請到 [share.streamlit.io](https://share.streamlit.io) → 你的 App → **Settings** → **Advanced settings** → **Python version** 選 **3.11**，儲存後 Reboot。  
    若進階設定裡沒有 3.11 或改完仍是 3.14：**刪除 App** → 重新 **Deploy**，在進階設定中選 **Python 3.11**（TensorFlow / basic-pitch 需要 3.11，無法在 3.14 安裝）。
 
-### 兩階段部署（建議）
+### AI 抓譜
 
-| 階段 | `requirements.txt` | 效果 |
-|------|-------------------|------|
-| 先讓網站能開 | 維持 ML 那行**註解** | 示範曲、鍵盤教學可用 |
-| 啟用 AI 抓譜 | 取消 `# -r requirements-ml.txt` 註解 + **用 3.11 重新 Deploy** | 上傳 / YouTube / 搜尋抓譜 |
+`requirements.txt` 已包含 `-r requirements-ml.txt`（TensorFlow + basic-pitch）。  
+部署時請使用 **Python 3.11** 與 **Memory 2GB+**，首次啟動需等待安裝與模型下載。
 
 ### 專案已包含的 Cloud 設定
 

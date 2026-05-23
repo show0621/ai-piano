@@ -173,18 +173,17 @@ if IS_CLOUD:
     st.info("☁️ 雲端模式：Memory 建議 2GB+，首次 AI 需下載模型。")
 if not HAS_BASIC_PITCH:
     st.warning(
-        "**AI 抓譜未啟用**（TensorFlow / basic-pitch 未安裝）。"
-        "仍可使用「示範曲」。若要完整 AI：請**刪除 Cloud App 後重新部署**（會讀取 `.python-version` 的 **3.11**），"
-        "並在 `requirements.txt` 取消 `-r requirements-ml.txt` 的註解。"
+        "**AI 抓譜尚未就緒**（TensorFlow / basic-pitch 未載入）。"
+        "仍可使用「示範曲」。雲端請確認：**Python 3.11**、**Memory 2GB+**，"
+        "並等待本次部署安裝完成後按 **Reboot**。"
     )
 
 # ── Sidebar ──
 with st.sidebar:
     if IS_CLOUD and not HAS_BASIC_PITCH:
         st.warning(
-            "Cloud 目前無 AI 模組。請到 [share.streamlit.io](https://share.streamlit.io) "
-            "**刪除此 App → 重新 Deploy**（部署時會使用 Python 3.11），"
-            "並在 GitHub 的 `requirements.txt` 取消 `-r requirements-ml.txt` 註解。"
+            "Cloud 正在安裝 AI 模組，或安裝失敗。請到 App **Settings → Advanced → Python 3.11**、"
+            "**Memory 2GB+**，查看 **Manage app → Logs** 是否有 TensorFlow 錯誤，完成後 **Reboot**。"
         )
     st.markdown("### 練習設定")
     practice_scope = st.radio(
@@ -251,9 +250,9 @@ with tab_search:
             st.session_state.pop("lesson_ready", None)
             if not HAS_BASIC_PITCH:
                 st.error(
-                    "**無法 AI 抓譜**：目前環境未安裝 TensorFlow / basic-pitch。"
-                    " 請先用「🌸 示範曲」體驗教學；"
-                    "雲端部署請在 `requirements.txt` 取消 `-r requirements-ml.txt` 註解並以 **Python 3.11** 重新部署。"
+                    "**無法 AI 抓譜**：TensorFlow / basic-pitch 尚未載入。"
+                    " 請先用「🌸 示範曲」；雲端請確認 **Python 3.11**、**Memory 2GB+**，"
+                    "等部署日誌安裝完成後 **Reboot**（首次 AI 還需下載模型，約 1–3 分鐘）。"
                 )
             else:
                 st.session_state["pending_track"] = picked

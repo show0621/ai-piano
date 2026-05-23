@@ -6,5 +6,5 @@ yt-dlp>=2024.4.9
 numpy>=1.26.4,<2.0.0
 spotipy>=2.23.0
 
-# AI 抓譜（需 Python 3.11；Streamlit Cloud 請先刪除 App 後用 3.11 重新部署，再取消下行註解）
-# -r requirements-ml.txt
+# AI 抓譜（Streamlit Cloud：Python 3.11 + Memory 2GB+）
+-r requirements-ml.txt
