@@ -11,6 +11,7 @@ from audio_processor import (
     detect_chorus_bounds,
     extract_section,
     filter_notes,
+    DEMO_CATALOG,
     get_demo_score,
     midi_to_web_notes,
     process_audio_to_json,
@@ -616,23 +617,20 @@ elif audio_source == "🔗 直接音檔網址":
 elif audio_source == "🌸 示範曲":
     st.markdown("#### 內建示範曲")
     st.caption(
-        "不需 AI、不需網路，可直接練習鍵盤與下落音符。"
-        "「滄海一聲笑」為完整版（主歌×3＋副歌＋尾奏，約 1 分 10 秒）。"
+        "不需 AI、不需網路，可直接練習。含周杰倫、孫燕姿熱門曲（C 調簡化主旋律）；"
+        "「滄海一聲笑」為完整版。"
     )
-    demo = st.selectbox(
-        "選擇曲目",
-        ["小星星", "笑傲江湖（滄海一聲笑·完整版）"],
-        key="demo_pick",
-    )
+    demo_labels = [f"{d['artist']} · {d['title']}" for d in DEMO_CATALOG]
+    demo_pick = st.selectbox("選擇曲目", range(len(demo_labels)), format_func=lambda i: demo_labels[i], key="demo_pick")
+    ent = DEMO_CATALOG[demo_pick]
     if st.button("載入示範曲", type="primary", key="btn_demo"):
-        demo_id = "xiaoaojianghu" if "笑傲" in demo else "twinkle"
-        full = get_demo_score(demo_id)
-        load_score_lesson(
-            full,
-            demo,
-            force_full=(demo_id == "xiaoaojianghu"),
-        )
-        st.rerun()
+        try:
+            notes = get_demo_score(ent["id"])
+            title = f"{ent['artist']} · {ent['title']}"
+            load_score_lesson(notes, title, force_full=bool(ent.get("full")))
+            st.rerun()
+        except Exception as e:
+            st.error(str(e))
 
 else:
     st.warning("請選擇音源類型。")

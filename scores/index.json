@@ -16,6 +16,41 @@
       "artist": "黃霑",
       "tags": ["demo", "中文", "完整", "武俠"],
       "duration_est": 80
+    },
+    {
+      "id": "jianndanai",
+      "title": "簡單愛",
+      "artist": "周杰倫",
+      "tags": ["demo", "華語", "周杰倫", "流行"],
+      "duration_est": 28
+    },
+    {
+      "id": "anjing",
+      "title": "安靜",
+      "artist": "周杰倫",
+      "tags": ["demo", "華語", "周杰倫", "流行"],
+      "duration_est": 32
+    },
+    {
+      "id": "kaibulekou",
+      "title": "開不了口",
+      "artist": "周杰倫",
+      "tags": ["demo", "華語", "周杰倫", "流行"],
+      "duration_est": 36
+    },
+    {
+      "id": "wobunanguo",
+      "title": "我不難過",
+      "artist": "孫燕姿",
+      "tags": ["demo", "華語", "孫燕姿", "流行"],
+      "duration_est": 30
+    },
+    {
+      "id": "lvguang",
+      "title": "綠光",
+      "artist": "孫燕姿",
+      "tags": ["demo", "華語", "孫燕姿", "流行"],
+      "duration_est": 24
     }
   ]
 }

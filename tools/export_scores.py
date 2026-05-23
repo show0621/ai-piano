@@ -14,10 +14,11 @@ from score_library import SCORES_DIR, export_notes_payload
 
 def main() -> None:
     os.makedirs(SCORES_DIR, exist_ok=True)
-    for sid, title in (
-        ("twinkle", "小星星"),
-        ("xiaoaojianghu", "笑傲江湖（滄海一聲笑·完整版）"),
-    ):
+    from audio_processor import DEMO_CATALOG
+
+    for ent in DEMO_CATALOG:
+        sid = ent["id"]
+        title = f"{ent['artist']} · {ent['title']}"
         notes = get_demo_score(sid)
         path = os.path.join(SCORES_DIR, f"{sid}.json")
         with open(path, "w", encoding="utf-8") as f:

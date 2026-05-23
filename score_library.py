@@ -132,10 +132,12 @@ def load_score(score_id: str) -> list:
         except (urllib.error.URLError, json.JSONDecodeError, TimeoutError):
             pass
 
-    if score_id in ("twinkle", "xiaoaojianghu"):
+    try:
         from audio_processor import get_demo_score
 
         return get_demo_score(score_id)
+    except KeyError:
+        pass
 
     raise FileNotFoundError(f"找不到曲庫曲目：{score_id}")
 

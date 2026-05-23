@@ -124,7 +124,7 @@ def process_audio_to_json(
 
 
 _JIANPU_PITCH = {1: 60, 2: 62, 3: 64, 4: 65, 5: 67, 6: 69, 7: 71}
-_JIANPU_HIGH = {1: 12, 2: 12}  # 高音 1、2 → C5、D5
+_JIANPU_HIGH = {1: 12, 2: 12, 3: 12, 4: 12, 5: 12, 6: 12, 7: 12}  # x' → 高八度
 
 # 笑傲江湖《滄海一聲笑》C 調簡譜（1' 2' 為高八度）
 _XIAOAO_VERSE = """
@@ -138,6 +138,57 @@ _XIAOAO_OUTRO = """
 6 - - 5 3 5 6 1' - 2' 1' 6 -
 5 5 3 2 3 5 6 - 3 2 1 - -
 """
+
+# 周杰倫 · 孫燕姿（C 調簡化主旋律，' 為高八度，供跟彈練習）
+_JIAN_DANAI = """
+5 5 6 5 3 2 3 2 1 6
+5 5 6 5 3 2 3 2 1 2 3
+5 5 6 5 3 2 3 2 1 6
+6 5 4 3 2 1 - -
+"""
+
+_ANJING = """
+1' 1' 7' 6' 5 - - -
+5 5 6 5 3 2 1 2 3 -
+1' 7' 6' 5 3 2 1 - -
+6 5 3 2 1 2 3 2 1 6
+1' 1' 7' 6' 5 - - -
+"""
+
+_KAIBULEKOU = """
+3 5 6 5 3 2 3
+2 3 5 6 5 3 5
+6 5 3 2 3 2 1
+3 5 6 5 3 2 1 -
+3 5 6 5 3 2 3
+1' 7' 6' 5 3 2 1 -
+"""
+
+_WOBUNANGUO = """
+6 5 3 5 6 1' 1'
+7' 6' 5 3 2 3 5
+6 5 3 5 6 1' - -
+7' 6' 5 3 2 1 - -
+6 5 3 5 6 5 3 2 1
+"""
+
+_LVGuang = """
+5 5 6 5 3 5 6 1' 1'
+5 5 6 5 3 2 3 2 1 6
+3 3 4 5 6 5 3 2 3 5
+6 5 3 5 6 1' 1' - -
+5 5 6 5 3 5 6 1' - -
+"""
+
+DEMO_CATALOG = [
+    {"id": "twinkle", "title": "小星星", "artist": "兒歌", "full": False},
+    {"id": "xiaoaojianghu", "title": "笑傲江湖（滄海一聲笑·完整版）", "artist": "黃霑", "full": True},
+    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫", "full": False},
+    {"id": "anjing", "title": "安靜", "artist": "周杰倫", "full": False},
+    {"id": "kaibulekou", "title": "開不了口", "artist": "周杰倫", "full": False},
+    {"id": "wobunanguo", "title": "我不難過", "artist": "孫燕姿", "full": False},
+    {"id": "lvguang", "title": "綠光", "artist": "孫燕姿", "full": False},
+]
 
 
 def _parse_jianpu(jianpu: str, tempo: float = 0.42) -> list[tuple[int, float, float]]:
@@ -188,6 +239,28 @@ def _xiaoaojianghu_full_raw(tempo: float = 0.42) -> list[tuple[int, float, float
     return raw
 
 
+def _build_jianpu_score(
+    jianpu: str,
+    tempo: float = 0.45,
+    *,
+    repeat: int = 1,
+    gap_beats: int = 2,
+) -> list:
+    """將一段簡譜重複拼接為可練習曲。"""
+    section = _parse_jianpu(jianpu, tempo)
+    if not section:
+        return []
+    seg_len = section[-1][1] + section[-1][2]
+    gap = tempo * gap_beats
+    raw: list[tuple[int, float, float]] = []
+    offset = 0.0
+    for _ in range(max(1, repeat)):
+        for pitch, start, dur in section:
+            raw.append((pitch, start + offset, dur))
+        offset += seg_len + gap
+    return _raw_to_notes(raw)
+
+
 def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
     notes = []
     for pitch, start, dur in raw:
@@ -204,13 +277,29 @@ def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
 
 def get_demo_score(demo_id: str) -> list:
     """內建示範曲（不依賴 AI）。"""
-    if demo_id == "xiaoaojianghu":
-        return _raw_to_notes(_xiaoaojianghu_full_raw())
-    raw = [
-        (60, 0.0, 0.4), (60, 0.5, 0.4), (67, 1.0, 0.4), (67, 1.5, 0.4),
-        (69, 2.0, 0.4), (69, 2.5, 0.4), (67, 3.0, 0.8),
-    ]
-    return _raw_to_notes(raw)
+    builders = {
+        "twinkle": lambda: _raw_to_notes([
+            (60, 0.0, 0.4), (60, 0.5, 0.4), (67, 1.0, 0.4), (67, 1.5, 0.4),
+            (69, 2.0, 0.4), (69, 2.5, 0.4), (67, 3.0, 0.8),
+        ]),
+        "xiaoaojianghu": lambda: _raw_to_notes(_xiaoaojianghu_full_raw()),
+        "jianndanai": lambda: _build_jianpu_score(_JIAN_DANAI, 0.48, repeat=2),
+        "anjing": lambda: _build_jianpu_score(_ANJING, 0.5, repeat=2),
+        "kaibulekou": lambda: _build_jianpu_score(_KAIBULEKOU, 0.52, repeat=2),
+        "wobunanguo": lambda: _build_jianpu_score(_WOBUNANGUO, 0.48, repeat=2),
+        "lvguang": lambda: _build_jianpu_score(_LVGuang, 0.38, repeat=2),
+    }
+    build = builders.get(demo_id)
+    if build:
+        return build()
+    raise KeyError(f"未知示範曲：{demo_id}")
+
+
+def get_demo_meta(demo_id: str) -> dict | None:
+    for item in DEMO_CATALOG:
+        if item["id"] == demo_id:
+            return item
+    return None
 
 
 def get_song_duration(notes: list) -> float:
