@@ -391,7 +391,71 @@
             font-size: 0.7rem;
         }
         body.mode-mobile-land .ctrl-ab { display: none !important; }
+        body.mode-mobile-land .playfield-chrome .controls { display: none !important; }
         body.mode-mobile-land .keyboard-hint { display: none !important; }
+        body.mode-mobile-land .p-key .kn { display: none; }
+        body.mode-mobile-land .p-key span:not(.kn) { font-size: 0.48rem; opacity: 0.85; }
+        .mobile-dock {
+            display: none;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 6px 8px;
+            padding-bottom: max(6px, env(safe-area-inset-bottom));
+            background: rgba(247, 243, 235, 0.97);
+            border-top: 1px solid #D4C9B8;
+            z-index: 30;
+        }
+        body.mode-mobile-land .mobile-dock { display: flex; }
+        .mobile-dock .dock-btn {
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 4px;
+            border: 1px solid #C9B8A4;
+            background: #F7F3EB;
+            color: #4A4035;
+            font-size: 0.95rem;
+            font-family: inherit;
+            letter-spacing: 0.06em;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-dock .dock-btn.primary {
+            min-width: 132px;
+            background: #8B7355;
+            color: #F7F3EB;
+            border: none;
+            font-weight: 600;
+        }
+        .mobile-dock .dock-btn.active-mode {
+            background: #6B5742;
+        }
+        .mobile-dock .dock-speed {
+            min-height: 44px;
+            font-size: 0.8rem;
+            border: 1px solid #C9B8A4;
+            border-radius: 4px;
+            background: #F7F3EB;
+        }
+        #countdownOverlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            background: rgba(20, 18, 16, 0.72);
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #countdownOverlay.show { display: flex; }
+        #countdownNum {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 4.5rem;
+            color: #FFD54F;
+            text-shadow: 0 0 24px rgba(255, 213, 100, 0.6);
+        }
         body.mode-mobile-land .canvas-wrap {
             flex: 1;
             min-height: 0;
@@ -508,6 +572,9 @@
     <div class="playfield">
         <div class="canvas-wrap">
             <canvas id="gameCanvas" width="1100" height="420"></canvas>
+            <div id="countdownOverlay" aria-live="polite">
+                <span id="countdownNum">3</span>
+            </div>
             <div id="screenFlash"></div>
             <div id="comboOverlay">
                 <div id="comboNumber">0</div>
@@ -515,6 +582,16 @@
             </div>
             <div id="judgmentPop"></div>
             <div id="rapidBanner"></div>
+        </div>
+
+        <div class="mobile-dock" id="mobileDock">
+            <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
+            <select id="speedSelDock" class="dock-speed" aria-label="速度">
+                <option value="0.5">0.5×</option>
+                <option value="0.75">0.75×</option>
+                <option value="1" selected>1.0×</option>
+            </select>
+            <button type="button" class="dock-btn" id="btnRestartDock">↺ 重來</button>
         </div>
 
         <section class="piano-section">
@@ -630,7 +707,10 @@
 
         function measureChromeHeight() {
             let total = 0;
-            document.querySelectorAll('.playfield-chrome, .keyboard-hint').forEach(el => {
+            const selectors = document.body.classList.contains('mode-mobile-land')
+                ? '.playfield-chrome, .mobile-dock'
+                : '.playfield-chrome, .keyboard-hint';
+            document.querySelectorAll(selectors).forEach(el => {
                 if (!el || el.offsetParent === null) return;
                 const st = getComputedStyle(el);
                 if (st.display === 'none' || st.visibility === 'hidden') return;
@@ -799,6 +879,25 @@
 
         if (isTouchDevice()) {
             document.body.classList.add('touch-device', 'touch-play');
+        }
+
+        const btnPlayDock = document.getElementById('btnPlayDock');
+        if (btnPlayDock) {
+            btnPlayDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                togglePlay();
+            });
+        }
+        const speedSelDock = document.getElementById('speedSelDock');
+        if (speedSelDock) {
+            speedSelDock.addEventListener('change', () => setSpeedFrom(speedSelDock));
+        }
+        const btnRestartDock = document.getElementById('btnRestartDock');
+        if (btnRestartDock) {
+            btnRestartDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                restart();
+            });
         }
 
         function midiToFreq(midi) {
@@ -1374,22 +1473,86 @@
             if (!animationId) draw();
         }
 
+        function syncSpeedSelects() {
+            const v = document.getElementById('speedSel').value;
+            const dock = document.getElementById('speedSelDock');
+            if (dock) dock.value = v;
+        }
+
+        function setSpeedFrom(sel) {
+            document.getElementById('speedSel').value = sel.value;
+            setSpeed();
+        }
+
+        function updatePlayButtonLabels() {
+            const playing = isPlaying;
+            const playLabel = playing ? '⏸ 暫停' : '▶ 開始跟彈';
+            const bp = document.getElementById('btnPlay');
+            if (bp) {
+                bp.textContent = playing ? '暫停' : '跟彈';
+                bp.classList.toggle('active-mode', playing);
+            }
+            const dock = document.getElementById('btnPlayDock');
+            if (dock) {
+                dock.textContent = playLabel;
+                dock.classList.toggle('active-mode', playing);
+            }
+        }
+
+        let countdownRunning = false;
+        function startWithCountdown(onGo) {
+            if (countdownRunning) return;
+            const overlay = document.getElementById('countdownOverlay');
+            const numEl = document.getElementById('countdownNum');
+            if (!overlay || !numEl || !(isMobileView() && isLandscapeView())) {
+                onGo();
+                return;
+            }
+            countdownRunning = true;
+            let n = 3;
+            numEl.textContent = String(n);
+            overlay.classList.add('show');
+            const step = () => {
+                n -= 1;
+                if (n > 0) {
+                    numEl.textContent = String(n);
+                    setTimeout(step, 650);
+                } else {
+                    overlay.classList.remove('show');
+                    countdownRunning = false;
+                    onGo();
+                }
+            };
+            setTimeout(step, 650);
+        }
+
         function togglePlay() {
             clearModes();
-            document.getElementById('btnPlay').classList.add('active-mode');
             if (isPlaying) {
                 isPlaying = false;
                 if (!useInternalClock) audio.pause();
                 else clockPausedAt = getCurrentTime();
                 cancelAnimationFrame(animationId);
                 animationId = null;
+                updatePlayButtonLabels();
+                return;
+            }
+            const fromStart = getCurrentTime() < 0.05;
+            const go = () => {
+                document.getElementById('btnPlay').classList.add('active-mode');
+                beginPlayback(fromStart ? 0 : getCurrentTime());
+                updatePlayButtonLabels();
+            };
+            if (fromStart && isMobileView() && isLandscapeView()) {
+                startWithCountdown(go);
             } else {
-                beginPlayback(getCurrentTime());
+                go();
             }
         }
 
         function setSpeed() {
             if (!useInternalClock) audio.playbackRate = getSpeed();
+            syncSpeedSelects();
         }
 
         function restart() {
@@ -1404,6 +1567,7 @@
             draw();
             cancelAnimationFrame(animationId);
             animationId = null;
+            updatePlayButtonLabels();
         }
 
         function toggleLoop() { loopEnabled = !loopEnabled; }

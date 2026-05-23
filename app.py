@@ -32,7 +32,7 @@ st.set_page_config(
     page_title="音ノ手帖 · AI 鋼琴",
     layout="wide",
     page_icon="🎹",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -109,8 +109,69 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {
     .block-container { padding: 0.35rem 0.5rem 0.75rem; }
     [data-testid="column"] { width: 100% !important; flex: 1 1 100%; }
 }
+/* 手機橫向練習：全螢幕 iframe，隱藏 Streamlit 頂欄／底部與頁面上方設定區 */
+@media (max-height: 520px) and (orientation: landscape) {
+    body.st-mobile-practice [data-testid="stHeader"],
+    body.st-mobile-practice [data-testid="stToolbar"],
+    body.st-mobile-practice [data-testid="stDecoration"],
+    body.st-mobile-practice footer,
+    body.st-mobile-practice [data-testid="stAppDeployButton"],
+    body.st-mobile-practice .stDeployButton,
+    body.st-mobile-practice a[href*="streamlit.io"],
+    body.st-mobile-practice [data-testid="stSidebar"],
+    body.st-mobile-practice [data-testid="stSidebarCollapsedControl"] {
+        display: none !important;
+    }
+    body.st-mobile-practice .block-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    body.st-mobile-practice .lesson-setup-panel {
+        display: none !important;
+    }
+    body.st-mobile-practice .lesson-meta-panel {
+        display: none !important;
+    }
+    body.st-mobile-practice .lesson-export-panel {
+        display: none !important;
+    }
+    body.st-mobile-practice div[data-testid="stHtml"] {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 999990 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #EFEBE3 !important;
+    }
+    body.st-mobile-practice div[data-testid="stHtml"] iframe {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 100% !important;
+        border: none !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
+
+MOBILE_PRACTICE_BOOT = """
+<script>
+(function () {
+    function apply() {
+        var land = window.matchMedia("(orientation: landscape)").matches;
+        var short = window.innerHeight <= 520 || (window.visualViewport && window.visualViewport.height <= 520);
+        var narrow = window.innerWidth <= 1024;
+        if (land && (short || narrow)) {
+            document.body.classList.add("st-mobile-practice");
+        } else {
+            document.body.classList.remove("st-mobile-practice");
+        }
+    }
+    apply();
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", function () { setTimeout(apply, 200); });
+})();
+</script>
+"""
 
 
 def audio_to_data_uri(path: str) -> str:
@@ -143,8 +204,9 @@ def render_piano(
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    # 內部 frontend 在手機橫向用 100dvh 自適應；關閉 iframe 捲動避免琴鍵與音符分離
-    components.html(html, height=720, scrolling=False)
+    boot = MOBILE_PRACTICE_BOOT
+    # 橫向手機：父頁全螢幕 iframe；高度設小讓外層不捲動，內部用 100dvh
+    components.html(boot + html, height=400, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
@@ -171,13 +233,13 @@ def mobile_practice_guide() -> str:
         "| **🎹 MIDI 檔** | ⭐⭐⭐ | BitMidi / EOP / MuseScore 下載 .mid 上傳 |\n"
         "| **📚 曲庫** | ⭐⭐⭐ | 已轉好的樂譜，雲端免 YT / 免 AI |\n"
         "| **🔍 搜尋樂譜** | ⭐⭐ | BitMidi / IMSLP / ABC / 外站連結 |\n"
-        "| **🌸 示範曲** | ⭐⭐⭐ | 選示範曲 → 載入 → 橫放 → 點琴鍵 |\n"
+        "| **🌸 示範曲** | ⭐⭐⭐ | 載入 → 橫放 → 點 **▶ 開始跟彈** |\n"
         "| **📁 上傳 MP3** | ⭐⭐⭐ | 先把歌存成 MP3 到「檔案」→ 本頁上傳 |\n"
         "| **🎤 錄音** | ⭐⭐ | Android Chrome 較穩；錄一段旋律再抓譜 |\n\n"
         "**iPhone 把 MP3 放進手機：**\n"
         "1. 用 iTunes / 電腦同步、或合法下載 MP3 到 **「檔案」** App\n"
         "2. Safari 開本 App → **📁 本機上傳** → 選擇檔案\n"
-        "3. 橫放 → **跟彈** → 點螢幕琴鍵\n\n"
+        "3. 橫放進入全螢幕練習 → 點 **▶ 開始跟彈**（3 秒倒數）→ 用手指點琴鍵\n\n"
         "練習區載入後，**同一首曲會保留在分頁中**（重新整理前可繼續練）。"
     )
 
@@ -314,6 +376,7 @@ def load_score_lesson(
 
 
 # ── Header ──
+st.markdown('<div class="lesson-setup-panel">', unsafe_allow_html=True)
 st.markdown('<p class="hero-sub">音ノ手帖 · Oto no Techō</p>', unsafe_allow_html=True)
 st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_html=True)
 st.caption("音源：上傳 · MIDI 檔 · 曲庫 · 搜尋樂譜 · 直接音檔網址 · 示範曲")
@@ -324,7 +387,10 @@ if IS_CLOUD:
 
 if st.session_state.get("lesson_ready") and st.session_state.get("lesson"):
     L0 = st.session_state["lesson"]
-    st.success(f"🎹 已載入 **{L0['title']}** — 向下滑動到鍵盤即可繼續練（關閉分頁前不用重傳）。")
+    st.success(
+        f"🎹 已載入 **{L0['title']}** — "
+        "手機橫向會進入全螢幕練習；在琴鍵上方點 **▶ 開始跟彈**（有 3 秒倒數）。"
+    )
 if not HAS_BASIC_PITCH:
     st.warning(
         "**AI 抓譜尚未就緒**（TensorFlow / basic-pitch 未載入）。"
@@ -636,6 +702,7 @@ else:
     st.warning("請選擇音源類型。")
 
 st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
 # ── 處理 AI 抓譜佇列 ──
 if "pending_job" in st.session_state and not HAS_BASIC_PITCH:
@@ -669,6 +736,8 @@ if "pending_job" in st.session_state and HAS_BASIC_PITCH:
 # ── Render lesson ──
 if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
     L = st.session_state["lesson"]
+    st.markdown(MOBILE_PRACTICE_BOOT, unsafe_allow_html=True)
+    st.markdown('<div class="lesson-meta-panel">', unsafe_allow_html=True)
     st.markdown("---")
     mode_label = "副歌練習" if L["practice_mode"] == "chorus" else "整首練習"
     src = L.get("source", "")
@@ -685,6 +754,7 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
     if L.get("audio_path") and os.path.exists(L["audio_path"]):
         st.audio(L["audio_path"])
         audio_src = audio_to_data_uri(L["audio_path"])
+    st.markdown("</div>", unsafe_allow_html=True)
 
     render_piano(
         L["score"],
@@ -700,6 +770,7 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
     if L.get("auto_play"):
         st.caption("已啟用「載入後自動彈奏」— 請在教學區點擊播放或等待自動開始。")
 
+    st.markdown('<div class="lesson-export-panel">', unsafe_allow_html=True)
     st.download_button(
         "⬇️ 匯出樂譜 JSON（可放入 scores/ 推上 GitHub）",
         data=export_notes_payload(
@@ -715,3 +786,4 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         "本機 MP3 + AI 抓譜 → 匯出 JSON → 放入 `scores/` 並 push，"
         "之後用 **📚 曲庫** 直接練。"
     )
+    st.markdown("</div>", unsafe_allow_html=True)
