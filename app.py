@@ -15,6 +15,7 @@ from audio_processor import (
     process_audio_to_json,
 )
 from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
+from youtube_dl import YouTubeDownloadError, format_youtube_error
 
 st.set_page_config(
     page_title="音ノ手帖 · AI 鋼琴",
@@ -156,6 +157,52 @@ def get_spotify_credentials():
         return None, None
 
 
+def get_youtube_cookies_path() -> str | None:
+    """Streamlit Secrets: [youtube] cookies_txt = 瀏覽器匯出的 cookies.txt 全文。"""
+    try:
+        raw = st.secrets.get("youtube", {}).get("cookies_txt")
+        if raw:
+            path = os.path.join(UPLOAD_DIR, ".yt_cookies.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(raw)
+            return path
+    except Exception:
+        pass
+    env_path = os.environ.get("YOUTUBE_COOKIES_FILE")
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    return None
+
+
+def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str:
+    """依序嘗試多個 YouTube 結果，降低單一影片 403 的影響。"""
+    cookies = get_youtube_cookies_path()
+    last_err: Exception | None = None
+    for i, cand in enumerate(candidates):
+        try:
+            return download_youtube_audio(
+                cand["url"],
+                f"{out_base}_{i}",
+                cookies_path=cookies,
+            )
+        except Exception as exc:
+            last_err = exc
+    if isinstance(last_err, YouTubeDownloadError):
+        raise last_err
+    raise YouTubeDownloadError(format_youtube_error(last_err or Exception("download failed")), last_err)
+
+
+def show_parse_error(exc: Exception) -> None:
+    if isinstance(exc, YouTubeDownloadError):
+        st.error(str(exc))
+    else:
+        low = str(exc).lower()
+        if "403" in low or "forbidden" in low:
+            st.error(format_youtube_error(exc))
+        else:
+            st.error(f"解析失敗：{exc}")
+
+
 def prepare_score(notes: list, practice_scope: str):
     """依練習範圍回傳 (score, chorus_start, chorus_end, audio_offset, mode)."""
     c0, c1 = detect_chorus_bounds(notes)
@@ -203,6 +250,16 @@ with st.sidebar:
     else:
         st.caption("未設定時，Spotify 結果將改以 YouTube 搜尋代替。")
 
+    st.markdown("---")
+    st.markdown("### YouTube（選填）")
+    if get_youtube_cookies_path():
+        st.success("已載入 YouTube cookies")
+    else:
+        st.caption(
+            "雲端若 403，請改 **上傳 MP3**。"
+            "或在 Secrets 加入 `youtube.cookies_txt`（cookies.txt 全文）。"
+        )
+
 # ── Main tabs ──
 tab_search, tab_upload, tab_url, tab_demo = st.tabs([
     "🔍 搜尋歌曲", "📁 上傳音檔", "🔗 YouTube 連結", "🌸 示範曲",
@@ -215,6 +272,8 @@ chorus_start, chorus_end, audio_offset, practice_mode = 0, 0, 0, "full"
 
 with tab_search:
     st.markdown('<div class="card">', unsafe_allow_html=True)
+    if IS_CLOUD:
+        st.caption("☁️ 雲端常因 YouTube 封鎖機房 IP 出現 403，建議改用 **📁 上傳音檔**。")
     query = st.text_input(
         "輸入歌名或「歌手 + 歌名」",
         placeholder="例：宇多田ヒカル First Love、周杰倫 晴天",
@@ -226,17 +285,21 @@ with tab_search:
         label_visibility="collapsed",
     )
 
+    yt_cookies = get_youtube_cookies_path()
+
     if query and st.button("搜尋", type="primary", key="btn_search"):
         results = []
         with st.spinner("正在搜尋…"):
             if platform in ("YouTube", "兩者都搜"):
-                results.extend(search_youtube(query))
+                results.extend(search_youtube(query, cookies_path=yt_cookies))
             if platform in ("Spotify → YouTube", "兩者都搜"):
                 sp = search_spotify(query, cid, csec)
                 if sp:
                     results.extend(sp)
                 else:
-                    results.extend(search_youtube(f"{query} spotify", max_results=3))
+                    results.extend(
+                        search_youtube(f"{query} spotify", max_results=3, cookies_path=yt_cookies)
+                    )
         st.session_state["search_results"] = results
         st.session_state["search_query"] = query
 
@@ -314,16 +377,18 @@ if "pending_track" in st.session_state and HAS_BASIC_PITCH:
     track = st.session_state.pop("pending_track")
     with st.spinner("取得音源並 AI 抓譜中…"):
         try:
+            song_title = track["title"]
             if track["source"] == "spotify":
-                yt_candidates = resolve_spotify_to_youtube(track)
+                yt_candidates = resolve_spotify_to_youtube(
+                    track, cookies_path=get_youtube_cookies_path()
+                )
                 if not yt_candidates:
                     raise ValueError("找不到對應 YouTube 音源")
-                url = yt_candidates[0]["url"]
-                song_title = track["title"]
             else:
-                url = track["url"]
-                song_title = track["title"]
-            audio_path = download_youtube_audio(url, os.path.join(UPLOAD_DIR, "search_audio"))
+                yt_candidates = [track]
+            audio_path = download_audio_from_candidates(
+                yt_candidates, os.path.join(UPLOAD_DIR, "search_audio")
+            )
             notes = run_ai_transcription(audio_path, simplify_melody)
             score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
                 notes, practice_scope
@@ -341,7 +406,7 @@ if "pending_track" in st.session_state and HAS_BASIC_PITCH:
             st.session_state["lesson_ready"] = True
             st.success(f"完成：{song_title}")
         except Exception as e:
-            st.error(f"解析失敗：{e}")
+            show_parse_error(e)
 
 if "pending_upload" in st.session_state and HAS_BASIC_PITCH:
     path = st.session_state.pop("pending_upload")
@@ -370,7 +435,11 @@ if "pending_yt" in st.session_state and HAS_BASIC_PITCH:
     url = st.session_state.pop("pending_yt")
     with st.spinner("下載並抓譜…"):
         try:
-            audio_path = download_youtube_audio(url, os.path.join(UPLOAD_DIR, "yt_audio"))
+            audio_path = download_youtube_audio(
+                url,
+                os.path.join(UPLOAD_DIR, "yt_audio"),
+                cookies_path=get_youtube_cookies_path(),
+            )
             notes = run_ai_transcription(audio_path, simplify_melody)
             score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
                 notes, practice_scope
@@ -387,7 +456,7 @@ if "pending_yt" in st.session_state and HAS_BASIC_PITCH:
             }
             st.session_state["lesson_ready"] = True
         except Exception as e:
-            st.error(f"失敗：{e}")
+            show_parse_error(e)
 
 # ── Render lesson ──
 if st.session_state.get("lesson_ready") and "lesson" in st.session_state:

@@ -60,7 +60,15 @@ pip install -r requirements.txt -r requirements-ml.txt
 
 - **記憶體**：App settings → Advanced → **Memory 2GB+**
 - **冷啟動**：首次 AI 抓譜會下載模型，較慢
-- **YouTube**：雲端可能受限，建議以上傳音檔為主
+- **YouTube 403**：雲端機房 IP 常被 YouTube 封鎖 → **請改上傳 MP3**。進階可在 Streamlit Secrets 設定：
+  ```toml
+  [youtube]
+  cookies_txt = """
+  # Netscape HTTP Cookie File
+  .youtube.com	TRUE	...
+  """
+  ```
+  （用瀏覽器擴充「Get cookies.txt」匯出後貼上全文）
 
 ## 鍵盤對照（雙八度）
 

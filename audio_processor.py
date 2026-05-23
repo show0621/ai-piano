@@ -14,38 +14,11 @@ MAX_PITCH = 83   # B5（雙八度上限）
 MIN_DURATION = 0.08
 
 
-def download_youtube_audio(url: str, output_path: str) -> str:
-    """將 YouTube 連結下載為 MP3，回傳實際檔案路徑。"""
-    import yt_dlp
+def download_youtube_audio(url: str, output_path: str, cookies_path: str | None = None) -> str:
+    """將 YouTube 連結下載為 MP3（見 youtube_dl 模組）。"""
+    from youtube_dl import download_youtube_audio as _dl
 
-    out_base = output_path.rsplit(".", 1)[0]
-    ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": out_base + ".%(ext)s",
-        "quiet": True,
-        "no_warnings": True,
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }
-        ],
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-
-    mp3_path = out_base + ".mp3"
-    if os.path.exists(mp3_path):
-        return mp3_path
-
-    # 若未轉檔成功，找同目錄最新音檔
-    folder = os.path.dirname(out_base) or "."
-    base = os.path.basename(out_base)
-    for name in os.listdir(folder):
-        if name.startswith(base) and name.endswith((".mp3", ".m4a", ".wav", ".webm")):
-            return os.path.join(folder, name)
-    raise FileNotFoundError("無法下載 YouTube 音檔，請確認已安裝 ffmpeg。")
+    return _dl(url, output_path, cookies_path=cookies_path)
 
 
 def filter_notes(notes: list, max_notes: int = 800) -> list:

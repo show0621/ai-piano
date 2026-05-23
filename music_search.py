@@ -6,15 +6,16 @@ import os
 from typing import Optional
 
 
-def search_youtube(query: str, max_results: int = 6) -> list[dict]:
+def search_youtube(
+    query: str,
+    max_results: int = 6,
+    cookies_path: str | None = None,
+) -> list[dict]:
     import yt_dlp
 
-    ydl_opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "extract_flat": True,
-        "skip_download": True,
-    }
+    from youtube_dl import search_ytdl_opts
+
+    ydl_opts = search_ytdl_opts(cookies_path=cookies_path)
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch{max_results}:{query}", download=False)
     entries = info.get("entries") or []
@@ -70,7 +71,10 @@ def search_spotify(
     return results
 
 
-def resolve_spotify_to_youtube(spotify_track: dict) -> list[dict]:
+def resolve_spotify_to_youtube(
+    spotify_track: dict,
+    cookies_path: str | None = None,
+) -> list[dict]:
     """Spotify 曲目 → 以歌名在 YouTube 找音檔。"""
     q = f"{spotify_track.get('artist', '')} {spotify_track.get('name', '')} official audio"
-    return search_youtube(q.strip(), max_results=5)
+    return search_youtube(q.strip(), max_results=5, cookies_path=cookies_path)
