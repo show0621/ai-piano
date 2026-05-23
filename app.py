@@ -10,23 +10,22 @@ from audio_processor import (
     HAS_BASIC_PITCH,
     detect_chorus_bounds,
     extract_section,
+    filter_notes,
     get_demo_score,
+    midi_to_web_notes,
     process_audio_to_json,
+    simplify_to_melody,
 )
-from config_secrets import (
-    cloud_youtube_help_markdown,
-    get_spotify_credentials,
-    get_youtube_cookies_path,
-    get_youtube_proxy,
-    mask_secret,
-    spotify_configured,
-    spotify_credential_source,
-    spotify_premium_help_markdown,
-    verify_spotify_connection,
+from midi_resources import external_midi_search_links, midi_resources_guide_markdown
+from score_library import (
+    catalog_entry_title,
+    export_notes_payload,
+    list_catalog_entries,
+    load_score,
+    search_catalog,
 )
-from music_search import SpotifyPremiumRequiredError
-from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
-from youtube_dl import YouTubeDownloadError, download_audio_from_url, format_youtube_error
+from sheet_search import SheetHit, convert_user_input, fetch_and_convert, search_all
+from media_fetch import MediaFetchError, download_audio_from_url
 
 st.set_page_config(
     page_title="音ノ手帖 · AI 鋼琴",
@@ -165,18 +164,19 @@ def save_audio_bytes(data: bytes, filename: str = "recording.wav") -> str:
 
 def mobile_practice_guide() -> str:
     return (
-        "### 📱 手機 / iPad 隨地練（**不必靠 YouTube**）\n\n"
+        "### 📱 手機 / iPad 隨地練\n\n"
         "| 方式 | 穩定度 | 做法 |\n"
         "|------|--------|------|\n"
+        "| **🎹 MIDI 檔** | ⭐⭐⭐ | BitMidi / EOP / MuseScore 下載 .mid 上傳 |\n"
+        "| **📚 曲庫** | ⭐⭐⭐ | 已轉好的樂譜，雲端免 YT / 免 AI |\n"
+        "| **🔍 搜尋樂譜** | ⭐⭐ | BitMidi / IMSLP / ABC / 外站連結 |\n"
         "| **🌸 示範曲** | ⭐⭐⭐ | 選示範曲 → 載入 → 橫放 → 點琴鍵 |\n"
         "| **📁 上傳 MP3** | ⭐⭐⭐ | 先把歌存成 MP3 到「檔案」→ 本頁上傳 |\n"
-        "| **🎤 錄音** | ⭐⭐ | Android Chrome 較穩；錄一段旋律再抓譜 |\n"
-        "| YouTube 搜尋 | ⭐ | 雲端常失敗；可試 cookies，別當主要方式 |\n\n"
+        "| **🎤 錄音** | ⭐⭐ | Android Chrome 較穩；錄一段旋律再抓譜 |\n\n"
         "**iPhone 把 MP3 放進手機：**\n"
         "1. 用 iTunes / 電腦同步、或合法下載 MP3 到 **「檔案」** App\n"
         "2. Safari 開本 App → **📁 本機上傳** → 選擇檔案\n"
         "3. 橫放 → **跟彈** → 點螢幕琴鍵\n\n"
-        "**注意：** Spotify App 內歌曲通常**不能直接匯出**；需自有 MP3 檔。\n\n"
         "練習區載入後，**同一首曲會保留在分頁中**（重新整理前可繼續練）。"
     )
 
@@ -197,47 +197,20 @@ def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
     return notes
 
 
-def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str:
-    """依序嘗試多個 YouTube 結果，降低單一影片 403 的影響。"""
-    cookies = get_youtube_cookies_path(UPLOAD_DIR)
-    proxy = get_youtube_proxy()
-    last_err: Exception | None = None
-    for i, cand in enumerate(candidates):
-        try:
-            return download_audio_from_url(
-                cand["url"],
-                f"{out_base}_{i}",
-                cookies_path=cookies,
-                proxy=proxy,
-            )
-        except Exception as exc:
-            last_err = exc
-    if isinstance(last_err, YouTubeDownloadError):
-        raise last_err
-    raise YouTubeDownloadError(format_youtube_error(last_err or Exception("download failed")), last_err)
-
-
 def show_parse_error(exc: Exception) -> None:
     st.session_state["last_download_failed"] = True
-    if isinstance(exc, YouTubeDownloadError):
-        st.error(str(exc))
-    else:
-        low = str(exc).lower()
-        if "403" in low or "forbidden" in low or "format is not available" in low:
-            st.error(format_youtube_error(exc))
-        else:
-            st.error(f"解析失敗：{exc}")
+    st.error(f"解析失敗：{exc}")
     render_upload_fallback_guide()
 
 
 def render_upload_fallback_guide() -> None:
-    """YouTube / 網路下載失敗時的可靠替代流程。"""
+    """音源下載失敗時的替代流程。"""
     st.info(
         "**✅ 建議改走「上傳 MP3」（AI 抓譜一樣會跑）**\n\n"
         "1. 上方 **① 選擇音源** 點 **📁 本機上傳**\n"
         "2. 選擇電腦或手機裡的 MP3 / WAV / M4A\n"
         "3. 按 **上傳並抓譜**\n\n"
-        "若暫時沒有檔案：可先選 **🌸 示範曲** 體驗鍵盤教學（不需 YouTube）。"
+        "若暫時沒有檔案：可先選 **🌸 示範曲**、**🎹 MIDI 檔** 或 **📚 曲庫**。"
     )
 
 
@@ -251,9 +224,10 @@ def prepare_score(notes: list, practice_scope: str):
 
 AUDIO_SOURCES = [
     "📁 本機上傳",
-    "🎧 Spotify",
-    "▶️ YouTube",
-    "🔗 其他音源網址",
+    "🎹 MIDI 檔",
+    "📚 曲庫",
+    "🔍 搜尋樂譜",
+    "🔗 直接音檔網址",
     "🌸 示範曲",
 ]
 
@@ -263,7 +237,7 @@ UPLOAD_TYPES = ["mp3", "wav", "m4a", "ogg", "flac", "aac", "webm"]
 def ai_not_ready_message() -> str:
     return (
         "**無法 AI 抓譜**：TensorFlow / basic-pitch 尚未載入。"
-        " 請先用「🌸 示範曲」；雲端請確認 **Python 3.11**、**Memory 2GB+**，"
+        " 請先用「🌸 示範曲」「🎹 MIDI」「📚 曲庫」；雲端請確認 **Python 3.11**、**Memory 2GB+**，"
         "完成部署後 **Reboot**（首次 AI 約 1–3 分鐘）。"
     )
 
@@ -292,15 +266,60 @@ def save_lesson(notes: list, title: str, audio_path: str | None) -> None:
     st.session_state["lesson_ready"] = True
 
 
+def load_midi_lesson(midi_path: str, title: str) -> None:
+    """上傳或下載的 .mid → 鋼琴練習譜（不需 AI）。"""
+    notes = midi_to_web_notes(midi_path)
+    if not notes:
+        raise ValueError("MIDI 檔內沒有可用的音符（可能為空檔或僅鼓組）。")
+    if simplify_melody:
+        notes = simplify_to_melody(notes)
+    notes = filter_notes(notes, max_notes=1200)
+    load_score_lesson(notes, title)
+
+
+def load_score_lesson(
+    notes: list,
+    title: str,
+    *,
+    force_full: bool = False,
+    audio_path: str | None = None,
+) -> None:
+    """從曲庫 / 樂譜搜尋載入（不需 AI）。"""
+    if force_full:
+        c0, c1 = detect_chorus_bounds(notes)
+        score_data, chorus_start, chorus_end, audio_offset, practice_mode = (
+            notes,
+            c0,
+            c1,
+            0.0,
+            "full",
+        )
+    else:
+        score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+            notes, practice_scope
+        )
+    st.session_state["lesson_ready"] = True
+    st.session_state["lesson"] = {
+        "score": score_data,
+        "title": title,
+        "audio_path": audio_path,
+        "chorus_start": chorus_start,
+        "chorus_end": chorus_end,
+        "audio_offset": audio_offset,
+        "practice_mode": practice_mode,
+        "auto_play": auto_play_demo,
+        "source": st.session_state.get("audio_source", ""),
+    }
+
+
 # ── Header ──
 st.markdown('<p class="hero-sub">音ノ手帖 · Oto no Techō</p>', unsafe_allow_html=True)
 st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_html=True)
-st.caption("選擇音源：上傳 · Spotify · YouTube · 其他網址 · 示範曲")
+st.caption("音源：上傳 · MIDI 檔 · 曲庫 · 搜尋樂譜 · 直接音檔網址 · 示範曲")
 
 if IS_CLOUD:
     with st.expander("📱 手機隨地練指南（必讀）", expanded=True):
         st.markdown(mobile_practice_guide())
-    st.caption("雲端 YouTube 常失敗 → 請用 **示範曲** 或 **上傳 MP3**；cookies/proxy 僅能碰運氣。")
 
 if st.session_state.get("lesson_ready") and st.session_state.get("lesson"):
     L0 = st.session_state["lesson"]
@@ -308,7 +327,7 @@ if st.session_state.get("lesson_ready") and st.session_state.get("lesson"):
 if not HAS_BASIC_PITCH:
     st.warning(
         "**AI 抓譜尚未就緒**（TensorFlow / basic-pitch 未載入）。"
-        "仍可使用「示範曲」。雲端請確認：**Python 3.11**、**Memory 2GB+**，"
+        "仍可使用「示範曲」「MIDI」「曲庫」。雲端請確認：**Python 3.11**、**Memory 2GB+**，"
         "並等待本次部署安裝完成後按 **Reboot**。"
     )
 
@@ -329,84 +348,15 @@ with st.sidebar:
     auto_play_demo = st.checkbox("載入後自動彈奏示範", value=False)
 
     st.markdown("---")
-    st.markdown("### Spotify")
-    cid, csec = get_spotify_credentials()
-
-    if spotify_configured():
-        if "spotify_verify_ok" not in st.session_state:
-            ok, msg = verify_spotify_connection()
-            st.session_state["spotify_verify_ok"] = ok
-            st.session_state["spotify_verify_msg"] = msg
-
-        if st.session_state.get("spotify_verify_ok"):
-            st.success("Spotify API 已自動連線")
-            st.caption(st.session_state.get("spotify_verify_msg", ""))
-        elif st.session_state.get("spotify_verify_msg") == "premium_required":
-            st.warning("Secrets 正確，但 Spotify 要求帳號 Premium")
-            with st.expander("為什麼？怎麼辦？", expanded=True):
-                st.markdown(spotify_premium_help_markdown())
-        else:
-            st.error("Secrets 已讀取，但 Spotify 驗證失敗")
-            st.caption(st.session_state.get("spotify_verify_msg", ""))
-
-        st.caption(f"來源：{spotify_credential_source()} · ID：`{mask_secret(cid)}`")
-        if st.button("重新測試連線", key="btn_spotify_retest"):
-            st.session_state.pop("spotify_verify_ok", None)
-            st.session_state.pop("spotify_verify_msg", None)
-            st.rerun()
-    else:
-        st.warning("尚未讀到 Spotify Secrets")
-        st.caption(
-            "請確認 Secrets 格式為 `[spotify]` + `client_id` / `client_secret`，"
-            "Save 後 **Reboot**。"
-        )
-    with st.expander("📖 Spotify API 與金鑰安全（勿提交 GitHub）"):
-        st.markdown(
-            "### 原則\n"
-            "- **GitHub 倉庫只放程式**，`client_id` / `client_secret` **絕不 push**\n"
-            "- 金鑰放在 **Streamlit Cloud Secrets**（加密、不進 repo）或本機 `.streamlit/secrets.toml`\n\n"
-            "### 1. 申請 Spotify 金鑰\n"
-            "1. [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) → **Create app**\n"
-            "2. Redirect URI：`http://localhost:8501`\n"
-            "3. **Settings** → 複製 **Client ID**、**Client secret**\n\n"
-            "### 2. 雲端 Streamlit（推薦）\n"
-            "1. [share.streamlit.io](https://share.streamlit.io) → 你的 App → **Settings** → **Secrets**\n"
-            "2. 貼上後 **Save** → **Reboot**：\n"
-            "```toml\n[spotify]\nclient_id = \"你的ID\"\nclient_secret = \"你的Secret\"\n```\n\n"
-            "### 3. 本機開發\n"
-            "- 複製 `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml`（已在 .gitignore）\n"
-            "- 或複製 `.env.example` → `.env`，填入 `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET`\n\n"
-            "### 4. GitHub Actions 加密 Secrets（進階 / CI）\n"
-            "Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**\n"
-            "- `SPOTIFY_CLIENT_ID`\n"
-            "- `SPOTIFY_CLIENT_SECRET`\n\n"
-            "僅供 Action 使用；**Streamlit Cloud 仍要在第 2 步單獨設定**。\n\n"
-            "**注意**：Spotify 只負責搜尋歌名；音訊請用 **📁 上傳 MP3**（雲端最穩）。"
-        )
-
-    st.markdown("---")
-    st.markdown("### YouTube（選填）")
-    yt_cookies_path = get_youtube_cookies_path(UPLOAD_DIR)
-    yt_proxy = get_youtube_proxy()
-    if yt_cookies_path:
-        st.success("已載入 YouTube cookies")
-    if yt_proxy:
-        st.caption("已設定 YouTube proxy（仍非 100% 保證）")
-    if not yt_cookies_path and not yt_proxy:
-        st.caption("雲端 YouTube 常失敗 → 建議 **📁 上傳 MP3**")
-    with st.expander("☁️ 雲端 YouTube / cookies / proxy"):
-        st.markdown(cloud_youtube_help_markdown())
     with st.expander("📱 手機隨地練"):
         st.markdown(mobile_practice_guide())
+    with st.expander("🎹 流行樂 MIDI 哪裡找？", expanded=False):
+        st.markdown(midi_resources_guide_markdown())
 
 # ── 音源選擇 ──
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown("### ① 選擇音源")
-_source_options = (
-    ["📁 本機上傳", "🌸 示範曲", "▶️ YouTube", "🎧 Spotify", "🔗 其他音源網址"]
-    if IS_CLOUD
-    else AUDIO_SOURCES
-)
+_source_options = AUDIO_SOURCES
 audio_source = st.radio(
     "音源類型",
     _source_options,
@@ -416,13 +366,10 @@ audio_source = st.radio(
 )
 st.session_state["audio_source"] = audio_source
 
-yt_cookies = get_youtube_cookies_path(UPLOAD_DIR)
-yt_proxy = get_youtube_proxy()
-
 # ── 📁 本機上傳 ──
 if audio_source == "📁 本機上傳":
     st.markdown("#### 📁 上傳音檔 ⭐ 隨地練首選")
-    st.caption("**手機也可**：從「檔案」選 MP3，不需電腦。雲端不依賴 YouTube。")
+    st.caption("**手機也可**：從「檔案」選 MP3，不需電腦。")
     upload_mode = st.radio(
         "上傳方式",
         ["選擇檔案（手機 / 電腦）", "麥克風錄音"],
@@ -436,7 +383,7 @@ if audio_source == "📁 本機上傳":
             st.markdown(
                 "- **iPhone**：MP3 放到「檔案」App → 此處「Browse」選取\n"
                 "- **Android**：從下載資料夾或檔案管理員選取\n"
-                "- 已有 MP3 / WAV / M4A 即可，**不需 YouTube**\n"
+                "- 已有 MP3 / WAV / M4A 即可\n"
                 "- 想先玩：用 **🌸 示範曲** 零檔案開練"
             )
         uploaded = st.file_uploader(
@@ -478,123 +425,175 @@ if audio_source == "📁 本機上傳":
                             "title": title,
                         })
 
-# ── 🎧 Spotify ──
-elif audio_source == "🎧 Spotify":
-    st.markdown("#### Spotify 搜尋")
-    if st.session_state.get("spotify_verify_ok"):
-        st.caption("✅ Spotify API 已連線。")
-    elif st.session_state.get("spotify_verify_msg") == "premium_required":
-        st.info(
-            "無 Premium 時會**自動改用 YouTube 搜尋**歌名（結果標示 [YOUTUBE]）。"
-            "音訊建議 **📁 上傳 MP3**。"
-        )
-    elif spotify_configured():
-        st.warning("金鑰已載入但驗證未過，請看側邊欄。")
-    else:
-        st.warning("請先在 Streamlit **Secrets** 設定 `[spotify]`，Save 後 **Reboot**。")
-    if st.session_state.get("spotify_search_via") == "youtube":
-        st.caption("上次搜尋：已透過 **YouTube** 取得曲目列表。")
-    sp_query = st.text_input(
-        "歌名或歌手 + 歌名",
-        placeholder="例：周杰倫 晴天",
-        key="sp_query",
-    )
-    if sp_query and st.button("Spotify 搜尋", type="primary", key="btn_sp_search"):
-        with st.spinner("搜尋中…"):
-            sp_results = []
-            use_yt_fallback = not st.session_state.get("spotify_verify_ok")
-            if not use_yt_fallback and cid and csec:
-                try:
-                    sp_results = search_spotify(sp_query, cid, csec)
-                except SpotifyPremiumRequiredError:
-                    use_yt_fallback = True
-                    st.session_state["spotify_verify_ok"] = False
-                    st.session_state["spotify_verify_msg"] = "premium_required"
-            if use_yt_fallback or not sp_results:
-                sp_results = search_youtube(sp_query, max_results=6, cookies_path=yt_cookies)
-                st.session_state["spotify_search_via"] = "youtube"
-            else:
-                st.session_state["spotify_search_via"] = "spotify"
-        st.session_state["spotify_results"] = sp_results
-
-    sp_results = st.session_state.get("spotify_results", [])
-    if sp_results:
-        sp_labels = [f"[{r['source'].upper()}] {r['title']}" for r in sp_results]
-        sp_pick = st.selectbox(
-            "選擇曲目",
-            range(len(sp_labels)),
-            format_func=lambda i: sp_labels[i],
-            key="sp_pick",
-        )
-        if st.button("解析並開始教學", type="primary", key="btn_sp_parse"):
-            if not HAS_BASIC_PITCH:
-                st.error(ai_not_ready_message())
-            else:
-                queue_ai_job({"kind": "track", "track": sp_results[sp_pick]})
-
-# ── ▶️ YouTube ──
-elif audio_source == "▶️ YouTube":
-    st.markdown("#### YouTube")
-    if IS_CLOUD:
-        st.warning(
-            "☁️ **雲端 YouTube 成功率低**（403 / 無格式）。"
-            "失敗請改 **📁 本機上傳**；或在本機執行 `streamlit run app.py` 再試 YouTube。"
-        )
-    yt_mode = st.radio(
-        "方式",
-        ["搜尋歌曲", "貼上連結"],
-        horizontal=True,
-        key="yt_mode",
-    )
-    if yt_mode == "搜尋歌曲":
-        yt_query = st.text_input(
-            "歌名或關鍵字",
-            placeholder="例：First Love 宇多田ヒカル",
-            key="yt_query",
-        )
-        if yt_query and st.button("YouTube 搜尋", type="primary", key="btn_yt_search"):
-            with st.spinner("YouTube 搜尋中…"):
-                st.session_state["youtube_results"] = search_youtube(
-                    yt_query, cookies_path=yt_cookies
-                )
-        yt_results = st.session_state.get("youtube_results", [])
-        if yt_results:
-            yt_labels = [f"[YT] {r['title']}" for r in yt_results]
-            yt_pick = st.selectbox(
-                "選擇影片",
-                range(len(yt_labels)),
-                format_func=lambda i: yt_labels[i],
-                key="yt_pick",
-            )
-            if st.button("解析並開始教學", type="primary", key="btn_yt_parse"):
-                if not HAS_BASIC_PITCH:
-                    st.error(ai_not_ready_message())
-                else:
-                    queue_ai_job({"kind": "track", "track": yt_results[yt_pick]})
-    else:
-        yt_url = st.text_input(
-            "YouTube 網址",
-            placeholder="https://www.youtube.com/watch?v=...",
-            key="yt_url",
-        )
-        yt_title = st.text_input("歌曲名稱（選填）", key="yt_url_title")
-        if yt_url and st.button("下載並抓譜", type="primary", key="btn_yt_url"):
-            if not HAS_BASIC_PITCH:
-                st.error(ai_not_ready_message())
-            else:
-                queue_ai_job({
-                    "kind": "url",
-                    "url": yt_url.strip(),
-                    "title": yt_title.strip() or "YouTube 歌曲",
-                    "out_base": "yt_direct",
-                })
-
-# ── 🔗 其他音源 ──
-elif audio_source == "🔗 其他音源網址":
-    st.markdown("#### 其他音源網址")
+# ── 🎹 MIDI 檔 ──
+elif audio_source == "🎹 MIDI 檔":
+    st.markdown("#### 🎹 上傳 MIDI 檔")
     st.caption(
-        "貼上可下載的音訊／影片連結，由 yt-dlp 處理。"
-        "常見：SoundCloud、Bilibili、直接 .mp3 連結等（依網站而定）。"
+        "從 **BitMidi、FreeMidi、MuseScore、EOP、YouTube 說明欄** 等下載 `.mid` 後上傳。"
+        "**不需 AI**，雲端最適合擴充流行歌庫。"
+    )
+    midi_title = st.text_input("歌曲名稱（選填）", placeholder="例：晴天", key="midi_title")
+    midi_file = st.file_uploader(
+        "選擇 .mid / .midi 檔",
+        type=["mid", "midi"],
+        key="midi_upload",
+    )
+    if midi_file and st.button("載入 MIDI 並練習", type="primary", key="btn_midi_load"):
+        try:
+            path = save_upload(midi_file)
+            title = midi_title.strip() or midi_file.name
+            load_midi_lesson(path, title)
+            st.rerun()
+        except Exception as e:
+            st.error(str(e))
+    with st.expander("🔗 還沒有 MIDI？去這些站搜尋", expanded=True):
+        midi_search_q = st.text_input(
+            "歌名",
+            placeholder="例：周杰倫 晴天、Adele Hello",
+            key="midi_link_query",
+        )
+        if midi_search_q.strip():
+            for link in external_midi_search_links(midi_search_q):
+                st.markdown(
+                    f"**[{link['name']}]({link['url']})** · {link['region']}\n\n"
+                    f"{link['hint']}"
+                )
+
+# ── 📚 曲庫 ──
+elif audio_source == "📚 曲庫":
+    st.markdown("#### 📚 線上曲庫")
+    st.caption(
+        "已轉好的樂譜（本機 `scores/` 或 GitHub）。**不需 AI**，"
+        "雲端最穩。新增曲目：本機轉譜後將 JSON 放入 `scores/` 並 push。"
+    )
+    lib_q = st.text_input("篩選曲庫", placeholder="例：滄海、小星星", key="lib_filter")
+    entries = search_catalog(lib_q) if lib_q.strip() else list_catalog_entries()
+    if not entries:
+        st.info("曲庫尚無曲目。可先載入示範曲，或執行 `python tools/export_scores.py` 產生 JSON。")
+    else:
+        labels = [catalog_entry_title(e) for e in entries]
+        lib_pick = st.selectbox(
+            "選擇曲目",
+            range(len(labels)),
+            format_func=lambda i: labels[i],
+            key="lib_pick",
+        )
+        ent = entries[lib_pick]
+        tags = ", ".join(ent.get("tags") or [])
+        if tags:
+            st.caption(f"標籤：{tags}")
+        if st.button("載入曲庫曲目", type="primary", key="btn_lib_load"):
+            try:
+                notes = load_score(ent["id"])
+                force = ent["id"] == "xiaoaojianghu"
+                load_score_lesson(
+                    notes,
+                    catalog_entry_title(ent),
+                    force_full=force,
+                )
+                st.rerun()
+            except Exception as e:
+                st.error(str(e))
+
+# ── 🔍 搜尋樂譜 ──
+elif audio_source == "🔍 搜尋樂譜":
+    st.markdown("#### 🔍 搜尋現成樂譜並轉鋼琴譜")
+    st.caption(
+        "搜尋 **曲庫**、**BitMidi**、**IMSLP**、**GitHub ABC**，或貼 **和弦 / ABC / MIDI 網址**。"
+        "也可先在外站下載 .mid → 用 **🎹 MIDI 檔** 上傳。"
+    )
+    sheet_q = st.text_input(
+        "歌名 / 曲名",
+        placeholder="例：Für Elise、滄海、folk tune",
+        key="sheet_q",
+    )
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        src_local = st.checkbox("曲庫", value=True, key="src_local")
+    with c2:
+        src_bitmidi = st.checkbox("BitMidi", value=True, key="src_bitmidi")
+    with c3:
+        src_imslp = st.checkbox("IMSLP", value=True, key="src_imslp")
+    with c4:
+        src_gh = st.checkbox("GitHub ABC", value=True, key="src_gh")
+
+    if sheet_q and st.button("搜尋樂譜", type="primary", key="btn_sheet_search"):
+        with st.spinner("搜尋中…"):
+            st.session_state["sheet_hits"] = search_all(
+                sheet_q,
+                use_local=src_local,
+                use_bitmidi=src_bitmidi,
+                use_imslp=src_imslp,
+                use_github_abc=src_gh,
+            )
+            st.session_state["midi_ext_links"] = external_midi_search_links(sheet_q)
+
+    if sheet_q.strip() and st.session_state.get("midi_ext_links"):
+        with st.expander("🌐 更多 MIDI 站（手動下載後用 🎹 MIDI 檔 上傳）", expanded=True):
+            for link in st.session_state["midi_ext_links"]:
+                st.markdown(
+                    f"**[{link['name']}]({link['url']})** · {link['region']} — {link['hint']}"
+                )
+            st.caption("華語論壇：**[廷廷的鋼琴窩 搜尋](https://www.tintinpiano.com/forum/search.php)**")
+
+    hits: list[SheetHit] = st.session_state.get("sheet_hits", [])
+    if hits:
+        hit_labels = [h.label() for h in hits]
+        hit_pick = st.selectbox(
+            "搜尋結果",
+            range(len(hit_labels)),
+            format_func=lambda i: hit_labels[i],
+            key="sheet_hit_pick",
+        )
+        h = hits[hit_pick]
+        st.caption(h.description or h.url)
+        if st.button("轉成鋼琴譜並練習", type="primary", key="btn_sheet_convert"):
+            with st.spinner("轉換中…"):
+                try:
+                    notes, title = fetch_and_convert(h, simplify=simplify_melody)
+                    load_score_lesson(notes, title)
+                    st.rerun()
+                except Exception as e:
+                    st.error(str(e))
+    elif sheet_q and "sheet_hits" in st.session_state:
+        st.warning("沒有找到結果，請改關鍵字或貼上樂譜內容。")
+
+    with st.expander("📋 貼上樂譜（和弦 / ABC / MIDI 網址）", expanded=False):
+        paste_kind = st.radio(
+            "格式",
+            ["吉他和弦 / 和弦譜", "ABC 簡譜文字", "MIDI 或 ABC 網址"],
+            horizontal=True,
+            key="paste_kind",
+        )
+        paste_text = st.text_area(
+            "內容",
+            height=140,
+            placeholder="和弦例：Am G C F\n或貼 https://.../*.mid",
+            key="paste_sheet",
+        )
+        if st.button("轉換並練習", key="btn_paste_convert"):
+            kind_map = {
+                "吉他和弦 / 和弦譜": "chord",
+                "ABC 簡譜文字": "abc",
+                "MIDI 或 ABC 網址": "url",
+            }
+            try:
+                notes, title = convert_user_input(
+                    paste_text,
+                    kind_map[paste_kind],
+                    simplify=simplify_melody,
+                )
+                load_score_lesson(notes, title)
+                st.rerun()
+            except Exception as e:
+                st.error(str(e))
+
+# ── 🔗 直接音檔網址 ──
+elif audio_source == "🔗 直接音檔網址":
+    st.markdown("#### 直接音檔網址")
+    st.caption(
+        "貼上以 **.mp3 / .wav / .m4a** 結尾的直連網址。"
+        "不支援 YouTube、Spotify 等串流平台。"
     )
     other_url = st.text_input(
         "音源網址",
@@ -614,28 +613,29 @@ elif audio_source == "🔗 其他音源網址":
             })
 
 # ── 🌸 示範曲 ──
-else:
+elif audio_source == "🌸 示範曲":
     st.markdown("#### 內建示範曲")
-    st.caption("不需 AI、不需網路，可直接練習鍵盤與下落音符。")
-    demo = st.selectbox("選擇曲目", ["小星星", "笑傲江湖（滄海一聲笑）"], key="demo_pick")
+    st.caption(
+        "不需 AI、不需網路，可直接練習鍵盤與下落音符。"
+        "「滄海一聲笑」為完整版（主歌×3＋副歌＋尾奏，約 1 分 10 秒）。"
+    )
+    demo = st.selectbox(
+        "選擇曲目",
+        ["小星星", "笑傲江湖（滄海一聲笑·完整版）"],
+        key="demo_pick",
+    )
     if st.button("載入示範曲", type="primary", key="btn_demo"):
         demo_id = "xiaoaojianghu" if "笑傲" in demo else "twinkle"
         full = get_demo_score(demo_id)
-        score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
-            full, practice_scope
+        load_score_lesson(
+            full,
+            demo,
+            force_full=(demo_id == "xiaoaojianghu"),
         )
-        st.session_state["lesson_ready"] = True
-        st.session_state["lesson"] = {
-            "score": score_data,
-            "title": demo,
-            "audio_path": None,
-            "chorus_start": chorus_start,
-            "chorus_end": chorus_end,
-            "audio_offset": audio_offset,
-            "practice_mode": practice_mode,
-            "auto_play": auto_play_demo,
-            "source": audio_source,
-        }
+        st.rerun()
+
+else:
+    st.warning("請選擇音源類型。")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -654,32 +654,17 @@ if "pending_job" in st.session_state and HAS_BASIC_PITCH:
                 audio_path = download_audio_from_url(
                     job["url"],
                     os.path.join(UPLOAD_DIR, job.get("out_base", "media")),
-                    cookies_path=yt_cookies,
-                    proxy=yt_proxy,
                 )
                 title = job["title"]
-            elif job["kind"] == "track":
-                track = job["track"]
-                title = track["title"]
-                if track["source"] == "spotify":
-                    yt_candidates = resolve_spotify_to_youtube(
-                        track, cookies_path=yt_cookies
-                    )
-                    if not yt_candidates:
-                        raise ValueError(
-                            "找不到對應 YouTube 音源。請改選 YouTube 搜尋或上傳 MP3。"
-                        )
-                else:
-                    yt_candidates = [track]
-                audio_path = download_audio_from_candidates(
-                    yt_candidates, os.path.join(UPLOAD_DIR, "search_audio")
-                )
             else:
                 raise ValueError(f"未知工作類型：{job.get('kind')}")
 
             notes = run_ai_transcription(audio_path, simplify_melody)
             save_lesson(notes, title, audio_path)
             st.success(f"完成：{title}")
+        except MediaFetchError as e:
+            st.error(str(e))
+            render_upload_fallback_guide()
         except Exception as e:
             show_parse_error(e)
 
@@ -716,3 +701,19 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
 
     if L.get("auto_play"):
         st.caption("已啟用「載入後自動彈奏」— 請在教學區點擊播放或等待自動開始。")
+
+    st.download_button(
+        "⬇️ 匯出樂譜 JSON（可放入 scores/ 推上 GitHub）",
+        data=export_notes_payload(
+            L["score"],
+            L["title"],
+            {"source": L.get("source", ""), "exported_from": "app"},
+        ),
+        file_name=re.sub(r"[^\w\-]+", "_", L["title"])[:40] + ".json",
+        mime="application/json",
+        key="btn_export_score",
+    )
+    st.caption(
+        "本機 MP3 + AI 抓譜 → 匯出 JSON → 放入 `scores/` 並 push，"
+        "之後用 **📚 曲庫** 直接練。"
+    )

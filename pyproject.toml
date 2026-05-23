@@ -6,9 +6,7 @@ dependencies = [
     "streamlit==1.41.1",
     "setuptools>=65.0.0,<81",
     "pretty_midi==0.2.10",
-    "yt-dlp>=2024.4.9",
     "numpy>=1.26.4,<2.0.0",
-    "spotipy>=2.23.0",
 ]
 
 [project.optional-dependencies]

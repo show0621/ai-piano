@@ -14,13 +14,6 @@ MAX_PITCH = 83   # B5（雙八度上限）
 MIN_DURATION = 0.08
 
 
-def download_youtube_audio(url: str, output_path: str, cookies_path: str | None = None) -> str:
-    """從 URL 下載音訊為 MP3（見 youtube_dl 模組）。"""
-    from youtube_dl import download_audio_from_url
-
-    return download_audio_from_url(url, output_path, cookies_path=cookies_path)
-
-
 def filter_notes(notes: list, max_notes: int = 800) -> list:
     """過濾雜訊與過多音符，適合初學者練習。"""
     cleaned = []
@@ -130,34 +123,94 @@ def process_audio_to_json(
     return filter_notes(notes)
 
 
-def get_demo_score(demo_id: str) -> list:
-    """內建示範曲（不依賴 AI）。"""
-    demos = {
-        "twinkle": [
-            (60, 0.0, 0.4), (60, 0.5, 0.4), (67, 1.0, 0.4), (67, 1.5, 0.4),
-            (69, 2.0, 0.4), (69, 2.5, 0.4), (67, 3.0, 0.8),
-        ],
-        "xiaoaojianghu": [
-            (69, 0.0, 0.42), (69, 0.42, 0.42), (67, 0.84, 0.42), (64, 1.26, 0.42),
-            (67, 1.68, 0.42), (69, 2.10, 0.42), (72, 2.52, 0.42), (72, 2.94, 0.42),
-            (74, 3.36, 0.42), (72, 3.78, 0.42), (69, 4.20, 0.42),
-            (67, 4.62, 0.42), (67, 5.04, 0.42), (64, 5.46, 0.42), (62, 5.88, 0.42),
-            (64, 6.30, 0.42), (67, 6.72, 0.42), (69, 7.14, 0.42), (67, 7.56, 0.42),
-            (64, 7.98, 0.42),
-        ],
-    }
-    raw = demos.get(demo_id, demos["twinkle"])
+_JIANPU_PITCH = {1: 60, 2: 62, 3: 64, 4: 65, 5: 67, 6: 69, 7: 71}
+_JIANPU_HIGH = {1: 12, 2: 12}  # 高音 1、2 → C5、D5
+
+# 笑傲江湖《滄海一聲笑》C 調簡譜（1' 2' 為高八度）
+_XIAOAO_VERSE = """
+6 6 5 3 5 6 1' 1' 2' 1' 6
+5 5 3 2 3 5 6 5 3
+2 3 2 3 5 6 1' 2' 1' 6 5 3
+5 5 3 2 3 5 6 5 3 2 1 2 3
+"""
+
+_XIAOAO_OUTRO = """
+6 - - 5 3 5 6 1' - 2' 1' 6 -
+5 5 3 2 3 5 6 - 3 2 1 - -
+"""
+
+
+def _parse_jianpu(jianpu: str, tempo: float = 0.42) -> list[tuple[int, float, float]]:
+    """將簡譜字串轉為 (midi, start, duration) 列表。"""
+    t = 0.0
+    out: list[tuple[int, float, float]] = []
+    for token in jianpu.replace("|", " ").split():
+        token = token.strip()
+        if not token:
+            continue
+        if token in ("-", "0", "·", "."):
+            t += tempo
+            continue
+        high = token.endswith("'") or token.endswith("’")
+        num_s = token.rstrip("'’")
+        if not num_s.isdigit():
+            continue
+        n = int(num_s)
+        if n < 1 or n > 7:
+            continue
+        pitch = _JIANPU_PITCH[n]
+        if high:
+            pitch += _JIANPU_HIGH.get(n, 0)
+        out.append((pitch, t, tempo))
+        t += tempo
+    return out
+
+
+def _xiaoaojianghu_full_raw(tempo: float = 0.42) -> list[tuple[int, float, float]]:
+    """完整曲：主歌×3 + 副歌 + 尾奏（約 90 秒）。"""
+    verse = _parse_jianpu(_XIAOAO_VERSE, tempo)
+    verse_len = verse[-1][1] + verse[-1][2] if verse else 0.0
+    gap = tempo * 2  # 段間休止
+
+    raw: list[tuple[int, float, float]] = []
+    offset = 0.0
+    for _ in range(3):
+        for pitch, start, dur in verse:
+            raw.append((pitch, start + offset, dur))
+        offset += verse_len + gap
+
+    for pitch, start, dur in verse:
+        raw.append((pitch, start + offset, dur))
+    offset += verse_len + gap * 2
+
+    for pitch, start, dur in _parse_jianpu(_XIAOAO_OUTRO, tempo):
+        raw.append((pitch, start + offset, dur))
+    return raw
+
+
+def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
     notes = []
     for pitch, start, dur in raw:
         notes.append({
             "pitch": pitch,
             "note_name": pretty_midi.note_number_to_name(pitch),
-            "start_time": start,
+            "start_time": round(start, 3),
             "end_time": round(start + dur, 3),
             "duration": dur,
             "isHit": False,
         })
     return notes
+
+
+def get_demo_score(demo_id: str) -> list:
+    """內建示範曲（不依賴 AI）。"""
+    if demo_id == "xiaoaojianghu":
+        return _raw_to_notes(_xiaoaojianghu_full_raw())
+    raw = [
+        (60, 0.0, 0.4), (60, 0.5, 0.4), (67, 1.0, 0.4), (67, 1.5, 0.4),
+        (69, 2.0, 0.4), (69, 2.5, 0.4), (67, 3.0, 0.8),
+    ]
+    return _raw_to_notes(raw)
 
 
 def get_song_duration(notes: list) -> float:

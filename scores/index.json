@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "預先轉好的練習曲庫。新增曲目：將 JSON 放於此目錄並更新本檔，push 至 GitHub 即可。",
+  "scores": [
+    {
+      "id": "twinkle",
+      "title": "小星星",
+      "title_en": "Twinkle Twinkle Little Star",
+      "artist": "兒歌",
+      "tags": ["demo", "兒歌", "初學"],
+      "duration_est": 4
+    },
+    {
+      "id": "xiaoaojianghu",
+      "title": "笑傲江湖（滄海一聲笑·完整版）",
+      "artist": "黃霑",
+      "tags": ["demo", "中文", "完整", "武俠"],
+      "duration_est": 80
+    }
+  ]
+}
