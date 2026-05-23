@@ -36,7 +36,8 @@ pip install -r requirements.txt -r requirements-ml.txt
 
 1. 將專案推送到 **GitHub**
 2. 前往 [share.streamlit.io](https://share.streamlit.io) → **New app** → Repo：`app.py`
-3. **重要**：Community Cloud **無法在部署後改 Python 版本**。若 App 是用 Python 3.14 建的，必須 **刪除 App 後重新 Deploy**，才會讀取 repo 的 `.python-version`（`3.11`）。
+3. **重要（Python 版本）**：日誌若顯示 `Using Python 3.14.x`，請到 [share.streamlit.io](https://share.streamlit.io) → 你的 App → **Settings** → **Advanced settings** → **Python version** 選 **3.11**，儲存後 Reboot。  
+   若進階設定裡沒有 3.11 或改完仍是 3.14：**刪除 App** → 重新 **Deploy**，在進階設定中選 **Python 3.11**（TensorFlow / basic-pitch 需要 3.11，無法在 3.14 安裝）。
 
 ### 兩階段部署（建議）
 
@@ -49,9 +50,9 @@ pip install -r requirements.txt -r requirements-ml.txt
 
 | 檔案 | 用途 |
 |------|------|
-| `.python-version` | 部署時使用 **Python 3.11** |
-| `runtime.txt` | 同上（`python-3.11`） |
-| `pyproject.toml` | 宣告 `requires-python >=3.11,<3.13` |
+| `.python-version` / `runtime.txt` | 建議值 3.11（新 App 可參考） |
+| `pyproject.toml` | 核心依賴；ML 在 `[project.optional-dependencies]` |
+| `packages.txt` | `ffmpeg` + Pillow 編譯用 `zlib` / `jpeg` / `png` 開發套件 |
 | `requirements.txt` | 核心依賴 |
 | `requirements-ml.txt` | TensorFlow + basic-pitch |
 | `packages.txt` | 系統套件 `ffmpeg` |
