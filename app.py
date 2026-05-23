@@ -155,6 +155,32 @@ def save_upload(uploaded_file) -> str:
     return path
 
 
+def save_audio_bytes(data: bytes, filename: str = "recording.wav") -> str:
+    safe_name = re.sub(r"[^\w.\-]", "_", filename)
+    path = os.path.join(UPLOAD_DIR, f"rec_{safe_name}")
+    with open(path, "wb") as f:
+        f.write(data)
+    return path
+
+
+def mobile_practice_guide() -> str:
+    return (
+        "### 📱 手機 / iPad 隨地練（**不必靠 YouTube**）\n\n"
+        "| 方式 | 穩定度 | 做法 |\n"
+        "|------|--------|------|\n"
+        "| **🌸 示範曲** | ⭐⭐⭐ | 選示範曲 → 載入 → 橫放 → 點琴鍵 |\n"
+        "| **📁 上傳 MP3** | ⭐⭐⭐ | 先把歌存成 MP3 到「檔案」→ 本頁上傳 |\n"
+        "| **🎤 錄音** | ⭐⭐ | Android Chrome 較穩；錄一段旋律再抓譜 |\n"
+        "| YouTube 搜尋 | ⭐ | 雲端常失敗；可試 cookies，別當主要方式 |\n\n"
+        "**iPhone 把 MP3 放進手機：**\n"
+        "1. 用 iTunes / 電腦同步、或合法下載 MP3 到 **「檔案」** App\n"
+        "2. Safari 開本 App → **📁 本機上傳** → 選擇檔案\n"
+        "3. 橫放 → **跟彈** → 點螢幕琴鍵\n\n"
+        "**注意：** Spotify App 內歌曲通常**不能直接匯出**；需自有 MP3 檔。\n\n"
+        "練習區載入後，**同一首曲會保留在分頁中**（重新整理前可繼續練）。"
+    )
+
+
 def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
     if not HAS_BASIC_PITCH:
         raise RuntimeError("未安裝 basic-pitch。請執行：pip install -r requirements.txt")
@@ -272,10 +298,13 @@ st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_h
 st.caption("選擇音源：上傳 · Spotify · YouTube · 其他網址 · 示範曲")
 
 if IS_CLOUD:
-    st.success(
-        "☁️ **雲端建議音源：📁 本機上傳**（YouTube / Spotify 在雲端常被擋，上傳 MP3 最穩）。"
-    )
-    st.caption("Memory 建議 2GB+ · 首次 AI 需下載模型 · 示範曲不需網路")
+    with st.expander("📱 手機隨地練指南（必讀）", expanded=True):
+        st.markdown(mobile_practice_guide())
+    st.caption("雲端 YouTube 常失敗 → 請用 **示範曲** 或 **上傳 MP3**；cookies/proxy 僅能碰運氣。")
+
+if st.session_state.get("lesson_ready") and st.session_state.get("lesson"):
+    L0 = st.session_state["lesson"]
+    st.success(f"🎹 已載入 **{L0['title']}** — 向下滑動到鍵盤即可繼續練（關閉分頁前不用重傳）。")
 if not HAS_BASIC_PITCH:
     st.warning(
         "**AI 抓譜尚未就緒**（TensorFlow / basic-pitch 未載入）。"
@@ -365,15 +394,22 @@ with st.sidebar:
         st.caption("已設定 YouTube proxy（仍非 100% 保證）")
     if not yt_cookies_path and not yt_proxy:
         st.caption("雲端 YouTube 常失敗 → 建議 **📁 上傳 MP3**")
-    with st.expander("☁️ 雲端 YouTube 能穩定破解嗎？"):
+    with st.expander("☁️ 雲端 YouTube / cookies / proxy"):
         st.markdown(cloud_youtube_help_markdown())
+    with st.expander("📱 手機隨地練"):
+        st.markdown(mobile_practice_guide())
 
 # ── 音源選擇 ──
 st.markdown('<div class="card">', unsafe_allow_html=True)
 st.markdown("### ① 選擇音源")
+_source_options = (
+    ["📁 本機上傳", "🌸 示範曲", "▶️ YouTube", "🎧 Spotify", "🔗 其他音源網址"]
+    if IS_CLOUD
+    else AUDIO_SOURCES
+)
 audio_source = st.radio(
     "音源類型",
-    AUDIO_SOURCES,
+    _source_options,
     horizontal=True,
     label_visibility="collapsed",
     key="audio_source_radio",
@@ -385,32 +421,62 @@ yt_proxy = get_youtube_proxy()
 
 # ── 📁 本機上傳 ──
 if audio_source == "📁 本機上傳":
-    st.markdown("#### 本機音檔 ⭐ 推薦")
-    st.caption("**最穩定**：不依賴 YouTube。支援 MP3、WAV、M4A、OGG、FLAC 等。")
-    with st.expander("如何取得 MP3？（Spotify / YouTube 歌曲）"):
-        st.markdown(
-            "- **已有檔案**：直接上傳\n"
-            "- **CD / 購買下載**：使用既有 MP3\n"
-            "- **自行錄音**：手機錄製練習用音檔也可\n"
-            "- **YouTube 在雲端常失敗**：請在本機用合法工具轉檔後再上傳\n"
-            "- **示範**：選 **🌸 示範曲** 不需任何檔案"
-        )
-    uploaded = st.file_uploader(
-        "選擇音檔",
-        type=UPLOAD_TYPES,
-        key="upload_file",
+    st.markdown("#### 📁 上傳音檔 ⭐ 隨地練首選")
+    st.caption("**手機也可**：從「檔案」選 MP3，不需電腦。雲端不依賴 YouTube。")
+    upload_mode = st.radio(
+        "上傳方式",
+        ["選擇檔案（手機 / 電腦）", "麥克風錄音"],
+        horizontal=True,
+        key="upload_mode",
     )
     custom_title = st.text_input("歌曲名稱（選填）", placeholder="例：晴天")
-    if uploaded and st.button("上傳並抓譜", type="primary", key="btn_upload"):
-        if not HAS_BASIC_PITCH:
-            st.error(ai_not_ready_message())
+
+    if upload_mode.startswith("選擇"):
+        with st.expander("手機如何準備 MP3？"):
+            st.markdown(
+                "- **iPhone**：MP3 放到「檔案」App → 此處「Browse」選取\n"
+                "- **Android**：從下載資料夾或檔案管理員選取\n"
+                "- 已有 MP3 / WAV / M4A 即可，**不需 YouTube**\n"
+                "- 想先玩：用 **🌸 示範曲** 零檔案開練"
+            )
+        uploaded = st.file_uploader(
+            "點此選擇音檔（可從手機檔案 App）",
+            type=UPLOAD_TYPES,
+            key="upload_file",
+        )
+        if uploaded and st.button("上傳並抓譜", type="primary", key="btn_upload"):
+            if not HAS_BASIC_PITCH:
+                st.error(ai_not_ready_message())
+            else:
+                title = custom_title.strip() or uploaded.name
+                queue_ai_job({
+                    "kind": "upload",
+                    "path": save_upload(uploaded),
+                    "title": title,
+                })
+    else:
+        st.caption("錄下參考旋律（副歌哼唱 15–30 秒），再 AI 抓譜。Android Chrome 較穩。")
+        mic_widget = getattr(st, "audio_input", None) or getattr(
+            st, "experimental_audio_input", None
+        )
+        if mic_widget is None:
+            st.warning("此瀏覽器不支援網頁錄音，請改「選擇檔案」或示範曲。")
         else:
-            title = custom_title.strip() or uploaded.name
-            queue_ai_job({
-                "kind": "upload",
-                "path": save_upload(uploaded),
-                "title": title,
-            })
+            recorded = mic_widget("按下錄音", key="mic_recording")
+            if recorded is not None:
+                st.audio(recorded)
+                if st.button("用錄音抓譜", type="primary", key="btn_rec_upload"):
+                    if not HAS_BASIC_PITCH:
+                        st.error(ai_not_ready_message())
+                    else:
+                        name = getattr(recorded, "name", None) or "recording.wav"
+                        path = save_audio_bytes(recorded.getvalue(), name)
+                        title = custom_title.strip() or "錄音練習"
+                        queue_ai_job({
+                            "kind": "upload",
+                            "path": path,
+                            "title": title,
+                        })
 
 # ── 🎧 Spotify ──
 elif audio_source == "🎧 Spotify":
