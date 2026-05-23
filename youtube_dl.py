@@ -14,6 +14,18 @@ PLAYER_STRATEGIES: list[dict] = [
     {"player_client": ["tv_embedded", "web"]},
 ]
 
+# 由寬到嚴：部分影片僅有合併串流或 m3u8，需多種 fallback
+AUDIO_FORMAT_CANDIDATES: list[str] = [
+    "bestaudio/best",
+    "bestaudio",
+    "ba/b",
+    "b",
+    "best[height<=720]/best",
+    "best",
+    "worstaudio/worst",
+    "worst",
+]
+
 
 class YouTubeDownloadError(Exception):
     """YouTube 下載失敗（含 403 等）。"""
@@ -38,6 +50,11 @@ def format_youtube_error(exc: Exception) -> str:
         return "此影片無法播放（私人、地區限制或已下架）。請換一首或上傳音檔。"
     if "ffmpeg" in low:
         return "需要 ffmpeg 才能轉成 MP3。雲端請確認 `packages.txt` 含 ffmpeg。"
+    if "format is not available" in low or "requested format" in low:
+        return (
+            "此影片沒有可用的音訊格式（YouTube 限制）。"
+            "請換一首、改 **上傳 MP3**，或於 Secrets 設定 `youtube.cookies_txt` 後重試。"
+        )
     return raw or "YouTube 下載失敗，請改上傳音檔或稍後再試。"
 
 
@@ -116,25 +133,34 @@ def download_youtube_audio(
 
     last_exc: Exception | None = None
     for strategy in PLAYER_STRATEGIES:
-        opts = _apply_strategy(
-            base_ydl_opts(cookies_path=cookies_path, quiet=True),
-            strategy,
-        )
-        opts.update({
-            "format": "bestaudio[ext=m4a]/bestaudio/best",
-            "outtmpl": out_base + ".%(ext)s",
-            "postprocessors": postprocessors,
-        })
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                ydl.download([url])
-            found = _find_audio_file(out_base)
-            if found:
-                return found
-            last_exc = FileNotFoundError("下載完成但找不到音檔")
-        except Exception as exc:
-            last_exc = exc
-            continue
+        for fmt in AUDIO_FORMAT_CANDIDATES:
+            opts = _apply_strategy(
+                base_ydl_opts(cookies_path=cookies_path, quiet=True),
+                strategy,
+            )
+            opts.update({
+                "format": fmt,
+                "outtmpl": out_base + ".%(ext)s",
+                "postprocessors": postprocessors,
+                # 允許合併影音後再抽音訊（format=b / best 時需要）
+                "merge_output_format": "mp4",
+            })
+            try:
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    ydl.download([url])
+                found = _find_audio_file(out_base)
+                if found:
+                    return found
+                last_exc = FileNotFoundError("下載完成但找不到音檔")
+            except Exception as exc:
+                last_exc = exc
+                err = str(exc).lower()
+                # 格式不符才換下一組；403 等也繼續嘗試
+                if "format is not available" in err or "requested format" in err:
+                    continue
+                if "403" in err or "forbidden" in err:
+                    break  # 換 player client
+                continue
 
     raise YouTubeDownloadError(format_youtube_error(last_exc or Exception("unknown")), last_exc)
 
