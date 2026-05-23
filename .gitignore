@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Streamlit / 執行產物
+uploads/
+output/
+temp_*
+*.mid
+
+# 音檔快取
+*.mp3
+*.wav
+*.m4a
+*.webm
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Secrets
+.env
+.streamlit/secrets.toml

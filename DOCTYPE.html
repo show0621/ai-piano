@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>網頁虛擬鋼琴教學測試</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: #222; color: white; padding-top: 50px; }
+        .piano { display: flex; justify-content: center; margin-top: 30px; }
+        .key {
+            width: 50px; height: 200px; background-color: white; color: black;
+            border: 1px solid #ccc; border-radius: 0 0 5px 5px;
+            display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 10px; font-weight: bold; cursor: pointer; transition: background-color 0.1s;
+        }
+        .key.active { background-color: #ffcccc; /* 按下或提示時變紅 */ }
+        .controls { margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 6px; }
+        button.playing { background-color: #4a90d9; color: white; }
+        .song-info { margin-top: 12px; font-size: 14px; color: #aaa; min-height: 20px; }
+    </style>
+</head>
+<body>
+
+    <h2>互動鋼琴教學模組</h2>
+    <p>請使用英文鍵盤 A 到 J 進行彈奏，或點擊下方按鈕觀看教學示範</p>
+
+    <div class="piano" id="piano-container">
+        <!-- 琴鍵會由 JS 自動生成 -->
+    </div>
+
+    <div class="controls">
+        <button id="btn-twinkle" onclick="playSong('twinkle')">▶ 小星星</button>
+        <button id="btn-xiaoaojianghu" onclick="playSong('xiaoaojianghu')">▶ 笑傲江湖</button>
+    </div>
+    <p class="song-info" id="song-info"></p>
+
+    <script>
+        // 設定音符與對應的鍵盤按鍵、頻率 (C4 到 B4)
+        const notes = [
+            { id: 'C', key: 'a', freq: 261.63, label: 'C (A)' },
+            { id: 'D', key: 's', freq: 293.66, label: 'D (S)' },
+            { id: 'E', key: 'd', freq: 329.63, label: 'E (D)' },
+            { id: 'F', key: 'f', freq: 349.23, label: 'F (F)' },
+            { id: 'G', key: 'g', freq: 392.00, label: 'G (G)' },
+            { id: 'A', key: 'h', freq: 440.00, label: 'A (H)' },
+            { id: 'B', key: 'j', freq: 493.88, label: 'B (J)' }
+        ];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const pianoContainer = document.getElementById('piano-container');
+        const keyElements = {};
+
+        // 1. 建立前端琴鍵 UI
+        notes.forEach(note => {
+            const keyDiv = document.createElement('div');
+            keyDiv.className = 'key';
+            keyDiv.innerText = note.label;
+            keyDiv.id = `key-${note.key}`;
+            pianoContainer.appendChild(keyDiv);
+            keyElements[note.key] = keyDiv;
+        });
+
+        // 2. 發聲器：使用 Web Audio API 產生基礎合成音
+        function playSound(freq, duration = 0) {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            // 簡單的音量淡出效果，聽起來比較像琴聲
+            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            if(duration > 0) { oscillator.stop(audioCtx.currentTime + duration); } 
+            else { oscillator.stop(audioCtx.currentTime + 1); }
+        }
+
+        // 3. 監聽電腦鍵盤按下事件
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            const note = notes.find(n => n.key === key);
+            if (note && !e.repeat) {
+                keyElements[key].classList.add('active');
+                playSound(note.freq);
+            }
+        });
+
+        // 監聽電腦鍵盤放開事件
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (keyElements[key]) {
+                keyElements[key].classList.remove('active');
+            }
+        });
+
+        // 4. 琴譜練習：簡譜數字 1-7 對應鍵盤 a-j (C4-B4)
+        const JIANPU = { '1': 'a', '2': 's', '3': 'd', '4': 'f', '5': 'g', '6': 'h', '7': 'j' };
+
+        function buildSongFromJianpu(jianpu, tempo = 450) {
+            let delay = 0;
+            return jianpu.split(/\s+/).filter(Boolean).map(num => {
+                const note = { key: JIANPU[num], delay, duration: tempo };
+                delay += tempo;
+                return note;
+            });
+        }
+
+        const songs = {
+            twinkle: {
+                name: '小星星',
+                subtitle: 'Twinkle Twinkle Little Star',
+                notes: [
+                    { key: 'a', delay: 0, duration: 400 },
+                    { key: 'a', delay: 500, duration: 400 },
+                    { key: 'g', delay: 1000, duration: 400 },
+                    { key: 'g', delay: 1500, duration: 400 },
+                    { key: 'h', delay: 2000, duration: 400 },
+                    { key: 'h', delay: 2500, duration: 400 },
+                    { key: 'g', delay: 3000, duration: 800 }
+                ]
+            },
+            xiaoaojianghu: {
+                name: '笑傲江湖（滄海一聲笑）',
+                subtitle: 'C 調簡譜 · 前段主歌',
+                notes: buildSongFromJianpu(
+                    '6 6 5 3 5 6 1 1 2 1 6 ' +
+                    '5 5 3 2 3 5 6 5 3 ' +
+                    '2 3 2 3 5 6 1 2 1 6 5 3 ' +
+                    '5 5 3 2 3 5 6 5 3 2 1 2 3',
+                    420
+                )
+            }
+        };
+
+        let activeTimeouts = [];
+
+        function clearScheduledPlayback() {
+            activeTimeouts.forEach(id => clearTimeout(id));
+            activeTimeouts = [];
+            Object.values(keyElements).forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('playing'));
+        }
+
+        function playSong(songId) {
+            const song = songs[songId];
+            if (!song) return;
+
+            clearScheduledPlayback();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            document.getElementById(`btn-${songId}`).classList.add('playing');
+            document.getElementById('song-info').textContent =
+                `正在示範：${song.name} — ${song.subtitle}`;
+
+            song.notes.forEach(note => {
+                const timeoutId = setTimeout(() => {
+                    keyElements[note.key].classList.add('active');
+                    playSound(notes.find(n => n.key === note.key).freq, note.duration / 1000);
+
+                    const offId = setTimeout(() => {
+                        keyElements[note.key].classList.remove('active');
+                    }, note.duration);
+                    activeTimeouts.push(offId);
+                }, note.delay);
+                activeTimeouts.push(timeoutId);
+            });
+
+            const lastNote = song.notes[song.notes.length - 1];
+            const finishId = setTimeout(() => {
+                document.getElementById('song-info').textContent = `${song.name} 示範結束，請跟著彈奏！`;
+                document.getElementById(`btn-${songId}`).classList.remove('playing');
+            }, lastNote.delay + lastNote.duration + 300);
+            activeTimeouts.push(finishId);
+        }
+    </script>
+</body>
+</html>
