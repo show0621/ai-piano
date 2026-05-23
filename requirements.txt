@@ -1,5 +1,6 @@
 streamlit==1.41.1
-setuptools>=65.0.0
+# pretty_midi 仍依賴 pkg_resources；setuptools 81+ 已移除該模組
+setuptools>=65.0.0,<81
 pretty_midi==0.2.10
 yt-dlp>=2024.4.9
 numpy>=1.26.4,<2.0.0
