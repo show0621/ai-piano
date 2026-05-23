@@ -99,6 +99,16 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {
     padding: 1.2rem 1.4rem;
     margin-bottom: 1rem;
 }
+/* 手機 / iPad */
+@media (max-width: 1024px) {
+    .block-container { padding: 0.5rem 0.75rem 1rem; max-width: 100%; }
+    [data-testid="stSidebar"] { min-width: 240px; }
+    .hero-title { font-size: 1.35rem !important; }
+}
+@media (max-width: 768px) {
+    .block-container { padding: 0.35rem 0.5rem 0.75rem; }
+    [data-testid="column"] { width: 100% !important; flex: 1 1 100%; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -133,7 +143,8 @@ def render_piano(
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    components.html(html, height=960, scrolling=False)
+    # 手機橫向需較高 iframe；內部 frontend 會自適應寬高
+    components.html(html, height=1180, scrolling=True)
 
 
 def save_upload(uploaded_file) -> str:

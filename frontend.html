@@ -2,17 +2,33 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>{{SONG_TITLE}}</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@300;400&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --key-w: 34px;
+            --key-h: 84px;
+        }
         * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
         body {
-            margin: 0; padding: 16px 12px 24px;
+            margin: 0;
+            padding: 12px 8px 16px;
             text-align: center;
             font-family: 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
             color: #4A4035;
             background: linear-gradient(180deg, #F7F3EB 0%, #EDE8DF 100%);
+            overflow-x: hidden;
+            touch-action: manipulation;
         }
+        .game-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .game-header { margin-bottom: 6px; }
         h3 {
             margin: 0 0 4px;
             font-family: 'Noto Serif JP', 'Noto Serif TC', serif;
@@ -29,16 +45,45 @@
         }
         .canvas-wrap {
             position: relative;
-            display: inline-block;
+            display: block;
             margin: 0 auto;
-            max-width: 100%;
+            width: 100%;
+            max-width: 1100px;
         }
         #gameCanvas {
-            display: block; max-width: 100%;
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
             background: #2C2824;
             border: 1px solid #C9B8A4;
             border-radius: 2px;
             box-shadow: 0 8px 32px rgba(74, 64, 53, 0.12);
+        }
+        #rotateHint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(165deg, #2C2824, #4A4035);
+            color: #F7F3EB;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 28px;
+            font-family: 'Noto Serif JP', serif;
+            letter-spacing: 0.12em;
+        }
+        #rotateHint.show { display: flex; }
+        #rotateHint .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            animation: tiltPhone 1.2s ease-in-out infinite;
+        }
+        @keyframes tiltPhone {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
         }
         #comboOverlay {
             position: absolute;
@@ -214,18 +259,75 @@
             display: flex; justify-content: center;
             gap: 2px; overflow-x: auto; padding-bottom: 4px;
         }
+        .piano-section { width: 100%; max-width: 1100px; margin: 0 auto; }
         .p-key {
-            width: 34px; min-width: 34px; height: 84px;
+            width: var(--key-w);
+            min-width: var(--key-w);
+            height: var(--key-h);
             background: #FAF8F4;
             color: #4A4035;
             border: 1px solid #D4C9B8;
-            border-radius: 0 0 3px 3px;
-            display: flex; flex-direction: column;
-            justify-content: flex-end; align-items: center;
+            border-radius: 0 0 4px 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
             padding-bottom: 6px;
             font-size: 0.65rem;
-            transition: background 0.1s, transform 0.08s;
+            transition: background 0.08s, transform 0.06s;
             user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        .touch-hint { display: none; margin-top: 8px; }
+        .touch-device .keyboard-hint-desktop { display: none; }
+        .touch-device .touch-hint { display: block; }
+        /* 平板橫向 / 手機橫向：雙排鍵併排、大觸控區 */
+        @media (max-width: 1024px) and (orientation: landscape) {
+            body { padding: 4px 2px 6px; }
+            .game-header h3 { font-size: 0.9rem; letter-spacing: 0.1em; }
+            .game-header .subtitle { font-size: 0.65rem; margin-bottom: 4px; }
+            .stats-bar { font-size: 0.72rem; gap: 14px; margin: 4px 0; }
+            .controls {
+                gap: 6px;
+                margin-top: 6px;
+            }
+            .controls button, .controls select {
+                min-height: 44px;
+                padding: 8px 12px;
+                font-size: 0.78rem;
+            }
+            .octave-label { display: none; }
+            .piano-section {
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: stretch;
+                gap: 8px;
+                padding: 0 2px;
+            }
+            .piano-wrap {
+                flex: 1;
+                min-width: 0;
+                max-width: 50%;
+            }
+            #comboNumber { font-size: 2.2rem; }
+            #comboNumber.mega { font-size: 2.8rem; }
+            #judgmentPop { font-size: 1.6rem; }
+        }
+        /* 手機直向：提示橫放 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            body.mode-mobile-portrait .game-shell {
+                opacity: 0.35;
+                pointer-events: none;
+            }
+        }
+        /* 電腦寬螢幕 */
+        @media (min-width: 1025px) {
+            body { padding: 16px 12px 24px; }
+            .piano-section .piano-rows { display: block; }
         }
         .p-key.active { background: #D4A59A; transform: translateY(2px); }
         .p-key.teach { background: #B8C4B0; }
@@ -241,8 +343,17 @@
 </head>
 <body>
 
-    <h3>{{SONG_TITLE}}</h3>
-    <p class="subtitle" id="modeLabel">練習模式</p>
+    <div id="rotateHint">
+        <div class="icon">📱↻</div>
+        <p><strong>請將裝置橫放</strong></p>
+        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向模式可完整顯示音符與琴鍵，方便觸控彈奏</p>
+    </div>
+
+    <div class="game-shell">
+    <header class="game-header">
+        <h3>{{SONG_TITLE}}</h3>
+        <p class="subtitle" id="modeLabel">練習模式</p>
+    </header>
 
     <div class="canvas-wrap">
         <canvas id="gameCanvas" width="1100" height="420"></canvas>
@@ -281,14 +392,20 @@
         <button class="secondary" onclick="applyChorusLoop()">副歌區間</button>
     </div>
 
-    <p class="keyboard-hint">
-        下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
+    <p class="keyboard-hint keyboard-hint-desktop">
+        電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
     </p>
+    <p class="keyboard-hint touch-hint">👆 點擊下方琴鍵彈奏（建議橫放裝置）</p>
 
-    <p class="octave-label">一</p>
-    <div class="piano-wrap" id="piano-low"></div>
-    <p class="octave-label">二</p>
-    <div class="piano-wrap" id="piano-high"></div>
+    <section class="piano-section">
+        <div class="piano-rows">
+            <p class="octave-label">一 · C4–B4</p>
+            <div class="piano-wrap" id="piano-low"></div>
+            <p class="octave-label">二 · C5–B5</p>
+            <div class="piano-wrap" id="piano-high"></div>
+        </div>
+    </section>
+    </div><!-- .game-shell -->
 
     <script>
         const rawScoreData = {{SCORE_JSON_PLACEHOLDER}};
@@ -338,13 +455,71 @@
         if (AUDIO_SRC) audio.src = AUDIO_SRC;
 
         const PIXELS_PER_SECOND = 125;
-        const KEY_WIDTH = 34;
         const PERFECT_WINDOW = 0.06;
         const HIT_WINDOW = 0.2;
-        const PIANO_TOP = canvas.height - 54;
-        const JUDGE_Y = PIANO_TOP - 4;
-        const CANVAS_LEFT = 48;
         const ELIMINATE_MS = 380;
+        let layout = {
+            canvasW: 1100, canvasH: 420,
+            keyWidth: 34, canvasLeft: 48,
+            pianoTop: 366, judgeY: 362,
+        };
+
+        function isMobileView() {
+            return window.matchMedia('(max-width: 1024px)').matches;
+        }
+        function isLandscapeView() {
+            return window.matchMedia('(orientation: landscape)').matches;
+        }
+        function noteW() { return layout.keyWidth - 5; }
+
+        function applyLayout() {
+            const wrap = document.querySelector('.canvas-wrap');
+            const availW = wrap ? Math.max(280, wrap.clientWidth) : Math.min(1100, window.innerWidth - 16);
+            const mobile = isMobileView();
+            const land = isLandscapeView();
+            let w, h, keyW;
+
+            if (mobile && land) {
+                w = Math.floor(Math.min(availW, window.innerWidth - 4));
+                h = Math.floor(Math.max(180, Math.min(window.innerHeight * 0.4, 420)));
+                keyW = Math.max(26, Math.floor((w - 36) / 14));
+                document.body.classList.add('mode-mobile-land');
+                document.body.classList.remove('mode-mobile-portrait');
+            } else if (mobile) {
+                w = Math.floor(Math.min(availW, 900));
+                h = Math.floor(Math.max(160, Math.min(w * 0.38, 320)));
+                keyW = Math.max(22, Math.floor((w - 28) / 14));
+                document.body.classList.add('mode-mobile-portrait');
+                document.body.classList.remove('mode-mobile-land');
+            } else {
+                w = Math.floor(Math.min(1100, availW));
+                h = Math.round(w * 420 / 1100);
+                keyW = Math.max(30, Math.floor((w - 56) / 14));
+                document.body.classList.remove('mode-mobile-portrait', 'mode-mobile-land');
+            }
+
+            const left = Math.max(20, Math.floor((w - keyW * 14) / 2));
+            const pianoTop = h - Math.max(44, Math.round(h * 0.128));
+            layout = {
+                canvasW: w, canvasH: h,
+                keyWidth: keyW, canvasLeft: left,
+                pianoTop, judgeY: pianoTop - 4,
+            };
+
+            canvas.width = w;
+            canvas.height = h;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+
+            let keyH = 84;
+            if (mobile && land) keyH = Math.min(90, Math.max(66, window.innerHeight * 0.13));
+            else if (mobile) keyH = 64;
+            document.documentElement.style.setProperty('--key-w', keyW + 'px');
+            document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
+
+            const rh = document.getElementById('rotateHint');
+            if (rh) rh.classList.toggle('show', mobile && !land);
+        }
         const RAPID_WINDOW_MS = 520;
 
         let animationId = null;
@@ -376,15 +551,26 @@
 
         const pianoLow = document.getElementById('piano-low');
         const pianoHigh = document.getElementById('piano-high');
+        function bindPianoKey(el, key) {
+            const tap = (e) => {
+                if (e.cancelable) e.preventDefault();
+                onKeyPress(key);
+            };
+            el.addEventListener('click', tap);
+            el.addEventListener('touchstart', tap, { passive: false });
+        }
+
         PITCH_MAP.forEach(p => {
             const el = document.createElement('div');
             el.className = 'p-key';
             el.id = 'pk-' + p.key;
             el.innerHTML = `<span class="kn">${p.kn}</span><span>${p.label}</span>`;
-            el.onclick = () => onKeyPress(p.key);
+            bindPianoKey(el, p.key);
             (p.octave === 1 ? pianoLow : pianoHigh).appendChild(el);
             keyEls[p.key] = el;
         });
+
+        if ('ontouchstart' in window) document.body.classList.add('touch-device');
 
         function midiToFreq(midi) {
             return 440 * Math.pow(2, (midi - 69) / 12);
@@ -429,9 +615,9 @@
 
         function getNoteX(pitch) {
             const idx = PITCH_MAP.findIndex(p => p.pitch === pitch);
-            if (idx >= 0) return CANVAS_LEFT + idx * KEY_WIDTH;
+            if (idx >= 0) return layout.canvasLeft + idx * layout.keyWidth;
             const clamped = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
-            return CANVAS_LEFT + (clamped - PITCH_MIN) * (KEY_WIDTH * 0.58);
+            return layout.canvasLeft + (clamped - PITCH_MIN) * (layout.keyWidth * 0.58);
         }
 
         function updateStatsUI() {
@@ -450,7 +636,7 @@
         }
 
         function getNoteCenterX(pitch) {
-            return getNoteX(pitch) + (KEY_WIDTH - 5) / 2;
+            return getNoteX(pitch) + noteW() / 2;
         }
 
         function spawnParticles(cx, cy, perfect, count) {
@@ -552,8 +738,8 @@
             stats.combo++;
             if (stats.combo > stats.maxCombo) stats.maxCombo = stats.combo;
 
-            spawnParticles(cx, JUDGE_Y, perfect);
-            spawnHitRing(cx, JUDGE_Y, perfect);
+            spawnParticles(cx, layout.judgeY, perfect);
+            spawnHitRing(cx, layout.judgeY, perfect);
             showJudgment(perfect ? 'perfect' : 'good');
             updateComboDisplay(stats.combo);
 
@@ -619,25 +805,25 @@
 
         function drawJudgeLine() {
             const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 280);
-            const grad = ctx.createLinearGradient(0, JUDGE_Y - 20, 0, JUDGE_Y + 20);
+            const grad = ctx.createLinearGradient(0, layout.judgeY - 20, 0, layout.judgeY + 20);
             grad.addColorStop(0, 'rgba(255, 180, 100, 0)');
             grad.addColorStop(0.5, `rgba(255, 200, 120, ${0.25 + pulse * 0.15})`);
             grad.addColorStop(1, 'rgba(255, 180, 100, 0)');
             ctx.fillStyle = grad;
-            ctx.fillRect(0, JUDGE_Y - 18, canvas.width, 36);
+            ctx.fillRect(0, layout.judgeY - 18, canvas.width, 36);
 
             ctx.strokeStyle = `rgba(255, 213, 140, ${0.55 + pulse * 0.25})`;
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(CANVAS_LEFT, JUDGE_Y);
-            ctx.lineTo(CANVAS_LEFT + PITCH_MAP.length * KEY_WIDTH, JUDGE_Y);
+            ctx.moveTo(layout.canvasLeft, layout.judgeY);
+            ctx.lineTo(layout.canvasLeft + PITCH_MAP.length * layout.keyWidth, layout.judgeY);
             ctx.stroke();
 
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(CANVAS_LEFT, JUDGE_Y + 2);
-            ctx.lineTo(CANVAS_LEFT + PITCH_MAP.length * KEY_WIDTH, JUDGE_Y + 2);
+            ctx.moveTo(layout.canvasLeft, layout.judgeY + 2);
+            ctx.lineTo(layout.canvasLeft + PITCH_MAP.length * layout.keyWidth, layout.judgeY + 2);
             ctx.stroke();
         }
 
@@ -678,11 +864,11 @@
             const elapsed = now - note.eliminateAt;
             const p = Math.min(1, elapsed / ELIMINATE_MS);
             const cx = getNoteCenterX(note.pitch);
-            const w = KEY_WIDTH - 5;
+            const w = noteW();
             const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
             const scale = 1 + (note.hitPerfect ? 0.35 : 0.2) * (1 - p);
             const alpha = 1 - Math.pow(p, 0.85);
-            const y = JUDGE_Y - h / 2 - p * 28;
+            const y = layout.judgeY - h / 2 - p * 28;
             const x = cx - (w * scale) / 2;
 
             drawNoteBlock(x, y, w * scale, h * scale, note, alpha, 1, true);
@@ -693,7 +879,7 @@
                 ctx.strokeStyle = note.hitPerfect ? '#FFD54F' : '#FFAB76';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(cx, JUDGE_Y, 12 + p * 40, 0, Math.PI * 2);
+                ctx.arc(cx, layout.judgeY, 12 + p * 40, 0, Math.PI * 2);
                 ctx.stroke();
                 ctx.restore();
             }
@@ -744,24 +930,24 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = '#252220';
-            ctx.fillRect(0, PIANO_TOP, canvas.width, canvas.height - PIANO_TOP);
+            ctx.fillRect(0, layout.pianoTop, canvas.width, canvas.height - layout.pianoTop);
 
-            const splitX = CANVAS_LEFT + 7 * KEY_WIDTH;
+            const splitX = layout.canvasLeft + 7 * layout.keyWidth;
             ctx.strokeStyle = '#4A4540';
             ctx.setLineDash([4, 6]);
             ctx.beginPath();
             ctx.moveTo(splitX, 0);
-            ctx.lineTo(splitX, PIANO_TOP);
+            ctx.lineTo(splitX, layout.pianoTop);
             ctx.stroke();
             ctx.setLineDash([]);
 
             PITCH_MAP.forEach((p, i) => {
-                const x = CANVAS_LEFT + i * KEY_WIDTH + KEY_WIDTH / 2;
+                const x = layout.canvasLeft + i * layout.keyWidth + layout.keyWidth / 2;
                 ctx.strokeStyle = '#353230';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
-                ctx.lineTo(x, PIANO_TOP);
+                ctx.lineTo(x, layout.pianoTop);
                 ctx.stroke();
             });
 
@@ -792,9 +978,9 @@
 
                 const dist = (note.start_time - t) * PIXELS_PER_SECOND;
                 const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
-                const y = PIANO_TOP - dist - h;
+                const y = layout.pianoTop - dist - h;
                 const x = getNoteX(note.pitch);
-                const w = KEY_WIDTH - 5;
+                const w = noteW();
                 if (y > canvas.height || y + h < 0) return;
 
                 let alpha = 1;
@@ -819,7 +1005,7 @@
                 ctx.fillStyle = feedbackColor;
                 ctx.font = '700 24px "Noto Serif JP", serif';
                 ctx.textAlign = 'center';
-                ctx.fillText(feedbackText, canvas.width / 2, PIANO_TOP - 48);
+                ctx.fillText(feedbackText, canvas.width / 2, layout.pianoTop - 48);
                 ctx.textAlign = 'left';
                 feedbackTimer--;
             }
@@ -981,6 +1167,10 @@
                 document.getElementById('loopEnd').value = CHORUS_END;
             }
         }
+
+        applyLayout();
+        window.addEventListener('resize', applyLayout);
+        window.addEventListener('orientationchange', () => setTimeout(applyLayout, 280));
 
         updateStatsUI();
         draw();
