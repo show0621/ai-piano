@@ -24,9 +24,42 @@
             overflow-x: hidden;
             touch-action: manipulation;
         }
+        body.mode-mobile-land {
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
         .game-shell {
             max-width: 1200px;
             margin: 0 auto;
+        }
+        body.mode-mobile-land .game-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 100dvh;
+            max-width: none;
+            margin: 0;
+            overflow: hidden;
+        }
+        .playfield {
+            width: 100%;
+        }
+        body.mode-mobile-land .playfield {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            overflow: hidden;
+        }
+        body.mode-mobile-land .playfield-chrome {
+            flex-shrink: 0;
+            width: 100%;
+            padding: 2px 4px 0;
         }
         .game-header { margin-bottom: 6px; }
         h3 {
@@ -55,6 +88,7 @@
             width: 100%;
             max-width: 100%;
             height: auto;
+            vertical-align: top;
             background: #2C2824;
             border: 1px solid #C9B8A4;
             border-radius: 2px;
@@ -324,42 +358,88 @@
         .touch-device .keyboard-hint-desktop { display: none; }
         .touch-device .touch-hint { display: block; }
         /* 平板橫向 / 手機橫向（含倒掛）：由 JS 加 mode-mobile-land */
-        body.mode-mobile-land {
-            padding: 4px 2px 6px;
-            .game-header h3 { font-size: 0.9rem; letter-spacing: 0.1em; }
-            .game-header .subtitle { font-size: 0.65rem; margin-bottom: 4px; }
-            .stats-bar { font-size: 0.72rem; gap: 14px; margin: 4px 0; }
-            .controls {
-                gap: 6px;
-                margin-top: 6px;
-            }
-            .controls button, .controls select {
-                min-height: 44px;
-                padding: 8px 12px;
-                font-size: 0.78rem;
-            }
-            .octave-label { display: none; }
-            .piano-section .piano-rows {
-                display: flex;
-                flex-direction: row;
-                justify-content: center;
-                align-items: stretch;
-                gap: 8px;
-                width: 100%;
-                padding: 0 2px;
-            }
-            .piano-section .piano-wrap {
-                flex: 1;
-                min-width: 0;
-                max-width: 50%;
-            }
-            #comboNumber { font-size: 2.2rem; }
-            #comboNumber.mega { font-size: 2.8rem; }
-            #judgmentPop { font-size: 1.6rem; }
+        body.mode-mobile-land .game-header {
+            margin: 0;
+            padding: 2px 0;
+        }
+        body.mode-mobile-land .game-header h3 {
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            margin: 0;
+        }
+        body.mode-mobile-land .game-header .subtitle { display: none; }
+        body.mode-mobile-land .stats-bar {
+            font-size: 0.65rem;
+            gap: 10px;
+            margin: 2px 0;
+        }
+        body.mode-mobile-land .controls {
+            gap: 4px;
+            margin: 2px 0 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        body.mode-mobile-land .controls button,
+        body.mode-mobile-land .controls select {
+            min-height: 36px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+        body.mode-mobile-land .controls label { font-size: 0.65rem; }
+        body.mode-mobile-land .controls input[type="number"] {
+            width: 44px !important;
+            font-size: 0.7rem;
+        }
+        body.mode-mobile-land .ctrl-ab { display: none !important; }
+        body.mode-mobile-land .keyboard-hint { display: none !important; }
+        body.mode-mobile-land .canvas-wrap {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin: 0;
+            max-width: none;
+        }
+        body.mode-mobile-land #gameCanvas {
+            width: auto !important;
+            max-width: 100%;
+            height: auto !important;
+            flex-shrink: 0;
+        }
+        body.mode-mobile-land .octave-label { display: none; }
+        body.mode-mobile-land .piano-section {
+            flex-shrink: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0 0 2px;
+            max-width: none;
+        }
+        body.mode-mobile-land .piano-section .piano-rows {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 0;
+            margin: 0 auto;
+            padding: 0;
+        }
+        body.mode-mobile-land .piano-section .piano-wrap {
+            flex: 0 0 auto;
+            max-width: none;
+            overflow: visible;
+            padding-bottom: 0;
         }
         body.mode-mobile-land .p-key {
-            min-height: 52px;
+            min-height: 44px;
+            padding-bottom: 4px;
+            font-size: 0.55rem;
         }
+        body.mode-mobile-land .p-key .kn { font-size: 0.85rem; }
+        body.mode-mobile-land #comboNumber { font-size: 1.8rem; }
+        body.mode-mobile-land #comboNumber.mega { font-size: 2.2rem; }
+        body.mode-mobile-land #judgmentPop { font-size: 1.35rem; }
         /* 手機／平板直向：提示橫放 */
         body.mode-mobile-portrait .game-shell {
             opacity: 0.35;
@@ -394,61 +474,63 @@
     </div>
 
     <div class="game-shell">
-    <header class="game-header">
-        <h3>{{SONG_TITLE}}</h3>
-        <p class="subtitle" id="modeLabel">練習模式</p>
-    </header>
-
-    <div class="canvas-wrap">
-        <canvas id="gameCanvas" width="1100" height="420"></canvas>
-        <div id="screenFlash"></div>
-        <div id="comboOverlay">
-            <div id="comboNumber">0</div>
-            <div id="comboLabel">COMBO</div>
+    <div class="playfield-chrome">
+        <header class="game-header">
+            <h3>{{SONG_TITLE}}</h3>
+            <p class="subtitle" id="modeLabel">練習模式</p>
+        </header>
+        <div class="stats-bar">
+            <span id="statCombo">連擊 0</span>
+            <span id="statAcc">正確率 —</span>
+            <span id="statMiss">漏接 0</span>
         </div>
-        <div id="judgmentPop"></div>
-        <div id="rapidBanner"></div>
+        <div class="controls">
+            <audio id="bgm" preload="auto"></audio>
+            <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
+            <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
+            <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
+            <button class="secondary" onclick="restart()">重來</button>
+            <label>速度</label>
+            <select id="speedSel" onchange="setSpeed()">
+                <option value="0.5">0.5×</option>
+                <option value="0.75">0.75×</option>
+                <option value="1" selected>1.0×</option>
+            </select>
+            <label class="ctrl-ab">A–B</label>
+            <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
+            <span class="ctrl-ab">–</span>
+            <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
+            <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
+            <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
+        </div>
     </div>
 
-    <div class="stats-bar">
-        <span id="statCombo">連擊 0</span>
-        <span id="statAcc">正確率 —</span>
-        <span id="statMiss">漏接 0</span>
-    </div>
+    <div class="playfield">
+        <div class="canvas-wrap">
+            <canvas id="gameCanvas" width="1100" height="420"></canvas>
+            <div id="screenFlash"></div>
+            <div id="comboOverlay">
+                <div id="comboNumber">0</div>
+                <div id="comboLabel">COMBO</div>
+            </div>
+            <div id="judgmentPop"></div>
+            <div id="rapidBanner"></div>
+        </div>
 
-    <div class="controls">
-        <audio id="bgm" preload="auto"></audio>
-        <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
-        <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
-        <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
-        <button class="secondary" onclick="restart()">重來</button>
-        <label>速度</label>
-        <select id="speedSel" onchange="setSpeed()">
-            <option value="0.5">0.5×</option>
-            <option value="0.75">0.75×</option>
-            <option value="1" selected>1.0×</option>
-        </select>
-        <label>A–B</label>
-        <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
-        <span>–</span>
-        <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
-        <button class="secondary" onclick="toggleLoop()">循環</button>
-        <button class="secondary" onclick="applyChorusLoop()">副歌區間</button>
+        <section class="piano-section">
+            <div class="piano-rows" id="pianoRows">
+                <p class="octave-label">一 · C4–B4</p>
+                <div class="piano-wrap" id="piano-low"></div>
+                <p class="octave-label">二 · C5–B5</p>
+                <div class="piano-wrap" id="piano-high"></div>
+            </div>
+        </section>
     </div>
 
     <p class="keyboard-hint keyboard-hint-desktop">
         電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
     </p>
     <p class="keyboard-hint touch-hint">👆 用手指點下方琴鍵彈奏（不需鍵盤；請橫放裝置）</p>
-
-    <section class="piano-section">
-        <div class="piano-rows">
-            <p class="octave-label">一 · C4–B4</p>
-            <div class="piano-wrap" id="piano-low"></div>
-            <p class="octave-label">二 · C5–B5</p>
-            <div class="piano-wrap" id="piano-high"></div>
-        </div>
-    </section>
     </div><!-- .game-shell -->
 
     <script>
@@ -542,6 +624,49 @@
         }
         function noteW() { return layout.keyWidth - 5; }
 
+        function viewportHeight() {
+            return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        }
+
+        function measureChromeHeight() {
+            let total = 0;
+            document.querySelectorAll('.playfield-chrome, .keyboard-hint').forEach(el => {
+                if (!el || el.offsetParent === null) return;
+                const st = getComputedStyle(el);
+                if (st.display === 'none' || st.visibility === 'hidden') return;
+                total += el.getBoundingClientRect().height;
+            });
+            return Math.ceil(total) + 4;
+        }
+
+        function syncPianoToCanvas(w, keyW, left) {
+            const rows = document.getElementById('pianoRows');
+            const low = document.getElementById('piano-low');
+            const high = document.getElementById('piano-high');
+            const band = keyW * 14;
+            if (rows) {
+                rows.style.width = band + 'px';
+                rows.style.maxWidth = '100%';
+                rows.style.marginLeft = 'auto';
+                rows.style.marginRight = 'auto';
+            }
+            const half = keyW * 7;
+            if (low) low.style.width = half + 'px';
+            if (high) high.style.width = half + 'px';
+            const sec = document.querySelector('.piano-section');
+            if (sec) {
+                sec.style.width = '100%';
+                sec.style.maxWidth = w + 'px';
+                sec.style.marginLeft = 'auto';
+                sec.style.marginRight = 'auto';
+                sec.style.paddingLeft = '0';
+            }
+            const cwrap = document.querySelector('.canvas-wrap');
+            if (cwrap) {
+                cwrap.style.maxWidth = w + 'px';
+            }
+        }
+
         function applyLayout() {
             const wrap = document.querySelector('.canvas-wrap');
             const availW = wrap ? Math.max(280, wrap.clientWidth) : Math.min(1100, window.innerWidth - 16);
@@ -550,26 +675,42 @@
             let w, h, keyW;
 
             if (mobile && land) {
-                w = Math.floor(Math.min(availW, window.innerWidth - 4));
-                h = Math.floor(Math.max(180, Math.min(window.innerHeight * 0.4, 420)));
-                keyW = Math.max(26, Math.floor((w - 36) / 14));
+                const viewH = viewportHeight();
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                w = Math.floor(Math.min(viewW - 8, availW));
+                keyW = Math.max(22, Math.floor((w - 8) / 14));
+                w = keyW * 14 + 8;
+                let keyH = Math.min(52, Math.max(40, Math.floor(viewH * 0.13)));
+                document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
+                const chromeH = measureChromeHeight();
+                const pianoH = keyH + 6;
+                h = Math.floor(viewH - chromeH - pianoH);
+                h = Math.max(120, Math.min(h, 400));
                 document.body.classList.add('mode-mobile-land');
                 document.body.classList.remove('mode-mobile-portrait');
             } else if (mobile) {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
                 w = Math.floor(Math.min(availW, 900));
                 h = Math.floor(Math.max(160, Math.min(w * 0.38, 320)));
                 keyW = Math.max(22, Math.floor((w - 28) / 14));
                 document.body.classList.add('mode-mobile-portrait');
                 document.body.classList.remove('mode-mobile-land');
             } else {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
                 w = Math.floor(Math.min(1100, availW));
                 h = Math.round(w * 420 / 1100);
                 keyW = Math.max(30, Math.floor((w - 56) / 14));
                 document.body.classList.remove('mode-mobile-portrait', 'mode-mobile-land');
             }
 
-            const left = Math.max(20, Math.floor((w - keyW * 14) / 2));
-            const pianoTop = h - Math.max(44, Math.round(h * 0.128));
+            const left = Math.max(4, Math.floor((w - keyW * 14) / 2));
+            const pianoTop = (mobile && land)
+                ? h - 4
+                : h - Math.max(44, Math.round(h * 0.128));
             layout = {
                 canvasW: w, canvasH: h,
                 keyWidth: keyW, canvasLeft: left,
@@ -582,10 +723,15 @@
             canvas.style.height = h + 'px';
 
             let keyH = 84;
-            if (mobile && land) keyH = Math.min(90, Math.max(66, window.innerHeight * 0.13));
-            else if (mobile) keyH = 64;
+            if (mobile && land) {
+                keyH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--key-h'), 10) || 48;
+            } else if (mobile) keyH = 64;
             document.documentElement.style.setProperty('--key-w', keyW + 'px');
-            document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
+            if (!(mobile && land)) {
+                document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
+            }
+
+            syncPianoToCanvas(w, keyW, left);
 
             document.body.classList.toggle('layout-landscape', land);
             document.body.classList.toggle('layout-portrait', !land);

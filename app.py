@@ -143,8 +143,8 @@ def render_piano(
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    # 手機橫向需較高 iframe；內部 frontend 會自適應寬高
-    components.html(html, height=1180, scrolling=True)
+    # 內部 frontend 在手機橫向用 100dvh 自適應；關閉 iframe 捲動避免琴鍵與音符分離
+    components.html(html, height=720, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
