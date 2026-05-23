@@ -172,10 +172,20 @@ st.caption("輸入歌名搜尋 · AI 抓譜 · 副歌專練 · 自動彈奏示�
 if IS_CLOUD:
     st.info("☁️ 雲端模式：Memory 建議 2GB+，首次 AI 需下載模型。")
 if not HAS_BASIC_PITCH:
-    st.warning("未偵測到 basic-pitch，搜尋/上傳抓譜不可用；仍可使用「內建示範曲」。")
+    st.warning(
+        "**AI 抓譜未啟用**（TensorFlow / basic-pitch 未安裝）。"
+        "仍可使用「示範曲」。若要完整 AI：請**刪除 Cloud App 後重新部署**（會讀取 `.python-version` 的 **3.11**），"
+        "並在 `requirements.txt` 取消 `-r requirements-ml.txt` 的註解。"
+    )
 
 # ── Sidebar ──
 with st.sidebar:
+    if IS_CLOUD and not HAS_BASIC_PITCH:
+        st.warning(
+            "Cloud 目前無 AI 模組。請到 [share.streamlit.io](https://share.streamlit.io) "
+            "**刪除此 App → 重新 Deploy**（部署時會使用 Python 3.11），"
+            "並在 GitHub 的 `requirements.txt` 取消 `-r requirements-ml.txt` 註解。"
+        )
     st.markdown("### 練習設定")
     practice_scope = st.radio(
         "練習範圍",

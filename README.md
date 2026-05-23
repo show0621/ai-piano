@@ -23,31 +23,45 @@ streamlit run app.py
 
 ### 本機額外需求
 
+- **Python 3.11**（TensorFlow / basic-pitch 不支援 3.14）
 - **ffmpeg**：YouTube 下載必備（[下載](https://ffmpeg.org/) 並加入 PATH）
+
+本機安裝（含 AI）：
+
+```bash
+pip install -r requirements.txt -r requirements-ml.txt
+```
 
 ## 部署到 Streamlit Cloud
 
-1. 將專案推送到 **GitHub**（見下方指令）
-2. 前往 [share.streamlit.io](https://share.streamlit.io)
-3. **New app** → 選擇 Repo → Main file path：`app.py`
-4. 等待安裝完成（含 `basic-pitch` / TensorFlow，約 5–10 分鐘）
+1. 將專案推送到 **GitHub**
+2. 前往 [share.streamlit.io](https://share.streamlit.io) → **New app** → Repo：`app.py`
+3. **重要**：Community Cloud **無法在部署後改 Python 版本**。若 App 是用 Python 3.14 建的，必須 **刪除 App 後重新 Deploy**，才會讀取 repo 的 `.python-version`（`3.11`）。
+
+### 兩階段部署（建議）
+
+| 階段 | `requirements.txt` | 效果 |
+|------|-------------------|------|
+| 先讓網站能開 | 維持 ML 那行**註解** | 示範曲、鍵盤教學可用 |
+| 啟用 AI 抓譜 | 取消 `# -r requirements-ml.txt` 註解 + **用 3.11 重新 Deploy** | 上傳 / YouTube / 搜尋抓譜 |
 
 ### 專案已包含的 Cloud 設定
 
 | 檔案 | 用途 |
 |------|------|
-| `.python-version` | 鎖定 **Python 3.11**（TensorFlow / basic-pitch 不支援 3.14） |
-| `requirements.txt` | Python 依賴（含 `tensorflow-cpu`） |
-| `packages.txt` | 系統套件 `ffmpeg`（YouTube 用） |
+| `.python-version` | 部署時使用 **Python 3.11** |
+| `runtime.txt` | 同上（`python-3.11`） |
+| `pyproject.toml` | 宣告 `requires-python >=3.11,<3.13` |
+| `requirements.txt` | 核心依賴 |
+| `requirements-ml.txt` | TensorFlow + basic-pitch |
+| `packages.txt` | 系統套件 `ffmpeg` |
 | `.streamlit/config.toml` | 主題與上傳大小上限 |
 
 ### Cloud 注意事項
 
-- **Python 版本**：必須 3.11（已用 `.python-version` 鎖定；Cloud 若用 3.14 會導致 TensorFlow 安裝失敗）
-- **記憶體**：`basic-pitch` 推論建議 Streamlit **Memory 2GB+**（App settings → Advanced）
-- **冷啟動**：首次抓譜較慢，可能超過預設 timeout
-- **YouTube**：雲端環境可能受網路/政策限制，建議以**上傳音檔**為主
-- 音檔過大（>12MB）嵌入 iframe 可能變慢，請剪輯至 3 分鐘內
+- **記憶體**：App settings → Advanced → **Memory 2GB+**
+- **冷啟動**：首次 AI 抓譜會下載模型，較慢
+- **YouTube**：雲端可能受限，建議以上傳音檔為主
 
 ## 鍵盤對照（雙八度）
 

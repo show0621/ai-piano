@@ -1,7 +1,8 @@
 streamlit==1.32.0
 pretty_midi==0.2.10
 yt-dlp>=2024.4.9
-numpy>=1.23.5,<2.0.0
-tensorflow-cpu==2.15.1
-basic-pitch==0.3.0
+numpy>=1.26.4,<2.0.0
 spotipy>=2.23.0
+
+# AI 抓譜（需 Python 3.11；Streamlit Cloud 請先刪除 App 後用 3.11 重新部署，再取消下行註解）
+# -r requirements-ml.txt
