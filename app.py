@@ -14,7 +14,10 @@ from audio_processor import (
     process_audio_to_json,
 )
 from config_secrets import (
+    cloud_youtube_help_markdown,
     get_spotify_credentials,
+    get_youtube_cookies_path,
+    get_youtube_proxy,
     mask_secret,
     spotify_configured,
     spotify_credential_source,
@@ -157,26 +160,10 @@ def run_ai_transcription(audio_path: str, simplify_melody: bool) -> list:
     return notes
 
 
-def get_youtube_cookies_path() -> str | None:
-    """Streamlit Secrets: [youtube] cookies_txt = 瀏覽器匯出的 cookies.txt 全文。"""
-    try:
-        raw = st.secrets.get("youtube", {}).get("cookies_txt")
-        if raw:
-            path = os.path.join(UPLOAD_DIR, ".yt_cookies.txt")
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(raw)
-            return path
-    except Exception:
-        pass
-    env_path = os.environ.get("YOUTUBE_COOKIES_FILE")
-    if env_path and os.path.isfile(env_path):
-        return env_path
-    return None
-
-
 def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str:
     """依序嘗試多個 YouTube 結果，降低單一影片 403 的影響。"""
-    cookies = get_youtube_cookies_path()
+    cookies = get_youtube_cookies_path(UPLOAD_DIR)
+    proxy = get_youtube_proxy()
     last_err: Exception | None = None
     for i, cand in enumerate(candidates):
         try:
@@ -184,6 +171,7 @@ def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str
                 cand["url"],
                 f"{out_base}_{i}",
                 cookies_path=cookies,
+                proxy=proxy,
             )
         except Exception as exc:
             last_err = exc
@@ -358,13 +346,16 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### YouTube（選填）")
-    if get_youtube_cookies_path():
+    yt_cookies_path = get_youtube_cookies_path(UPLOAD_DIR)
+    yt_proxy = get_youtube_proxy()
+    if yt_cookies_path:
         st.success("已載入 YouTube cookies")
-    else:
-        st.caption(
-            "雲端若 403，請改 **上傳 MP3**。"
-            "或在 Secrets 加入 `youtube.cookies_txt`（cookies.txt 全文）。"
-        )
+    if yt_proxy:
+        st.caption("已設定 YouTube proxy（仍非 100% 保證）")
+    if not yt_cookies_path and not yt_proxy:
+        st.caption("雲端 YouTube 常失敗 → 建議 **📁 上傳 MP3**")
+    with st.expander("☁️ 雲端 YouTube 能穩定破解嗎？"):
+        st.markdown(cloud_youtube_help_markdown())
 
 # ── 音源選擇 ──
 st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -378,7 +369,8 @@ audio_source = st.radio(
 )
 st.session_state["audio_source"] = audio_source
 
-yt_cookies = get_youtube_cookies_path()
+yt_cookies = get_youtube_cookies_path(UPLOAD_DIR)
+yt_proxy = get_youtube_proxy()
 
 # ── 📁 本機上傳 ──
 if audio_source == "📁 本機上傳":
@@ -586,6 +578,7 @@ if "pending_job" in st.session_state and HAS_BASIC_PITCH:
                     job["url"],
                     os.path.join(UPLOAD_DIR, job.get("out_base", "media")),
                     cookies_path=yt_cookies,
+                    proxy=yt_proxy,
                 )
                 title = job["title"]
             elif job["kind"] == "track":

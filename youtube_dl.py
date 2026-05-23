@@ -58,12 +58,10 @@ def format_youtube_error(exc: Exception) -> str:
         return "需要 ffmpeg 才能轉成 MP3。雲端請確認 `packages.txt` 含 ffmpeg。"
     if "format is not available" in low or "requested format" in low:
         return (
-            "**YouTube 在雲端伺服器上常無法下載**（不是您的操作錯誤）。\n\n"
-            "**請改這樣做（幾乎一定成功）：**\n"
-            "1. 在手機／電腦把該曲存成 **MP3**（Spotify 需另用合法方式取得檔案）\n"
-            "2. 回到 App 選 **📁 本機上傳** → 選檔 → **上傳並抓譜**\n\n"
-            "進階：本機執行 `streamlit run app.py` 時 YouTube 成功率較高；"
-            "或在 Secrets 設定 `youtube.cookies_txt` 後 Reboot（雲端仍可能失敗）。"
+            "**YouTube 在雲端機房 IP 上常被擋**（無法保證穩定下載）。\n\n"
+            "**穩定做法：** 📁 上傳 MP3，或本機 `streamlit run app.py`。\n\n"
+            "**可試（非保證）：** Secrets 的 `youtube.cookies_txt`、住宅 `youtube.proxy`。"
+            "見側邊欄「雲端 YouTube 說明」。"
         )
     return raw or "YouTube 下載失敗，請改上傳音檔或稍後再試。"
 
@@ -81,6 +79,7 @@ def _apply_strategy(opts: dict, strategy: dict) -> dict:
 def base_ydl_opts(
     *,
     cookies_path: Optional[str] = None,
+    proxy: Optional[str] = None,
     quiet: bool = True,
 ) -> dict:
     opts: dict = {
@@ -101,6 +100,8 @@ def base_ydl_opts(
     }
     if cookies_path and os.path.isfile(cookies_path):
         opts["cookiefile"] = cookies_path
+    if proxy:
+        opts["proxy"] = proxy
     return opts
 
 
@@ -157,6 +158,7 @@ def download_audio_from_url(
     url: str,
     output_path: str,
     cookies_path: Optional[str] = None,
+    proxy: Optional[str] = None,
 ) -> str:
     """從 URL 下載音訊（直接音檔連結優先，其餘交 yt-dlp）。"""
     if is_direct_audio_url(url):
@@ -164,22 +166,24 @@ def download_audio_from_url(
             return download_direct_http_audio(url, output_path)
         except Exception:
             pass
-    return _download_audio_impl(url, output_path, cookies_path)
+    return _download_audio_impl(url, output_path, cookies_path, proxy)
 
 
 def download_youtube_audio(
     url: str,
     output_path: str,
     cookies_path: Optional[str] = None,
+    proxy: Optional[str] = None,
 ) -> str:
     """將 YouTube 連結下載為 MP3（download_audio_from_url 的別名）。"""
-    return _download_audio_impl(url, output_path, cookies_path)
+    return _download_audio_impl(url, output_path, cookies_path, proxy)
 
 
 def _download_audio_impl(
     url: str,
     output_path: str,
     cookies_path: Optional[str] = None,
+    proxy: Optional[str] = None,
 ) -> str:
     """yt-dlp 下載實作，多種 client / format 輪換。"""
     import yt_dlp
@@ -201,7 +205,7 @@ def _download_audio_impl(
     for strategy in PLAYER_STRATEGIES:
         for fmt in AUDIO_FORMAT_CANDIDATES:
             opts = _apply_strategy(
-                base_ydl_opts(cookies_path=cookies_path, quiet=True),
+                base_ydl_opts(cookies_path=cookies_path, proxy=proxy, quiet=True),
                 strategy,
             )
             opts.update({
@@ -231,9 +235,12 @@ def _download_audio_impl(
     raise YouTubeDownloadError(format_youtube_error(last_exc or Exception("unknown")), last_exc)
 
 
-def search_ytdl_opts(cookies_path: Optional[str] = None) -> dict:
+def search_ytdl_opts(
+    cookies_path: Optional[str] = None,
+    proxy: Optional[str] = None,
+) -> dict:
     """搜尋用（不下載）的 yt-dlp 選項。"""
-    opts = base_ydl_opts(cookies_path=cookies_path, quiet=True)
+    opts = base_ydl_opts(cookies_path=cookies_path, proxy=proxy, quiet=True)
     opts.update({
         "extract_flat": True,
         "skip_download": True,

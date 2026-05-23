@@ -105,6 +105,58 @@ def verify_spotify_connection() -> tuple[bool, str]:
         return False, str(exc)
 
 
+def get_youtube_cookies_path(upload_dir: str) -> str | None:
+    """Streamlit Secrets: [youtube] cookies_txt。"""
+    try:
+        import streamlit as st
+
+        raw = st.secrets.get("youtube", {}).get("cookies_txt")
+        if raw:
+            path = os.path.join(upload_dir, ".yt_cookies.txt")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(raw)
+            return path
+    except Exception:
+        pass
+    env_path = os.environ.get("YOUTUBE_COOKIES_FILE")
+    if env_path and os.path.isfile(env_path):
+        return env_path
+    return None
+
+
+def get_youtube_proxy() -> str | None:
+    """選填：住宅 Proxy，可提高雲端 YouTube 成功率（需自行購買）。"""
+    try:
+        import streamlit as st
+
+        p = _clean(st.secrets.get("youtube", {}).get("proxy"))
+        if p:
+            return p
+    except Exception:
+        pass
+    return _clean(os.environ.get("YOUTUBE_PROXY"))
+
+
+def cloud_youtube_help_markdown() -> str:
+    return (
+        "### 為什麼雲端很難「穩定破解」？\n"
+        "Streamlit Cloud 使用**機房 IP**，YouTube 會刻意阻擋自動下載（403 / 無格式）。"
+        "這是平台政策，**沒有 100% 可靠的免費破解方式**。\n\n"
+        "### 穩定方案（推薦順序）\n"
+        "1. **📁 上傳 MP3** — 幾乎一定成功\n"
+        "2. **本機執行** `streamlit run app.py` — 家用 IP，YouTube 成功率較高\n"
+        "3. **🔗 其他音源** — 貼 **直接 .mp3 連結**（非 YouTube 頁面）\n\n"
+        "### 可「提高機率」但非保證（Secrets）\n"
+        "```toml\n[youtube]\n"
+        'cookies_txt = """...瀏覽器 cookies.txt..."""\n'
+        'proxy = "http://使用者:密碼@住宅代理:埠"\n'
+        "```\n"
+        "- **cookies**：登入 YouTube 後匯出，Save → Reboot\n"
+        "- **proxy**：需**住宅 IP** 代理（機房代理通常仍被擋）\n\n"
+        "不建議依賴違反服務條款的繞道工具，隨時會失效。"
+    )
+
+
 def spotify_premium_help_markdown() -> str:
     return (
         "**原因**：Spotify 自 2026/2 起，**建立 Developer App 的帳號**需有 "

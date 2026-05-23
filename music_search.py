@@ -30,9 +30,13 @@ def search_youtube(
 ) -> list[dict]:
     import yt_dlp
 
+    from config_secrets import get_youtube_proxy
     from youtube_dl import search_ytdl_opts
 
-    ydl_opts = search_ytdl_opts(cookies_path=cookies_path)
+    ydl_opts = search_ytdl_opts(
+        cookies_path=cookies_path,
+        proxy=get_youtube_proxy(),
+    )
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch{max_results}:{query}", download=False)
     entries = info.get("entries") or []
