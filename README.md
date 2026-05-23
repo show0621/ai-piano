@@ -24,7 +24,7 @@ App 內 **🎹 MIDI 檔** 或側邊欄 **流行樂 MIDI 哪裡找？** 有完整
 ### 混合模式（推薦）
 
 1. 外站下載 **.mid** → **🎹 MIDI 檔** 上傳；或本機 MP3 → AI 抓譜 → **匯出 JSON**
-2. 將 JSON 放入 `scores/`、更新 `scores/index.json`、push GitHub
+2. 將 JSON 放入 `scores/`、更新 `scores/index.json`、push GitHub（建議 **私有倉庫**，見下方）
 3. **雲端 / 手機**：**📚 曲庫** 直接載入練習
 
 ```bash
@@ -54,9 +54,34 @@ streamlit run app.py
 pip install -r requirements.txt -r requirements-ml.txt
 ```
 
+## 將 GitHub 設為不公開（私有倉庫）
+
+適合：自己上傳 MIDI 轉成的 `scores/*.json`，**不想公開給所有人下載**。
+
+### 在 GitHub 網站設定（約 1 分鐘）
+
+1. 打開 [github.com/show0621/ai-piano](https://github.com/show0621/ai-piano)
+2. **Settings**（倉庫設定，不是個人設定）
+3. 拉到最下方 **Danger Zone**
+4. **Change repository visibility** → 選 **Private** → 依畫面輸入倉庫名確認
+
+設成 Private 後：
+
+- 只有**你邀請的協作者**能看程式與 `scores/` 裡的樂譜
+- 仍可用 `git push` 正常同步（遠端網址不變）
+- **不等於**可任意上傳有版權的流行歌對外散布；但比公開 repo 適合放個人練習用扒譜
+
+### 私有倉庫 + 曲庫 + Streamlit Cloud
+
+| 項目 | 說明 |
+|------|------|
+| **📚 曲庫** | `scores/` 跟著專案一起部署，**不必**設 `github_raw_base` |
+| **Secrets** | 私有倉庫的 `raw.githubusercontent.com` **無法**給外人讀；請**刪除或不要填** `[scores] github_raw_base` |
+| **Streamlit** | [share.streamlit.io](https://share.streamlit.io) 連到你的 GitHub 時，選同一個 **private** repo 即可部署（需授權 Streamlit 讀取私有倉庫） |
+
 ## 部署到 Streamlit Cloud
 
-1. 將專案推送到 **GitHub**
+1. 將專案推送到 **GitHub**（可為 Private）
 2. 前往 [share.streamlit.io](https://share.streamlit.io) → **New app** → Repo：`app.py`
 3. **Python 3.11**、**Memory 2GB+**，部署後 **Reboot**
 
@@ -73,7 +98,7 @@ pip install -r requirements.txt -r requirements-ml.txt
 
 - **記憶體**：App settings → **Memory 2GB+**
 - **練習流行歌**：優先 **MIDI 上傳** 或 **曲庫**，勿依賴串流平台下載
-- 選填 Secrets：`[scores] github_raw_base` 指向 GitHub 曲庫 raw 路徑
+- 選填 Secrets：`[scores] github_raw_base`（僅**公開**倉庫或另建公開鏡像時需要；**私有倉庫請勿使用**）
 
 ## 鍵盤對照（雙八度）
 
