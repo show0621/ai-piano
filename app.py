@@ -18,8 +18,10 @@ from config_secrets import (
     mask_secret,
     spotify_configured,
     spotify_credential_source,
+    spotify_premium_help_markdown,
     verify_spotify_connection,
 )
+from music_search import SpotifyPremiumRequiredError
 from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
 from youtube_dl import YouTubeDownloadError, download_audio_from_url, format_youtube_error
 
@@ -311,6 +313,10 @@ with st.sidebar:
         if st.session_state.get("spotify_verify_ok"):
             st.success("Spotify API 已自動連線")
             st.caption(st.session_state.get("spotify_verify_msg", ""))
+        elif st.session_state.get("spotify_verify_msg") == "premium_required":
+            st.warning("Secrets 正確，但 Spotify 要求帳號 Premium")
+            with st.expander("為什麼？怎麼辦？", expanded=True):
+                st.markdown(spotify_premium_help_markdown())
         else:
             st.error("Secrets 已讀取，但 Spotify 驗證失敗")
             st.caption(st.session_state.get("spotify_verify_msg", ""))
@@ -407,22 +413,39 @@ if audio_source == "📁 本機上傳":
 elif audio_source == "🎧 Spotify":
     st.markdown("#### Spotify 搜尋")
     if st.session_state.get("spotify_verify_ok"):
-        st.caption("✅ API 已連線，輸入歌名即可搜尋（音訊仍建議 **📁 上傳 MP3**）。")
+        st.caption("✅ Spotify API 已連線。")
+    elif st.session_state.get("spotify_verify_msg") == "premium_required":
+        st.info(
+            "無 Premium 時會**自動改用 YouTube 搜尋**歌名（結果標示 [YOUTUBE]）。"
+            "音訊建議 **📁 上傳 MP3**。"
+        )
     elif spotify_configured():
-        st.warning("金鑰已載入但驗證未過，請看側邊欄錯誤訊息或按「重新測試連線」。")
+        st.warning("金鑰已載入但驗證未過，請看側邊欄。")
     else:
         st.warning("請先在 Streamlit **Secrets** 設定 `[spotify]`，Save 後 **Reboot**。")
-    st.caption("Spotify 負責找正確歌名；AI 抓譜音訊請優先 **本機上傳**。")
+    if st.session_state.get("spotify_search_via") == "youtube":
+        st.caption("上次搜尋：已透過 **YouTube** 取得曲目列表。")
     sp_query = st.text_input(
         "歌名或歌手 + 歌名",
         placeholder="例：周杰倫 晴天",
         key="sp_query",
     )
     if sp_query and st.button("Spotify 搜尋", type="primary", key="btn_sp_search"):
-        with st.spinner("Spotify 搜尋中…"):
-            sp_results = search_spotify(sp_query, cid, csec)
-            if not sp_results and not (cid and csec):
+        with st.spinner("搜尋中…"):
+            sp_results = []
+            use_yt_fallback = not st.session_state.get("spotify_verify_ok")
+            if not use_yt_fallback and cid and csec:
+                try:
+                    sp_results = search_spotify(sp_query, cid, csec)
+                except SpotifyPremiumRequiredError:
+                    use_yt_fallback = True
+                    st.session_state["spotify_verify_ok"] = False
+                    st.session_state["spotify_verify_msg"] = "premium_required"
+            if use_yt_fallback or not sp_results:
                 sp_results = search_youtube(sp_query, max_results=6, cookies_path=yt_cookies)
+                st.session_state["spotify_search_via"] = "youtube"
+            else:
+                st.session_state["spotify_search_via"] = "spotify"
         st.session_state["spotify_results"] = sp_results
 
     sp_results = st.session_state.get("spotify_results", [])

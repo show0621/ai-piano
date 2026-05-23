@@ -6,6 +6,23 @@ import os
 from typing import Optional
 
 
+class SpotifyPremiumRequiredError(Exception):
+    """Spotify 2026 起：開發者帳號需 Premium 才能呼叫 Web API。"""
+
+    def __init__(self, message: str | None = None):
+        super().__init__(
+            message
+            or (
+                "Spotify 要求「建立此 App 的帳號」必須訂閱 Premium。"
+                "訂閱後可能需等待數小時才會生效。"
+            )
+        )
+
+
+def is_spotify_premium_error(exc: Exception) -> bool:
+    return "premium subscription required" in str(exc).lower()
+
+
 def search_youtube(
     query: str,
     max_results: int = 6,
@@ -52,8 +69,13 @@ def verify_spotify_api(
     test_query: str = "a",
 ) -> dict:
     """啟動時連線測試，成功回傳第一筆曲目摘要。"""
-    sp = _spotify_client(client_id, client_secret)
-    resp = sp.search(q=test_query, type="track", limit=1)
+    try:
+        sp = _spotify_client(client_id, client_secret)
+        resp = sp.search(q=test_query, type="track", limit=1)
+    except Exception as exc:
+        if is_spotify_premium_error(exc):
+            raise SpotifyPremiumRequiredError() from exc
+        raise
     items = resp.get("tracks", {}).get("items", [])
     if not items:
         return {"title": "（無搜尋結果，但 API 可用）"}
@@ -78,7 +100,12 @@ def search_spotify(
     except ImportError:
         return []
 
-    resp = sp.search(q=query, type="track", limit=max_results)
+    try:
+        resp = sp.search(q=query, type="track", limit=max_results)
+    except Exception as exc:
+        if is_spotify_premium_error(exc):
+            raise SpotifyPremiumRequiredError() from exc
+        raise
     items = resp.get("tracks", {}).get("items", [])
     results = []
     for t in items:

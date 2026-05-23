@@ -98,4 +98,20 @@ def verify_spotify_connection() -> tuple[bool, str]:
         title = sample.get("title", "測試曲目") if sample else "OK"
         return True, f"連線成功（範例：{title}）"
     except Exception as exc:
+        from music_search import SpotifyPremiumRequiredError, is_spotify_premium_error
+
+        if isinstance(exc, SpotifyPremiumRequiredError) or is_spotify_premium_error(exc):
+            return False, "premium_required"
         return False, str(exc)
+
+
+def spotify_premium_help_markdown() -> str:
+    return (
+        "**原因**：Spotify 自 2026/2 起，**建立 Developer App 的帳號**需有 "
+        "**Spotify Premium**，否則搜尋 API 會回 403。\n\n"
+        "**您可以：**\n"
+        "1. 用**同一個帳號**（Dashboard 登入那個）訂閱 Premium，等 **2–24 小時** 再按「重新測試連線」\n"
+        "2. 本 App 仍可用：**▶️ YouTube** 搜尋、**📁 上傳 MP3**（推薦）、**🌸 示範曲**\n"
+        "3. 在 **🎧 Spotify** 分頁搜尋時，會**自動改以 YouTube** 找歌名（無需 Premium）\n\n"
+        "參考：[Spotify 開發者公告](https://developer.spotify.com/blog/2026-02-06-update-on-developer-access-and-platform-security)"
+    )
