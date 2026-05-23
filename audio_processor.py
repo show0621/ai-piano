@@ -126,117 +126,141 @@ def process_audio_to_json(
 _JIANPU_PITCH = {1: 60, 2: 62, 3: 64, 4: 65, 5: 67, 6: 69, 7: 71}
 _JIANPU_HIGH = {1: 12, 2: 12, 3: 12, 4: 12, 5: 12, 6: 12, 7: 12}  # x' → 高八度
 
-# 笑傲江湖《滄海一聲笑》C 調簡譜（1' 2' 為高八度）
-_XIAOAO_VERSE = """
-6 6 5 3 5 6 1' 1' 2' 1' 6
-5 5 3 2 3 5 6 5 3
-2 3 2 3 5 6 1' 2' 1' 6 5 3
-5 5 3 2 3 5 6 5 3 2 1 2 3
-"""
-
-_XIAOAO_OUTRO = """
-6 - - 5 3 5 6 1' - 2' 1' 6 -
-5 5 3 2 3 5 6 - 3 2 1 - -
-"""
-
-# 周杰倫 · 孫燕姿（C 調簡化主旋律，' 為高八度，供跟彈練習）
-_JIAN_DANAI = """
-5 5 6 5 3 2 3 2 1 6
-5 5 6 5 3 2 3 2 1 2 3
-5 5 6 5 3 2 3 2 1 6
-6 5 4 3 2 1 - -
-"""
-
-_ANJING = """
-1' 1' 7' 6' 5 - - -
-5 5 6 5 3 2 1 2 3 -
-1' 7' 6' 5 3 2 1 - -
-6 5 3 2 1 2 3 2 1 6
-1' 1' 7' 6' 5 - - -
-"""
-
-_KAIBULEKOU = """
-3 5 6 5 3 2 3
-2 3 5 6 5 3 5
-6 5 3 2 3 2 1
-3 5 6 5 3 2 1 -
-3 5 6 5 3 2 3
-1' 7' 6' 5 3 2 1 -
-"""
-
-_WOBUNANGUO = """
-6 5 3 5 6 1' 1'
-7' 6' 5 3 2 3 5
-6 5 3 5 6 1' - -
-7' 6' 5 3 2 1 - -
-6 5 3 5 6 5 3 2 1
-"""
-
-_LVGuang = """
-5 5 6 5 3 5 6 1' 1'
-5 5 6 5 3 2 3 2 1 6
-3 3 4 5 6 5 3 2 3 5
-6 5 3 5 6 1' 1' - -
-5 5 6 5 3 5 6 1' - -
-"""
+# 調性：1=主音所在八度（midi），其後為 1〜7 音程（半音）
+_KEY_SCALES: dict[str, tuple[int, list[int]]] = {
+    "C": (60, [0, 2, 4, 5, 7, 9, 11]),
+    "Dm": (62, [0, 2, 3, 5, 7, 8, 10]),
+    "Am": (69, [0, 2, 3, 5, 7, 8, 10]),  # 主歌音域偏高，A4 起
+}
 
 DEMO_CATALOG = [
     {"id": "twinkle", "title": "小星星", "artist": "兒歌", "full": False},
     {"id": "xiaoaojianghu", "title": "笑傲江湖（滄海一聲笑·完整版）", "artist": "黃霑", "full": True},
-    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫", "full": False},
-    {"id": "anjing", "title": "安靜", "artist": "周杰倫", "full": False},
-    {"id": "kaibulekou", "title": "開不了口", "artist": "周杰倫", "full": False},
-    {"id": "wobunanguo", "title": "我不難過", "artist": "孫燕姿", "full": False},
-    {"id": "lvguang", "title": "綠光", "artist": "孫燕姿", "full": False},
+    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫", "full": True},
+    {"id": "anjing", "title": "安靜", "artist": "周杰倫", "full": True},
+    {"id": "kaibulekou", "title": "開不了口", "artist": "周杰倫", "full": True},
+    {"id": "wobunanguo", "title": "我不難過", "artist": "孫燕姿", "full": True},
+    {"id": "lvguang", "title": "綠光", "artist": "孫燕姿", "full": True},
+    {
+        "id": "cruelangel",
+        "title": "残酷天使のテーゼ（少年よ神話になれ）",
+        "artist": "高橋洋子 / EVA",
+        "full": True,
+    },
 ]
 
 
-def _parse_jianpu(jianpu: str, tempo: float = 0.42) -> list[tuple[int, float, float]]:
-    """將簡譜字串轉為 (midi, start, duration) 列表。"""
-    t = 0.0
-    out: list[tuple[int, float, float]] = []
-    for token in jianpu.replace("|", " ").split():
-        token = token.strip()
-        if not token:
-            continue
-        if token in ("-", "0", "·", "."):
-            t += tempo
-            continue
-        high = token.endswith("'") or token.endswith("’")
-        num_s = token.rstrip("'’")
-        if not num_s.isdigit():
-            continue
-        n = int(num_s)
-        if n < 1 or n > 7:
-            continue
-        pitch = _JIANPU_PITCH[n]
+def _parse_note_token(
+    token: str,
+    *,
+    key: str = "C",
+) -> tuple[int, float] | None:
+    """解析單音：5、5'、5#、5b、5_、5.、5--。回傳 (midi, 時值倍率)。"""
+    if not token or token in ("|",):
+        return None
+    if token in ("-", "0", "·"):
+        return None
+
+    high = "'" in token or "’" in token
+    low = False
+    body = token.replace("'", "").replace("’", "")
+    if body.startswith("."):
+        low = True
+        body = body[1:]
+    mult = 1.0
+    acc = 0
+
+    for ch in ("#", "＃", "♯"):
+        if ch in body:
+            acc += 1
+            body = body.replace(ch, "")
+    for ch in ("b", "B", "♭"):
+        if ch in body:
+            acc -= 1
+            body = body.replace(ch, "")
+
+    if body.endswith("--"):
+        mult *= 2.0
+        body = body[:-2]
+    if body.endswith("."):
+        mult *= 1.5
+        body = body[:-1]
+    while body.endswith("_"):
+        mult *= 0.5
+        body = body[:-1]
+
+    if not body.isdigit():
+        return None
+    n = int(body)
+    if n < 1 or n > 7:
+        return None
+
+    if key in _KEY_SCALES:
+        base, steps = _KEY_SCALES[key]
+        pitch = base + steps[n - 1] + acc
+        if high:
+            pitch += 12
+        if low:
+            pitch -= 12
+    else:
+        pitch = _JIANPU_PITCH[n] + acc
         if high:
             pitch += _JIANPU_HIGH.get(n, 0)
-        out.append((pitch, t, tempo))
-        t += tempo
+        if low:
+            pitch -= 12
+
+    while pitch > MAX_PITCH:
+        pitch -= 12
+    while pitch < MIN_PITCH:
+        pitch += 12
+    return pitch, mult
+
+
+def _parse_jianpu(
+    jianpu: str,
+    beat_sec: float = 0.38,
+    *,
+    key: str = "C",
+) -> list[tuple[int, float, float]]:
+    """將簡譜字串轉為 (midi, start, duration)。beat_sec = 一拍秒數。"""
+    t = 0.0
+    out: list[tuple[int, float, float]] = []
+    cur_key = key
+
+    for line in jianpu.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.upper().startswith("K:"):
+            cur_key = line.split(":", 1)[1].strip()
+            continue
+        if line.upper().startswith("Q:"):
+            try:
+                bpm = float(line.split(":", 1)[1].strip())
+                if bpm > 20:
+                    beat_sec = 60.0 / bpm
+            except ValueError:
+                pass
+            continue
+
+        for token in line.replace("|", " ").split():
+            token = token.strip()
+            if not token:
+                continue
+            if token in ("-", "0", "·") or token == ".":
+                t += beat_sec
+                continue
+
+            parsed = _parse_note_token(token, key=cur_key)
+            if parsed is None:
+                t += beat_sec
+                continue
+            pitch, mult = parsed
+            dur = beat_sec * mult
+            out.append((pitch, t, dur))
+            t += dur
+
     return out
-
-
-def _xiaoaojianghu_full_raw(tempo: float = 0.42) -> list[tuple[int, float, float]]:
-    """完整曲：主歌×3 + 副歌 + 尾奏（約 90 秒）。"""
-    verse = _parse_jianpu(_XIAOAO_VERSE, tempo)
-    verse_len = verse[-1][1] + verse[-1][2] if verse else 0.0
-    gap = tempo * 2  # 段間休止
-
-    raw: list[tuple[int, float, float]] = []
-    offset = 0.0
-    for _ in range(3):
-        for pitch, start, dur in verse:
-            raw.append((pitch, start + offset, dur))
-        offset += verse_len + gap
-
-    for pitch, start, dur in verse:
-        raw.append((pitch, start + offset, dur))
-    offset += verse_len + gap * 2
-
-    for pitch, start, dur in _parse_jianpu(_XIAOAO_OUTRO, tempo):
-        raw.append((pitch, start + offset, dur))
-    return raw
 
 
 def _build_jianpu_score(
@@ -245,9 +269,10 @@ def _build_jianpu_score(
     *,
     repeat: int = 1,
     gap_beats: int = 2,
+    key: str = "C",
 ) -> list:
     """將一段簡譜重複拼接為可練習曲。"""
-    section = _parse_jianpu(jianpu, tempo)
+    section = _parse_jianpu(jianpu, tempo, key=key)
     if not section:
         return []
     seg_len = section[-1][1] + section[-1][2]
@@ -277,19 +302,9 @@ def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
 
 def get_demo_score(demo_id: str) -> list:
     """內建示範曲（不依賴 AI）。"""
-    builders = {
-        "twinkle": lambda: _raw_to_notes([
-            (60, 0.0, 0.4), (60, 0.5, 0.4), (67, 1.0, 0.4), (67, 1.5, 0.4),
-            (69, 2.0, 0.4), (69, 2.5, 0.4), (67, 3.0, 0.8),
-        ]),
-        "xiaoaojianghu": lambda: _raw_to_notes(_xiaoaojianghu_full_raw()),
-        "jianndanai": lambda: _build_jianpu_score(_JIAN_DANAI, 0.48, repeat=2),
-        "anjing": lambda: _build_jianpu_score(_ANJING, 0.5, repeat=2),
-        "kaibulekou": lambda: _build_jianpu_score(_KAIBULEKOU, 0.52, repeat=2),
-        "wobunanguo": lambda: _build_jianpu_score(_WOBUNANGUO, 0.48, repeat=2),
-        "lvguang": lambda: _build_jianpu_score(_LVGuang, 0.38, repeat=2),
-    }
-    build = builders.get(demo_id)
+    from demo_melodies import DEMO_BUILDERS
+
+    build = DEMO_BUILDERS.get(demo_id)
     if build:
         return build()
     raise KeyError(f"未知示範曲：{demo_id}")

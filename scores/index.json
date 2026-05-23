@@ -22,35 +22,43 @@
       "title": "簡單愛",
       "artist": "周杰倫",
       "tags": ["demo", "華語", "周杰倫", "流行"],
-      "duration_est": 28
+      "duration_est": 52
     },
     {
       "id": "anjing",
       "title": "安靜",
       "artist": "周杰倫",
       "tags": ["demo", "華語", "周杰倫", "流行"],
-      "duration_est": 32
+      "duration_est": 58
     },
     {
       "id": "kaibulekou",
       "title": "開不了口",
       "artist": "周杰倫",
       "tags": ["demo", "華語", "周杰倫", "流行"],
-      "duration_est": 36
+      "duration_est": 55
     },
     {
       "id": "wobunanguo",
       "title": "我不難過",
       "artist": "孫燕姿",
       "tags": ["demo", "華語", "孫燕姿", "流行"],
-      "duration_est": 30
+      "duration_est": 56
     },
     {
       "id": "lvguang",
       "title": "綠光",
       "artist": "孫燕姿",
       "tags": ["demo", "華語", "孫燕姿", "流行"],
-      "duration_est": 24
+      "duration_est": 38
+    },
+    {
+      "id": "cruelangel",
+      "title": "残酷天使のテーゼ（少年よ神話になれ）",
+      "title_en": "A Cruel Angel's Thesis",
+      "artist": "高橋洋子 / EVA",
+      "tags": ["demo", "動漫", "EVA", "日文", "完整"],
+      "duration_est": 42
     }
   ]
 }
