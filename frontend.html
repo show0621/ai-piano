@@ -27,13 +27,143 @@
             color: #8B7355;
             margin-bottom: 12px;
         }
+        .canvas-wrap {
+            position: relative;
+            display: inline-block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
         #gameCanvas {
-            display: block; margin: 0 auto; max-width: 100%;
+            display: block; max-width: 100%;
             background: #2C2824;
             border: 1px solid #C9B8A4;
             border-radius: 2px;
             box-shadow: 0 8px 32px rgba(74, 64, 53, 0.12);
         }
+        #comboOverlay {
+            position: absolute;
+            right: 6%;
+            top: 32%;
+            pointer-events: none;
+            text-align: right;
+            z-index: 5;
+        }
+        #comboNumber {
+            font-family: 'Noto Serif JP', 'Noto Sans TC', serif;
+            font-size: 3.6rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #E85D3A;
+            text-shadow:
+                0 0 12px rgba(255, 120, 60, 0.9),
+                0 2px 0 #8B3A22,
+                0 4px 8px rgba(0, 0, 0, 0.45);
+            transform: scale(1);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        #comboNumber.visible { opacity: 1; }
+        #comboNumber.bump {
+            animation: comboBump 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+        }
+        #comboNumber.mega {
+            color: #FFD54F;
+            font-size: 4.4rem;
+            text-shadow:
+                0 0 20px rgba(255, 215, 0, 1),
+                0 0 40px rgba(255, 100, 50, 0.6),
+                0 3px 0 #B8860B;
+        }
+        #comboNumber.ultra {
+            color: #FFF8E7;
+            font-size: 5rem;
+            animation: comboUltra 0.35s ease-out;
+        }
+        #comboLabel {
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            color: #F7C59F;
+            margin-top: 2px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        #comboLabel.visible { opacity: 1; }
+        #judgmentPop {
+            position: absolute;
+            left: 50%;
+            top: 58%;
+            transform: translate(-50%, -50%) scale(0.3);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            opacity: 0;
+            z-index: 6;
+            white-space: nowrap;
+        }
+        #judgmentPop.show {
+            animation: judgmentPop 0.45s cubic-bezier(0.15, 1.2, 0.3, 1) forwards;
+        }
+        #judgmentPop.perfect { color: #FFD54F; text-shadow: 0 0 16px rgba(255, 213, 79, 0.95); }
+        #judgmentPop.good { color: #A8D5BA; text-shadow: 0 0 10px rgba(168, 213, 186, 0.8); }
+        #rapidBanner {
+            position: absolute;
+            left: 50%;
+            top: 22%;
+            transform: translateX(-50%) scale(0.5);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #FF8A65;
+            letter-spacing: 0.08em;
+            opacity: 0;
+            z-index: 7;
+            white-space: nowrap;
+            text-shadow: 0 0 12px rgba(255, 100, 50, 0.8);
+        }
+        #rapidBanner.show {
+            animation: rapidBanner 0.55s cubic-bezier(0.2, 1.3, 0.3, 1) forwards;
+        }
+        #screenFlash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(255, 200, 100, 0.35) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 4;
+            border-radius: 2px;
+        }
+        #screenFlash.on {
+            animation: screenFlash 0.25s ease-out forwards;
+        }
+        @keyframes comboBump {
+            0% { transform: scale(2.2) rotate(-4deg); }
+            55% { transform: scale(0.92) rotate(2deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+        @keyframes comboUltra {
+            0% { transform: scale(2.8); filter: brightness(2); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        @keyframes judgmentPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+            35% { opacity: 1; transform: translate(-50%, -58%) scale(1.35); }
+            70% { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -72%) scale(0.85); }
+        }
+        @keyframes rapidBanner {
+            0% { opacity: 0; transform: translateX(-50%) scale(0.4) rotate(-8deg); }
+            25% { opacity: 1; transform: translateX(-50%) scale(1.25) rotate(3deg); }
+            60% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.15) translateY(-18px); }
+        }
+        @keyframes screenFlash {
+            0% { opacity: 0.7; }
+            100% { opacity: 0; }
+        }
+        #statCombo.hot { color: #E85D3A; font-weight: 600; }
         .stats-bar {
             display: flex; justify-content: center; gap: 24px;
             margin: 10px 0; font-size: 0.85rem;
@@ -114,7 +244,16 @@
     <h3>{{SONG_TITLE}}</h3>
     <p class="subtitle" id="modeLabel">練習模式</p>
 
-    <canvas id="gameCanvas" width="1100" height="420"></canvas>
+    <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="1100" height="420"></canvas>
+        <div id="screenFlash"></div>
+        <div id="comboOverlay">
+            <div id="comboNumber">0</div>
+            <div id="comboLabel">COMBO</div>
+        </div>
+        <div id="judgmentPop"></div>
+        <div id="rapidBanner"></div>
+    </div>
 
     <div class="stats-bar">
         <span id="statCombo">連擊 0</span>
@@ -199,20 +338,35 @@
         if (AUDIO_SRC) audio.src = AUDIO_SRC;
 
         const PIXELS_PER_SECOND = 125;
-        const HIT_LINE_Y = canvas.height - 6;
         const KEY_WIDTH = 34;
+        const PERFECT_WINDOW = 0.06;
         const HIT_WINDOW = 0.2;
         const PIANO_TOP = canvas.height - 54;
+        const JUDGE_Y = PIANO_TOP - 4;
         const CANVAS_LEFT = 48;
+        const ELIMINATE_MS = 380;
+        const RAPID_WINDOW_MS = 520;
 
         let animationId = null;
-        let stats = { hits: 0, mistakes: 0, combo: 0 };
+        let stats = { hits: 0, mistakes: 0, combo: 0, maxCombo: 0 };
         let feedbackText = '', feedbackColor = '#E8DED0', feedbackTimer = 0;
         let teachMode = false, autoPlayMode = false;
         let teachTimeouts = [], autoTimeouts = [];
         let loopEnabled = PRACTICE_MODE === 'chorus';
         let useInternalClock = !AUDIO_SRC;
         let clockStart = 0, clockPausedAt = 0, isPlaying = false;
+        let screenShake = 0;
+        let particles = [];
+        let hitRings = [];
+        let recentHitTimes = [];
+        let lastRapidBannerAt = 0;
+
+        const comboEl = document.getElementById('comboNumber');
+        const comboLabelEl = document.getElementById('comboLabel');
+        const judgmentEl = document.getElementById('judgmentPop');
+        const rapidBannerEl = document.getElementById('rapidBanner');
+        const screenFlashEl = document.getElementById('screenFlash');
+        const statComboEl = document.getElementById('statCombo');
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const keyEls = {};
@@ -283,7 +437,8 @@
         function updateStatsUI() {
             const total = stats.hits + stats.mistakes;
             const acc = total ? Math.round((stats.hits / total) * 100) : 100;
-            document.getElementById('statCombo').textContent = '連擊 ' + stats.combo;
+            statComboEl.textContent = '連擊 ' + stats.combo;
+            statComboEl.classList.toggle('hot', stats.combo >= 10);
             document.getElementById('statAcc').textContent = '正確率 ' + acc + '%';
             document.getElementById('statMiss').textContent = '漏接 ' + stats.mistakes;
         }
@@ -292,6 +447,141 @@
             feedbackText = text;
             feedbackColor = color;
             feedbackTimer = 35;
+        }
+
+        function getNoteCenterX(pitch) {
+            return getNoteX(pitch) + (KEY_WIDTH - 5) / 2;
+        }
+
+        function spawnParticles(cx, cy, perfect, count) {
+            const n = count || (perfect ? 22 : 14);
+            const baseHue = perfect ? 42 : 18;
+            for (let i = 0; i < n; i++) {
+                const angle = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+                const speed = (perfect ? 4.5 : 3) + Math.random() * 3.5;
+                particles.push({
+                    x: cx, y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 1.2,
+                    life: 1,
+                    decay: 0.028 + Math.random() * 0.02,
+                    size: perfect ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
+                    hue: baseHue + Math.random() * 20,
+                });
+            }
+        }
+
+        function spawnHitRing(cx, cy, perfect) {
+            hitRings.push({
+                x: cx, y: cy,
+                radius: perfect ? 8 : 6,
+                maxRadius: perfect ? 52 : 38,
+                life: 1,
+                perfect,
+            });
+        }
+
+        function flashScreen(intensity) {
+            screenFlashEl.style.opacity = String(intensity || 0.5);
+            screenFlashEl.classList.remove('on');
+            void screenFlashEl.offsetWidth;
+            screenFlashEl.classList.add('on');
+        }
+
+        function showJudgment(kind) {
+            const text = kind === 'perfect' ? '可' : kind === 'good' ? '良' : '不可';
+            judgmentEl.textContent = text;
+            judgmentEl.className = kind === 'perfect' ? 'perfect' : kind === 'good' ? 'good' : '';
+            judgmentEl.classList.remove('show');
+            void judgmentEl.offsetWidth;
+            judgmentEl.classList.add('show');
+        }
+
+        function showRapidBanner(count) {
+            const now = performance.now();
+            if (now - lastRapidBannerAt < 400) return;
+            lastRapidBannerAt = now;
+            rapidBannerEl.textContent = count + ' 連擊！！';
+            rapidBannerEl.classList.remove('show');
+            void rapidBannerEl.offsetWidth;
+            rapidBannerEl.classList.add('show');
+            flashScreen(count >= 5 ? 0.55 : 0.35);
+            screenShake = count >= 5 ? 10 : 6;
+        }
+
+        function updateComboDisplay(combo) {
+            if (combo < 2) {
+                comboEl.classList.remove('visible', 'bump', 'mega', 'ultra');
+                comboLabelEl.classList.remove('visible');
+                return;
+            }
+            comboEl.textContent = combo;
+            comboEl.classList.add('visible');
+            comboLabelEl.classList.add('visible');
+            comboLabelEl.textContent = combo >= 50 ? '超神連擊' : combo >= 20 ? '大連擊' : combo >= 10 ? '連擊中' : 'COMBO';
+
+            comboEl.classList.remove('bump', 'mega', 'ultra');
+            void comboEl.offsetWidth;
+            comboEl.classList.add('bump');
+            if (combo >= 50) comboEl.classList.add('ultra');
+            else if (combo >= 20) comboEl.classList.add('mega');
+            else if (combo >= 10) comboEl.classList.add('mega');
+        }
+
+        function resetFx() {
+            particles = [];
+            hitRings = [];
+            recentHitTimes = [];
+            screenShake = 0;
+            comboEl.classList.remove('visible', 'bump', 'mega', 'ultra');
+            comboLabelEl.classList.remove('visible');
+            judgmentEl.classList.remove('show');
+            rapidBannerEl.classList.remove('show');
+        }
+
+        function registerHit(note, delta) {
+            const perfect = delta <= PERFECT_WINDOW;
+            const cx = getNoteCenterX(note.pitch);
+            const now = performance.now();
+
+            note.isHit = true;
+            note.eliminateAt = now;
+            note.hitPerfect = perfect;
+
+            stats.hits++;
+            stats.combo++;
+            if (stats.combo > stats.maxCombo) stats.maxCombo = stats.combo;
+
+            spawnParticles(cx, JUDGE_Y, perfect);
+            spawnHitRing(cx, JUDGE_Y, perfect);
+            showJudgment(perfect ? 'perfect' : 'good');
+            updateComboDisplay(stats.combo);
+
+            if (stats.combo % 10 === 0 && stats.combo >= 10) {
+                flashScreen(0.45);
+                screenShake = 8;
+                showFeedback(stats.combo + ' 連擊！', '#FFD54F');
+            }
+
+            recentHitTimes.push(now);
+            recentHitTimes = recentHitTimes.filter(t => now - t < RAPID_WINDOW_MS);
+            if (recentHitTimes.length >= 3) {
+                showRapidBanner(recentHitTimes.length);
+            }
+
+            if (perfect) screenShake = Math.max(screenShake, 3);
+        }
+
+        function registerMiss(note) {
+            note.isMissed = true;
+            note.missAt = performance.now();
+            stats.mistakes++;
+            stats.combo = 0;
+            recentHitTimes = [];
+            updateComboDisplay(0);
+            showJudgment('miss');
+            showFeedback('漏接', '#A08078');
+            updateStatsUI();
         }
 
         function onKeyPress(key) {
@@ -303,18 +593,21 @@
             if (teachMode || autoPlayMode || !isPlaying) return;
 
             const t = getCurrentTime();
-            const hit = notes.find(n =>
+            const candidates = notes.filter(n =>
                 n.pitch === pitch && !n.isHit && !n.isMissed && n.playable &&
                 Math.abs(n.start_time - t) <= HIT_WINDOW
             );
-            if (hit) {
-                hit.isHit = true;
-                stats.hits++;
-                stats.combo++;
-                showFeedback(Math.abs(hit.start_time - t) < 0.08 ? '完璧' : '良い', '#B8C4B0');
-            } else {
+            if (!candidates.length) {
                 stats.combo = 0;
+                updateComboDisplay(0);
+                updateStatsUI();
+                return;
             }
+            const hit = candidates.reduce((best, n) =>
+                Math.abs(n.start_time - t) < Math.abs(best.start_time - t) ? n : best
+            );
+            const delta = Math.abs(hit.start_time - t);
+            registerHit(hit, delta);
             updateStatsUI();
         }
 
@@ -324,18 +617,134 @@
             if (keyToPitch[k]) { e.preventDefault(); onKeyPress(k); }
         });
 
+        function drawJudgeLine() {
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 280);
+            const grad = ctx.createLinearGradient(0, JUDGE_Y - 20, 0, JUDGE_Y + 20);
+            grad.addColorStop(0, 'rgba(255, 180, 100, 0)');
+            grad.addColorStop(0.5, `rgba(255, 200, 120, ${0.25 + pulse * 0.15})`);
+            grad.addColorStop(1, 'rgba(255, 180, 100, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, JUDGE_Y - 18, canvas.width, 36);
+
+            ctx.strokeStyle = `rgba(255, 213, 140, ${0.55 + pulse * 0.25})`;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_LEFT, JUDGE_Y);
+            ctx.lineTo(CANVAS_LEFT + PITCH_MAP.length * KEY_WIDTH, JUDGE_Y);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(CANVAS_LEFT, JUDGE_Y + 2);
+            ctx.lineTo(CANVAS_LEFT + PITCH_MAP.length * KEY_WIDTH, JUDGE_Y + 2);
+            ctx.stroke();
+        }
+
+        function drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge) {
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(scale, scale);
+            ctx.translate(-cx, -cy);
+            ctx.globalAlpha = alpha;
+
+            if (note.isMissed) {
+                ctx.fillStyle = 'rgba(90, 82, 78, 0.45)';
+            } else if (nearJudge) {
+                const g = ctx.createLinearGradient(x, y, x, y + h);
+                g.addColorStop(0, 'rgba(255, 220, 160, 0.98)');
+                g.addColorStop(1, 'rgba(232, 93, 58, 0.95)');
+                ctx.fillStyle = g;
+            } else if (note.playable) {
+                ctx.fillStyle = 'rgba(232, 160, 120, 0.92)';
+            } else {
+                ctx.fillStyle = 'rgba(140, 130, 120, 0.4)';
+            }
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = nearJudge ? 'rgba(255, 248, 230, 0.85)' : 'rgba(247, 243, 235, 0.5)';
+            ctx.lineWidth = nearJudge ? 2 : 1;
+            ctx.strokeRect(x, y, w, h);
+            if (!note.isMissed && alpha > 0.4) {
+                ctx.fillStyle = '#2C2824';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(note.keyHint, x + 7, y + h - 5);
+            }
+            ctx.restore();
+        }
+
+        function drawEliminatingNote(note, now) {
+            const elapsed = now - note.eliminateAt;
+            const p = Math.min(1, elapsed / ELIMINATE_MS);
+            const cx = getNoteCenterX(note.pitch);
+            const w = KEY_WIDTH - 5;
+            const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
+            const scale = 1 + (note.hitPerfect ? 0.35 : 0.2) * (1 - p);
+            const alpha = 1 - Math.pow(p, 0.85);
+            const y = JUDGE_Y - h / 2 - p * 28;
+            const x = cx - (w * scale) / 2;
+
+            drawNoteBlock(x, y, w * scale, h * scale, note, alpha, 1, true);
+
+            if (p < 0.5) {
+                ctx.save();
+                ctx.globalAlpha = (0.5 - p) * 1.2;
+                ctx.strokeStyle = note.hitPerfect ? '#FFD54F' : '#FFAB76';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(cx, JUDGE_Y, 12 + p * 40, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function drawParticlesAndRings() {
+            const now = performance.now();
+            hitRings = hitRings.filter(r => {
+                r.life -= 0.045;
+                if (r.life <= 0) return false;
+                const expand = 1 + (1 - r.life) * 2.5;
+                const rad = r.radius + (r.maxRadius - r.radius) * (1 - r.life) * expand;
+                ctx.save();
+                ctx.globalAlpha = r.life * (r.perfect ? 0.9 : 0.7);
+                ctx.strokeStyle = r.perfect ? '#FFD54F' : '#FF8A65';
+                ctx.lineWidth = r.perfect ? 4 : 2.5;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, rad, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+                return true;
+            });
+
+            particles = particles.filter(pt => {
+                pt.life -= pt.decay;
+                if (pt.life <= 0) return false;
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.vy += 0.12;
+                ctx.save();
+                ctx.globalAlpha = pt.life;
+                ctx.fillStyle = `hsl(${pt.hue}, 90%, 62%)`;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size * pt.life, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                return true;
+            });
+        }
+
         function draw() {
+            const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
+            const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 0.6 : 0;
+            if (screenShake > 0) screenShake *= 0.82;
+
+            ctx.save();
+            ctx.translate(shakeX, shakeY);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = '#252220';
             ctx.fillRect(0, PIANO_TOP, canvas.width, canvas.height - PIANO_TOP);
-
-            ctx.strokeStyle = '#C9A99A';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, PIANO_TOP);
-            ctx.lineTo(canvas.width, PIANO_TOP);
-            ctx.stroke();
 
             const splitX = CANVAS_LEFT + 7 * KEY_WIDTH;
             ctx.strokeStyle = '#4A4540';
@@ -356,7 +765,10 @@
                 ctx.stroke();
             });
 
+            drawJudgeLine();
+
             const t = getCurrentTime();
+            const now = performance.now();
 
             if (loopEnabled && isPlaying) {
                 const ls = parseFloat(document.getElementById('loopStart').value) || 0;
@@ -367,11 +779,14 @@
             notes.forEach(note => {
                 if (!autoPlayMode && !teachMode && !note.isHit && !note.isMissed &&
                     t > note.start_time + HIT_WINDOW) {
-                    note.isMissed = true;
-                    stats.mistakes++;
-                    stats.combo = 0;
-                    showFeedback('漏接', '#A08078');
-                    updateStatsUI();
+                    registerMiss(note);
+                }
+
+                if (note.isHit && note.eliminateAt) {
+                    if (now - note.eliminateAt < ELIMINATE_MS) {
+                        drawEliminatingNote(note, now);
+                    }
+                    return;
                 }
                 if (note.isHit) return;
 
@@ -379,26 +794,37 @@
                 const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
                 const y = PIANO_TOP - dist - h;
                 const x = getNoteX(note.pitch);
+                const w = KEY_WIDTH - 5;
                 if (y > canvas.height || y + h < 0) return;
 
-                ctx.fillStyle = note.isMissed ? 'rgba(120,110,100,0.35)'
-                    : note.playable ? 'rgba(201, 169, 154, 0.92)' : 'rgba(140,130,120,0.4)';
-                ctx.fillRect(x, y, KEY_WIDTH - 5, h);
-                ctx.strokeStyle = 'rgba(247, 243, 235, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, y, KEY_WIDTH - 5, h);
-                ctx.fillStyle = '#2C2824';
-                ctx.font = '11px sans-serif';
-                ctx.fillText(note.keyHint, x + 8, y + h - 5);
+                let alpha = 1;
+                let scale = 1;
+                const nearJudge = dist < 35 && dist > -15 && !note.isMissed;
+
+                if (note.isMissed && note.missAt) {
+                    const mp = Math.min(1, (now - note.missAt) / 500);
+                    alpha = 1 - mp;
+                    scale = 1 - mp * 0.4;
+                    const fallY = y + mp * 40;
+                    drawNoteBlock(x, fallY, w, h, note, alpha, scale, false);
+                    return;
+                }
+
+                drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge);
             });
+
+            drawParticlesAndRings();
 
             if (feedbackTimer > 0) {
                 ctx.fillStyle = feedbackColor;
-                ctx.font = '600 22px "Noto Serif JP", serif';
-                ctx.fillText(feedbackText, canvas.width / 2 - 40, PIANO_TOP - 36);
+                ctx.font = '700 24px "Noto Serif JP", serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(feedbackText, canvas.width / 2, PIANO_TOP - 48);
+                ctx.textAlign = 'left';
                 feedbackTimer--;
             }
 
+            ctx.restore();
             animationId = requestAnimationFrame(draw);
         }
 
@@ -413,8 +839,12 @@
                 if (n.start_time >= sec - 0.01) {
                     n.isHit = false;
                     n.isMissed = false;
+                    delete n.eliminateAt;
+                    delete n.missAt;
+                    delete n.hitPerfect;
                 }
             });
+            resetFx();
         }
 
         function clearModes() {
@@ -468,7 +898,8 @@
             if (!useInternalClock) { audio.pause(); audio.currentTime = AUDIO_OFFSET; }
             clockPausedAt = 0;
             notes = initNotes(rawScoreData);
-            stats = { hits: 0, mistakes: 0, combo: 0 };
+            stats = { hits: 0, mistakes: 0, combo: 0, maxCombo: 0 };
+            resetFx();
             updateStatsUI();
             draw();
             cancelAnimationFrame(animationId);
