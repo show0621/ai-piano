@@ -27,3 +27,7 @@ Thumbs.db
 # Secrets
 .env
 .streamlit/secrets.toml
+
+# Cursor auto-sync
+.cursor/hooks/auto-sync.log
+.cursor/auto-sync.disabled

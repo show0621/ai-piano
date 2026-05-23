@@ -1,0 +1,3 @@
+# 若要暫停「Agent 結束後自動 push」，請複製此檔為：
+#   .cursor/auto-sync.disabled
+# （空檔即可；此 example 可提交到 Git）
