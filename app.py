@@ -9,13 +9,12 @@ import streamlit.components.v1 as components
 from audio_processor import (
     HAS_BASIC_PITCH,
     detect_chorus_bounds,
-    download_youtube_audio,
     extract_section,
     get_demo_score,
     process_audio_to_json,
 )
 from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
-from youtube_dl import YouTubeDownloadError, format_youtube_error
+from youtube_dl import YouTubeDownloadError, download_audio_from_url, format_youtube_error
 
 st.set_page_config(
     page_title="音ノ手帖 · AI 鋼琴",
@@ -180,7 +179,7 @@ def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str
     last_err: Exception | None = None
     for i, cand in enumerate(candidates):
         try:
-            return download_youtube_audio(
+            return download_audio_from_url(
                 cand["url"],
                 f"{out_base}_{i}",
                 cookies_path=cookies,
@@ -211,10 +210,53 @@ def prepare_score(notes: list, practice_scope: str):
     return notes, c0, c1, 0.0, "full"
 
 
+AUDIO_SOURCES = [
+    "📁 本機上傳",
+    "🎧 Spotify",
+    "▶️ YouTube",
+    "🔗 其他音源網址",
+    "🌸 示範曲",
+]
+
+UPLOAD_TYPES = ["mp3", "wav", "m4a", "ogg", "flac", "aac", "webm"]
+
+
+def ai_not_ready_message() -> str:
+    return (
+        "**無法 AI 抓譜**：TensorFlow / basic-pitch 尚未載入。"
+        " 請先用「🌸 示範曲」；雲端請確認 **Python 3.11**、**Memory 2GB+**，"
+        "完成部署後 **Reboot**（首次 AI 約 1–3 分鐘）。"
+    )
+
+
+def queue_ai_job(job: dict) -> None:
+    """將抓譜工作放入佇列（下一輪 rerun 執行）。"""
+    st.session_state.pop("lesson_ready", None)
+    st.session_state["pending_job"] = job
+
+
+def save_lesson(notes: list, title: str, audio_path: str | None) -> None:
+    score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
+        notes, practice_scope
+    )
+    st.session_state["lesson"] = {
+        "score": score_data,
+        "title": title,
+        "audio_path": audio_path,
+        "chorus_start": chorus_start,
+        "chorus_end": chorus_end,
+        "audio_offset": audio_offset,
+        "practice_mode": practice_mode,
+        "auto_play": auto_play_demo,
+        "source": st.session_state.get("audio_source", ""),
+    }
+    st.session_state["lesson_ready"] = True
+
+
 # ── Header ──
 st.markdown('<p class="hero-sub">音ノ手帖 · Oto no Techō</p>', unsafe_allow_html=True)
 st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_html=True)
-st.caption("輸入歌名搜尋 · AI 抓譜 · 副歌專練 · 自動彈奏示範")
+st.caption("選擇音源：上傳 · Spotify · YouTube · 其他網址 · 示範曲")
 
 if IS_CLOUD:
     st.info("☁️ 雲端模式：Memory 建議 2GB+，首次 AI 需下載模型。")
@@ -260,201 +302,222 @@ with st.sidebar:
             "或在 Secrets 加入 `youtube.cookies_txt`（cookies.txt 全文）。"
         )
 
-# ── Main tabs ──
-tab_search, tab_upload, tab_url, tab_demo = st.tabs([
-    "🔍 搜尋歌曲", "📁 上傳音檔", "🔗 YouTube 連結", "🌸 示範曲",
-])
+# ── 音源選擇 ──
+st.markdown('<div class="card">', unsafe_allow_html=True)
+st.markdown("### ① 選擇音源")
+audio_source = st.radio(
+    "音源類型",
+    AUDIO_SOURCES,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="audio_source_radio",
+)
+st.session_state["audio_source"] = audio_source
 
-score_data = None
-audio_path = None
-song_title = "未命名"
-chorus_start, chorus_end, audio_offset, practice_mode = 0, 0, 0, "full"
+yt_cookies = get_youtube_cookies_path()
 
-with tab_search:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    if IS_CLOUD:
-        st.caption("☁️ 雲端常因 YouTube 封鎖機房 IP 出現 403，建議改用 **📁 上傳音檔**。")
-    query = st.text_input(
-        "輸入歌名或「歌手 + 歌名」",
-        placeholder="例：宇多田ヒカル First Love、周杰倫 晴天",
+# ── 📁 本機上傳 ──
+if audio_source == "📁 本機上傳":
+    st.markdown("#### 本機音檔")
+    st.caption("最穩定，雲端與本機皆適用。支援 MP3、WAV、M4A、OGG、FLAC 等。")
+    uploaded = st.file_uploader(
+        "選擇音檔",
+        type=UPLOAD_TYPES,
+        key="upload_file",
     )
-    platform = st.radio(
-        "搜尋來源",
-        ["YouTube", "Spotify → YouTube", "兩者都搜"],
-        horizontal=True,
-        label_visibility="collapsed",
-    )
-
-    yt_cookies = get_youtube_cookies_path()
-
-    if query and st.button("搜尋", type="primary", key="btn_search"):
-        results = []
-        with st.spinner("正在搜尋…"):
-            if platform in ("YouTube", "兩者都搜"):
-                results.extend(search_youtube(query, cookies_path=yt_cookies))
-            if platform in ("Spotify → YouTube", "兩者都搜"):
-                sp = search_spotify(query, cid, csec)
-                if sp:
-                    results.extend(sp)
-                else:
-                    results.extend(
-                        search_youtube(f"{query} spotify", max_results=3, cookies_path=yt_cookies)
-                    )
-        st.session_state["search_results"] = results
-        st.session_state["search_query"] = query
-
-    results = st.session_state.get("search_results", [])
-    if results:
-        labels = [f"[{r['source'].upper()}] {r['title']}" for r in results]
-        pick = st.selectbox("選擇曲目", range(len(labels)), format_func=lambda i: labels[i])
-        picked = results[pick]
-
-        if st.button("解析並開始教學", type="primary", key="btn_parse_search"):
-            st.session_state.pop("lesson_ready", None)
-            if not HAS_BASIC_PITCH:
-                st.error(
-                    "**無法 AI 抓譜**：TensorFlow / basic-pitch 尚未載入。"
-                    " 請先用「🌸 示範曲」；雲端請確認 **Python 3.11**、**Memory 2GB+**，"
-                    "等部署日誌安裝完成後 **Reboot**（首次 AI 還需下載模型，約 1–3 分鐘）。"
-                )
-            else:
-                st.session_state["pending_track"] = picked
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with tab_upload:
-    uploaded = st.file_uploader("MP3 / WAV / M4A", type=["mp3", "wav", "m4a"])
+    custom_title = st.text_input("歌曲名稱（選填）", placeholder="例：晴天")
     if uploaded and st.button("上傳並抓譜", type="primary", key="btn_upload"):
-        st.session_state.pop("lesson_ready", None)
         if not HAS_BASIC_PITCH:
-            st.error("**無法 AI 抓譜**：請先安裝 ML 依賴（見上方黃色提示）或使用「示範曲」。")
+            st.error(ai_not_ready_message())
         else:
-            st.session_state["pending_upload"] = save_upload(uploaded)
-            st.session_state["pending_title"] = uploaded.name
+            title = custom_title.strip() or uploaded.name
+            queue_ai_job({
+                "kind": "upload",
+                "path": save_upload(uploaded),
+                "title": title,
+            })
 
-with tab_url:
-    yt_url = st.text_input("YouTube 網址", placeholder="https://www.youtube.com/watch?v=...")
-    if yt_url and st.button("下載並抓譜", type="primary", key="btn_yt"):
-        st.session_state.pop("lesson_ready", None)
+# ── 🎧 Spotify ──
+elif audio_source == "🎧 Spotify":
+    st.markdown("#### Spotify 搜尋")
+    if cid and csec:
+        st.caption("以 Spotify 找正確歌名，音訊將從 YouTube 取得（需能下載）。")
+    else:
+        st.warning(
+            "尚未設定 Spotify API。請在 Secrets 加入 `spotify.client_id` 與 `client_secret`，"
+            "或改選 **YouTube** / **本機上傳**。"
+        )
+    sp_query = st.text_input(
+        "歌名或歌手 + 歌名",
+        placeholder="例：周杰倫 晴天",
+        key="sp_query",
+    )
+    if sp_query and st.button("Spotify 搜尋", type="primary", key="btn_sp_search"):
+        with st.spinner("Spotify 搜尋中…"):
+            sp_results = search_spotify(sp_query, cid, csec)
+            if not sp_results and not (cid and csec):
+                sp_results = search_youtube(sp_query, max_results=6, cookies_path=yt_cookies)
+        st.session_state["spotify_results"] = sp_results
+
+    sp_results = st.session_state.get("spotify_results", [])
+    if sp_results:
+        sp_labels = [f"[{r['source'].upper()}] {r['title']}" for r in sp_results]
+        sp_pick = st.selectbox(
+            "選擇曲目",
+            range(len(sp_labels)),
+            format_func=lambda i: sp_labels[i],
+            key="sp_pick",
+        )
+        if st.button("解析並開始教學", type="primary", key="btn_sp_parse"):
+            if not HAS_BASIC_PITCH:
+                st.error(ai_not_ready_message())
+            else:
+                queue_ai_job({"kind": "track", "track": sp_results[sp_pick]})
+
+# ── ▶️ YouTube ──
+elif audio_source == "▶️ YouTube":
+    st.markdown("#### YouTube")
+    if IS_CLOUD:
+        st.caption("☁️ 雲端可能 403，失敗請改 **本機上傳** 或設定 `youtube.cookies_txt`。")
+    yt_mode = st.radio(
+        "方式",
+        ["搜尋歌曲", "貼上連結"],
+        horizontal=True,
+        key="yt_mode",
+    )
+    if yt_mode == "搜尋歌曲":
+        yt_query = st.text_input(
+            "歌名或關鍵字",
+            placeholder="例：First Love 宇多田ヒカル",
+            key="yt_query",
+        )
+        if yt_query and st.button("YouTube 搜尋", type="primary", key="btn_yt_search"):
+            with st.spinner("YouTube 搜尋中…"):
+                st.session_state["youtube_results"] = search_youtube(
+                    yt_query, cookies_path=yt_cookies
+                )
+        yt_results = st.session_state.get("youtube_results", [])
+        if yt_results:
+            yt_labels = [f"[YT] {r['title']}" for r in yt_results]
+            yt_pick = st.selectbox(
+                "選擇影片",
+                range(len(yt_labels)),
+                format_func=lambda i: yt_labels[i],
+                key="yt_pick",
+            )
+            if st.button("解析並開始教學", type="primary", key="btn_yt_parse"):
+                if not HAS_BASIC_PITCH:
+                    st.error(ai_not_ready_message())
+                else:
+                    queue_ai_job({"kind": "track", "track": yt_results[yt_pick]})
+    else:
+        yt_url = st.text_input(
+            "YouTube 網址",
+            placeholder="https://www.youtube.com/watch?v=...",
+            key="yt_url",
+        )
+        yt_title = st.text_input("歌曲名稱（選填）", key="yt_url_title")
+        if yt_url and st.button("下載並抓譜", type="primary", key="btn_yt_url"):
+            if not HAS_BASIC_PITCH:
+                st.error(ai_not_ready_message())
+            else:
+                queue_ai_job({
+                    "kind": "url",
+                    "url": yt_url.strip(),
+                    "title": yt_title.strip() or "YouTube 歌曲",
+                    "out_base": "yt_direct",
+                })
+
+# ── 🔗 其他音源 ──
+elif audio_source == "🔗 其他音源網址":
+    st.markdown("#### 其他音源網址")
+    st.caption(
+        "貼上可下載的音訊／影片連結，由 yt-dlp 處理。"
+        "常見：SoundCloud、Bilibili、直接 .mp3 連結等（依網站而定）。"
+    )
+    other_url = st.text_input(
+        "音源網址",
+        placeholder="https://...",
+        key="other_url",
+    )
+    other_title = st.text_input("歌曲名稱（選填）", key="other_title")
+    if other_url and st.button("下載並抓譜", type="primary", key="btn_other_url"):
         if not HAS_BASIC_PITCH:
-            st.error("**無法 AI 抓譜**：請先安裝 ML 依賴（見上方黃色提示）或使用「示範曲」。")
+            st.error(ai_not_ready_message())
         else:
-            st.session_state["pending_yt"] = yt_url
+            queue_ai_job({
+                "kind": "url",
+                "url": other_url.strip(),
+                "title": other_title.strip() or "網路音源",
+                "out_base": "media_url",
+            })
 
-with tab_demo:
-    demo = st.selectbox("內建示範", ["小星星", "笑傲江湖（滄海一聲笑）"])
+# ── 🌸 示範曲 ──
+else:
+    st.markdown("#### 內建示範曲")
+    st.caption("不需 AI、不需網路，可直接練習鍵盤與下落音符。")
+    demo = st.selectbox("選擇曲目", ["小星星", "笑傲江湖（滄海一聲笑）"], key="demo_pick")
     if st.button("載入示範曲", type="primary", key="btn_demo"):
         demo_id = "xiaoaojianghu" if "笑傲" in demo else "twinkle"
         full = get_demo_score(demo_id)
         score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
             full, practice_scope
         )
-        song_title = demo
         st.session_state["lesson_ready"] = True
         st.session_state["lesson"] = {
             "score": score_data,
-            "title": song_title,
+            "title": demo,
             "audio_path": None,
             "chorus_start": chorus_start,
             "chorus_end": chorus_end,
             "audio_offset": audio_offset,
             "practice_mode": practice_mode,
             "auto_play": auto_play_demo,
+            "source": audio_source,
         }
 
-# ── Process pending jobs ──
-if "pending_track" in st.session_state and not HAS_BASIC_PITCH:
-    st.session_state.pop("pending_track", None)
+st.markdown("</div>", unsafe_allow_html=True)
 
-if "pending_upload" in st.session_state and not HAS_BASIC_PITCH:
-    st.session_state.pop("pending_upload", None)
-    st.session_state.pop("pending_title", None)
+# ── 處理 AI 抓譜佇列 ──
+if "pending_job" in st.session_state and not HAS_BASIC_PITCH:
+    st.session_state.pop("pending_job", None)
 
-if "pending_yt" in st.session_state and not HAS_BASIC_PITCH:
-    st.session_state.pop("pending_yt", None)
-
-if "pending_track" in st.session_state and HAS_BASIC_PITCH:
-    track = st.session_state.pop("pending_track")
+if "pending_job" in st.session_state and HAS_BASIC_PITCH:
+    job = st.session_state.pop("pending_job")
     with st.spinner("取得音源並 AI 抓譜中…"):
         try:
-            song_title = track["title"]
-            if track["source"] == "spotify":
-                yt_candidates = resolve_spotify_to_youtube(
-                    track, cookies_path=get_youtube_cookies_path()
+            if job["kind"] == "upload":
+                audio_path = job["path"]
+                title = job["title"]
+            elif job["kind"] == "url":
+                audio_path = download_audio_from_url(
+                    job["url"],
+                    os.path.join(UPLOAD_DIR, job.get("out_base", "media")),
+                    cookies_path=yt_cookies,
                 )
-                if not yt_candidates:
-                    raise ValueError("找不到對應 YouTube 音源")
+                title = job["title"]
+            elif job["kind"] == "track":
+                track = job["track"]
+                title = track["title"]
+                if track["source"] == "spotify":
+                    yt_candidates = resolve_spotify_to_youtube(
+                        track, cookies_path=yt_cookies
+                    )
+                    if not yt_candidates:
+                        raise ValueError(
+                            "找不到對應 YouTube 音源。請改選 YouTube 搜尋或上傳 MP3。"
+                        )
+                else:
+                    yt_candidates = [track]
+                audio_path = download_audio_from_candidates(
+                    yt_candidates, os.path.join(UPLOAD_DIR, "search_audio")
+                )
             else:
-                yt_candidates = [track]
-            audio_path = download_audio_from_candidates(
-                yt_candidates, os.path.join(UPLOAD_DIR, "search_audio")
-            )
-            notes = run_ai_transcription(audio_path, simplify_melody)
-            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
-                notes, practice_scope
-            )
-            st.session_state["lesson"] = {
-                "score": score_data,
-                "title": song_title,
-                "audio_path": audio_path,
-                "chorus_start": chorus_start,
-                "chorus_end": chorus_end,
-                "audio_offset": audio_offset,
-                "practice_mode": practice_mode,
-                "auto_play": auto_play_demo,
-            }
-            st.session_state["lesson_ready"] = True
-            st.success(f"完成：{song_title}")
-        except Exception as e:
-            show_parse_error(e)
+                raise ValueError(f"未知工作類型：{job.get('kind')}")
 
-if "pending_upload" in st.session_state and HAS_BASIC_PITCH:
-    path = st.session_state.pop("pending_upload")
-    title = st.session_state.pop("pending_title", "上傳歌曲")
-    with st.spinner("AI 抓譜中…"):
-        try:
-            notes = run_ai_transcription(path, simplify_melody)
-            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
-                notes, practice_scope
-            )
-            st.session_state["lesson"] = {
-                "score": score_data,
-                "title": title,
-                "audio_path": path,
-                "chorus_start": chorus_start,
-                "chorus_end": chorus_end,
-                "audio_offset": audio_offset,
-                "practice_mode": practice_mode,
-                "auto_play": auto_play_demo,
-            }
-            st.session_state["lesson_ready"] = True
-        except Exception as e:
-            st.error(f"抓譜失敗：{e}")
-
-if "pending_yt" in st.session_state and HAS_BASIC_PITCH:
-    url = st.session_state.pop("pending_yt")
-    with st.spinner("下載並抓譜…"):
-        try:
-            audio_path = download_youtube_audio(
-                url,
-                os.path.join(UPLOAD_DIR, "yt_audio"),
-                cookies_path=get_youtube_cookies_path(),
-            )
             notes = run_ai_transcription(audio_path, simplify_melody)
-            score_data, chorus_start, chorus_end, audio_offset, practice_mode = prepare_score(
-                notes, practice_scope
-            )
-            st.session_state["lesson"] = {
-                "score": score_data,
-                "title": "YouTube 歌曲",
-                "audio_path": audio_path,
-                "chorus_start": chorus_start,
-                "chorus_end": chorus_end,
-                "audio_offset": audio_offset,
-                "practice_mode": practice_mode,
-                "auto_play": auto_play_demo,
-            }
-            st.session_state["lesson_ready"] = True
+            save_lesson(notes, title, audio_path)
+            st.success(f"完成：{title}")
         except Exception as e:
             show_parse_error(e)
 
@@ -463,7 +526,9 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
     L = st.session_state["lesson"]
     st.markdown("---")
     mode_label = "副歌練習" if L["practice_mode"] == "chorus" else "整首練習"
-    st.markdown(f"**{L['title']}** · {len(L['score'])} 音符 · {mode_label}")
+    src = L.get("source", "")
+    src_tag = f" · {src}" if src else ""
+    st.markdown(f"**{L['title']}** · {len(L['score'])} 音符 · {mode_label}{src_tag}")
 
     if L["practice_mode"] == "full" and L["chorus_end"] > L["chorus_start"]:
         st.caption(

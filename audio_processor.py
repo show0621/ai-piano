@@ -15,10 +15,10 @@ MIN_DURATION = 0.08
 
 
 def download_youtube_audio(url: str, output_path: str, cookies_path: str | None = None) -> str:
-    """將 YouTube 連結下載為 MP3（見 youtube_dl 模組）。"""
-    from youtube_dl import download_youtube_audio as _dl
+    """從 URL 下載音訊為 MP3（見 youtube_dl 模組）。"""
+    from youtube_dl import download_audio_from_url
 
-    return _dl(url, output_path, cookies_path=cookies_path)
+    return download_audio_from_url(url, output_path, cookies_path=cookies_path)
 
 
 def filter_notes(notes: list, max_notes: int = 800) -> list:

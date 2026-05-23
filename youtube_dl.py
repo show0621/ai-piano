@@ -110,12 +110,30 @@ def _find_audio_file(out_base: str) -> Optional[str]:
     return max(candidates, key=os.path.getmtime)
 
 
+def download_audio_from_url(
+    url: str,
+    output_path: str,
+    cookies_path: Optional[str] = None,
+) -> str:
+    """從 URL 下載音訊為 MP3（YouTube、SoundCloud、直接音檔連結等，由 yt-dlp 處理）。"""
+    return _download_audio_impl(url, output_path, cookies_path)
+
+
 def download_youtube_audio(
     url: str,
     output_path: str,
     cookies_path: Optional[str] = None,
 ) -> str:
-    """將 YouTube 連結下載為 MP3，多種 client 輪換以避開 403。"""
+    """將 YouTube 連結下載為 MP3（download_audio_from_url 的別名）。"""
+    return _download_audio_impl(url, output_path, cookies_path)
+
+
+def _download_audio_impl(
+    url: str,
+    output_path: str,
+    cookies_path: Optional[str] = None,
+) -> str:
+    """yt-dlp 下載實作，多種 client / format 輪換。"""
     import yt_dlp
 
     out_base = output_path.rsplit(".", 1)[0]
