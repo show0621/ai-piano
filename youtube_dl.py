@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import os
+import urllib.request
 from typing import Optional
+from urllib.parse import urlparse
+
+DIRECT_AUDIO_EXTENSIONS = (
+    ".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac", ".opus", ".webm",
+)
 
 # 依 yt-dlp 2026 建議：避開 android_sdkless，輪換 client
 PLAYER_STRATEGIES: list[dict] = [
@@ -52,8 +58,12 @@ def format_youtube_error(exc: Exception) -> str:
         return "需要 ffmpeg 才能轉成 MP3。雲端請確認 `packages.txt` 含 ffmpeg。"
     if "format is not available" in low or "requested format" in low:
         return (
-            "此影片沒有可用的音訊格式（YouTube 限制）。"
-            "請換一首、改 **上傳 MP3**，或於 Secrets 設定 `youtube.cookies_txt` 後重試。"
+            "**YouTube 在雲端伺服器上常無法下載**（不是您的操作錯誤）。\n\n"
+            "**請改這樣做（幾乎一定成功）：**\n"
+            "1. 在手機／電腦把該曲存成 **MP3**（Spotify 需另用合法方式取得檔案）\n"
+            "2. 回到 App 選 **📁 本機上傳** → 選檔 → **上傳並抓譜**\n\n"
+            "進階：本機執行 `streamlit run app.py` 時 YouTube 成功率較高；"
+            "或在 Secrets 設定 `youtube.cookies_txt` 後 Reboot（雲端仍可能失敗）。"
         )
     return raw or "YouTube 下載失敗，請改上傳音檔或稍後再試。"
 
@@ -110,12 +120,50 @@ def _find_audio_file(out_base: str) -> Optional[str]:
     return max(candidates, key=os.path.getmtime)
 
 
+def is_direct_audio_url(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    return any(path.endswith(ext) for ext in DIRECT_AUDIO_EXTENSIONS)
+
+
+def download_direct_http_audio(url: str, output_path: str) -> str:
+    """直接下載 .mp3 / .wav 等連結（不經 YouTube）。"""
+    path = urlparse(url).path.lower()
+    ext = next((e for e in DIRECT_AUDIO_EXTENSIONS if path.endswith(e)), ".mp3")
+    out_base = output_path.rsplit(".", 1)[0]
+    parent = os.path.dirname(out_base)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    out_file = out_base + ext
+
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            ),
+        },
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        data = resp.read()
+    if len(data) < 2048:
+        raise ValueError("下載檔案過小，可能不是有效音訊")
+    with open(out_file, "wb") as f:
+        f.write(data)
+    return out_file
+
+
 def download_audio_from_url(
     url: str,
     output_path: str,
     cookies_path: Optional[str] = None,
 ) -> str:
-    """從 URL 下載音訊為 MP3（YouTube、SoundCloud、直接音檔連結等，由 yt-dlp 處理）。"""
+    """從 URL 下載音訊（直接音檔連結優先，其餘交 yt-dlp）。"""
+    if is_direct_audio_url(url):
+        try:
+            return download_direct_http_audio(url, output_path)
+        except Exception:
+            pass
     return _download_audio_impl(url, output_path, cookies_path)
 
 

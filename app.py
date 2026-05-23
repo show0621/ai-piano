@@ -192,14 +192,27 @@ def download_audio_from_candidates(candidates: list[dict], out_base: str) -> str
 
 
 def show_parse_error(exc: Exception) -> None:
+    st.session_state["last_download_failed"] = True
     if isinstance(exc, YouTubeDownloadError):
         st.error(str(exc))
     else:
         low = str(exc).lower()
-        if "403" in low or "forbidden" in low:
+        if "403" in low or "forbidden" in low or "format is not available" in low:
             st.error(format_youtube_error(exc))
         else:
             st.error(f"解析失敗：{exc}")
+    render_upload_fallback_guide()
+
+
+def render_upload_fallback_guide() -> None:
+    """YouTube / 網路下載失敗時的可靠替代流程。"""
+    st.info(
+        "**✅ 建議改走「上傳 MP3」（AI 抓譜一樣會跑）**\n\n"
+        "1. 上方 **① 選擇音源** 點 **📁 本機上傳**\n"
+        "2. 選擇電腦或手機裡的 MP3 / WAV / M4A\n"
+        "3. 按 **上傳並抓譜**\n\n"
+        "若暫時沒有檔案：可先選 **🌸 示範曲** 體驗鍵盤教學（不需 YouTube）。"
+    )
 
 
 def prepare_score(notes: list, practice_scope: str):
@@ -259,7 +272,10 @@ st.markdown('<p class="hero-title">鍵盤上的練習筆記</p>', unsafe_allow_h
 st.caption("選擇音源：上傳 · Spotify · YouTube · 其他網址 · 示範曲")
 
 if IS_CLOUD:
-    st.info("☁️ 雲端模式：Memory 建議 2GB+，首次 AI 需下載模型。")
+    st.success(
+        "☁️ **雲端建議音源：📁 本機上傳**（YouTube / Spotify 在雲端常被擋，上傳 MP3 最穩）。"
+    )
+    st.caption("Memory 建議 2GB+ · 首次 AI 需下載模型 · 示範曲不需網路")
 if not HAS_BASIC_PITCH:
     st.warning(
         "**AI 抓譜尚未就緒**（TensorFlow / basic-pitch 未載入）。"
@@ -318,8 +334,16 @@ yt_cookies = get_youtube_cookies_path()
 
 # ── 📁 本機上傳 ──
 if audio_source == "📁 本機上傳":
-    st.markdown("#### 本機音檔")
-    st.caption("最穩定，雲端與本機皆適用。支援 MP3、WAV、M4A、OGG、FLAC 等。")
+    st.markdown("#### 本機音檔 ⭐ 推薦")
+    st.caption("**最穩定**：不依賴 YouTube。支援 MP3、WAV、M4A、OGG、FLAC 等。")
+    with st.expander("如何取得 MP3？（Spotify / YouTube 歌曲）"):
+        st.markdown(
+            "- **已有檔案**：直接上傳\n"
+            "- **CD / 購買下載**：使用既有 MP3\n"
+            "- **自行錄音**：手機錄製練習用音檔也可\n"
+            "- **YouTube 在雲端常失敗**：請在本機用合法工具轉檔後再上傳\n"
+            "- **示範**：選 **🌸 示範曲** 不需任何檔案"
+        )
     uploaded = st.file_uploader(
         "選擇音檔",
         type=UPLOAD_TYPES,
@@ -340,8 +364,9 @@ if audio_source == "📁 本機上傳":
 # ── 🎧 Spotify ──
 elif audio_source == "🎧 Spotify":
     st.markdown("#### Spotify 搜尋")
+    st.warning("Spotify 僅能**找歌名**；音訊仍從 YouTube 下載。雲端若失敗請改 **📁 上傳 MP3**。")
     if cid and csec:
-        st.caption("以 Spotify 找正確歌名，音訊將從 YouTube 取得（需能下載）。")
+        st.caption("已連線 Spotify API，可搜尋正確曲目名稱。")
     else:
         st.warning(
             "尚未設定 Spotify API。請在 Secrets 加入 `spotify.client_id` 與 `client_secret`，"
@@ -378,7 +403,10 @@ elif audio_source == "🎧 Spotify":
 elif audio_source == "▶️ YouTube":
     st.markdown("#### YouTube")
     if IS_CLOUD:
-        st.caption("☁️ 雲端可能 403，失敗請改 **本機上傳** 或設定 `youtube.cookies_txt`。")
+        st.warning(
+            "☁️ **雲端 YouTube 成功率低**（403 / 無格式）。"
+            "失敗請改 **📁 本機上傳**；或在本機執行 `streamlit run app.py` 再試 YouTube。"
+        )
     yt_mode = st.radio(
         "方式",
         ["搜尋歌曲", "貼上連結"],
