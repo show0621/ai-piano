@@ -301,12 +301,35 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### Spotify（選填）")
-    st.caption("在 Secrets 設定 `spotify.client_id` 與 `client_secret` 即可啟用 Spotify 搜尋。")
     cid, csec = get_spotify_credentials()
     if cid and csec:
         st.success("Spotify API 已連線")
     else:
-        st.caption("未設定時，Spotify 結果將改以 YouTube 搜尋代替。")
+        st.caption("尚未設定 — 展開下方教學")
+    with st.expander("📖 如何設定 Spotify API"):
+        st.markdown(
+            "**1. 申請金鑰**\n"
+            "- 開啟 [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)\n"
+            "- 登入 Spotify 帳號 → **Create app**\n"
+            "- 名稱、說明隨意填；**Redirect URI** 可填：\n"
+            "  `http://localhost:8501`（本機 Streamlit 預設）\n"
+            "- 勾選同意條款 → **Save**\n"
+            "- 進入該 App → **Settings** → 複製 **Client ID**\n"
+            "- 點 **View client secret** → 複製 **Client secret**\n\n"
+            "**2. 雲端（Streamlit Cloud）**\n"
+            "- [share.streamlit.io](https://share.streamlit.io) → 你的 App\n"
+            "- **Settings** → **Secrets**，貼上：\n"
+            "```toml\n"
+            "[spotify]\n"
+            'client_id = "貼上_Client_ID"\n'
+            'client_secret = "貼上_Client_Secret"\n'
+            "```\n"
+            "- **Save** → **Reboot**\n\n"
+            "**3. 本機**\n"
+            "- 複製 `.streamlit/secrets.toml.example` 為 `.streamlit/secrets.toml`\n"
+            "- 填入同上 `[spotify]` 區塊（勿提交到 GitHub）\n\n"
+            "**注意**：Spotify 僅供**搜尋歌名**；抓譜音訊仍靠 YouTube 或 **📁 上傳 MP3**。"
+        )
 
     st.markdown("---")
     st.markdown("### YouTube（選填）")
