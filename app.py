@@ -13,7 +13,13 @@ from audio_processor import (
     get_demo_score,
     process_audio_to_json,
 )
-from config_secrets import get_spotify_credentials, mask_secret, spotify_configured
+from config_secrets import (
+    get_spotify_credentials,
+    mask_secret,
+    spotify_configured,
+    spotify_credential_source,
+    verify_spotify_connection,
+)
 from music_search import resolve_spotify_to_youtube, search_spotify, search_youtube
 from youtube_dl import YouTubeDownloadError, download_audio_from_url, format_youtube_error
 
@@ -293,13 +299,33 @@ with st.sidebar:
     auto_play_demo = st.checkbox("載入後自動彈奏示範", value=False)
 
     st.markdown("---")
-    st.markdown("### Spotify（選填）")
+    st.markdown("### Spotify")
     cid, csec = get_spotify_credentials()
+
     if spotify_configured():
-        st.success("Spotify API 已連線")
-        st.caption(f"Client ID：`{mask_secret(cid)}`")
+        if "spotify_verify_ok" not in st.session_state:
+            ok, msg = verify_spotify_connection()
+            st.session_state["spotify_verify_ok"] = ok
+            st.session_state["spotify_verify_msg"] = msg
+
+        if st.session_state.get("spotify_verify_ok"):
+            st.success("Spotify API 已自動連線")
+            st.caption(st.session_state.get("spotify_verify_msg", ""))
+        else:
+            st.error("Secrets 已讀取，但 Spotify 驗證失敗")
+            st.caption(st.session_state.get("spotify_verify_msg", ""))
+
+        st.caption(f"來源：{spotify_credential_source()} · ID：`{mask_secret(cid)}`")
+        if st.button("重新測試連線", key="btn_spotify_retest"):
+            st.session_state.pop("spotify_verify_ok", None)
+            st.session_state.pop("spotify_verify_msg", None)
+            st.rerun()
     else:
-        st.caption("尚未設定 — 展開下方教學")
+        st.warning("尚未讀到 Spotify Secrets")
+        st.caption(
+            "請確認 Secrets 格式為 `[spotify]` + `client_id` / `client_secret`，"
+            "Save 後 **Reboot**。"
+        )
     with st.expander("📖 Spotify API 與金鑰安全（勿提交 GitHub）"):
         st.markdown(
             "### 原則\n"
@@ -380,14 +406,13 @@ if audio_source == "📁 本機上傳":
 # ── 🎧 Spotify ──
 elif audio_source == "🎧 Spotify":
     st.markdown("#### Spotify 搜尋")
-    st.warning("Spotify 僅能**找歌名**；音訊仍從 YouTube 下載。雲端若失敗請改 **📁 上傳 MP3**。")
-    if cid and csec:
-        st.caption("已連線 Spotify API，可搜尋正確曲目名稱。")
+    if st.session_state.get("spotify_verify_ok"):
+        st.caption("✅ API 已連線，輸入歌名即可搜尋（音訊仍建議 **📁 上傳 MP3**）。")
+    elif spotify_configured():
+        st.warning("金鑰已載入但驗證未過，請看側邊欄錯誤訊息或按「重新測試連線」。")
     else:
-        st.warning(
-            "尚未設定 Spotify API。請在 Secrets 加入 `spotify.client_id` 與 `client_secret`，"
-            "或改選 **YouTube** / **本機上傳**。"
-        )
+        st.warning("請先在 Streamlit **Secrets** 設定 `[spotify]`，Save 後 **Reboot**。")
+    st.caption("Spotify 負責找正確歌名；AI 抓譜音訊請優先 **本機上傳**。")
     sp_query = st.text_input(
         "歌名或歌手 + 歌名",
         placeholder="例：周杰倫 晴天",

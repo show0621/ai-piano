@@ -34,6 +34,34 @@ def search_youtube(
     return results
 
 
+def _spotify_client(client_id: str, client_secret: str):
+    import spotipy
+    from spotipy.oauth2 import SpotifyClientCredentials
+
+    return spotipy.Spotify(
+        auth_manager=SpotifyClientCredentials(
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+    )
+
+
+def verify_spotify_api(
+    client_id: str,
+    client_secret: str,
+    test_query: str = "a",
+) -> dict:
+    """啟動時連線測試，成功回傳第一筆曲目摘要。"""
+    sp = _spotify_client(client_id, client_secret)
+    resp = sp.search(q=test_query, type="track", limit=1)
+    items = resp.get("tracks", {}).get("items", [])
+    if not items:
+        return {"title": "（無搜尋結果，但 API 可用）"}
+    t = items[0]
+    artists = ", ".join(a["name"] for a in t["artists"])
+    return {"title": f"{artists} — {t['name']}"}
+
+
 def search_spotify(
     query: str,
     client_id: Optional[str] = None,
@@ -46,14 +74,10 @@ def search_spotify(
         return []
 
     try:
-        import spotipy
-        from spotipy.oauth2 import SpotifyClientCredentials
+        sp = _spotify_client(cid, secret)
     except ImportError:
         return []
 
-    sp = spotipy.Spotify(
-        auth_manager=SpotifyClientCredentials(client_id=cid, client_secret=secret)
-    )
     resp = sp.search(q=query, type="track", limit=max_results)
     items = resp.get("tracks", {}).get("items", [])
     results = []

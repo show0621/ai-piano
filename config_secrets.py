@@ -18,14 +18,30 @@ def _clean(value: str | None) -> str | None:
     return v or None
 
 
+def _read_spotify_block(block) -> tuple[str | None, str | None]:
+    if block is None:
+        return None, None
+    if hasattr(block, "get"):
+        return _clean(block.get("client_id")), _clean(block.get("client_secret"))
+    return _clean(getattr(block, "client_id", None)), _clean(getattr(block, "client_secret", None))
+
+
 def get_spotify_credentials() -> tuple[str | None, str | None]:
-    """回傳 (client_id, client_secret)，未設定則為 (None, None)。"""
+    """回傳 (client_id, client_secret)。優先 Streamlit Secrets，其次環境變數。"""
+    cid = csec = None
+
     try:
         import streamlit as st
 
-        block = st.secrets.get("spotify", {})
-        cid = _clean(block.get("client_id"))
-        csec = _clean(block.get("client_secret"))
+        cid, csec = _read_spotify_block(st.secrets.get("spotify"))
+        if cid and csec:
+            return cid, csec
+
+        # 相容：Secrets 根層級變數名
+        cid = _clean(st.secrets.get("SPOTIFY_CLIENT_ID")) or _clean(st.secrets.get("spotify_client_id"))
+        csec = _clean(st.secrets.get("SPOTIFY_CLIENT_SECRET")) or _clean(
+            st.secrets.get("spotify_client_secret")
+        )
         if cid and csec:
             return cid, csec
     except Exception:
@@ -34,6 +50,23 @@ def get_spotify_credentials() -> tuple[str | None, str | None]:
     cid = _clean(os.environ.get("SPOTIFY_CLIENT_ID"))
     csec = _clean(os.environ.get("SPOTIFY_CLIENT_SECRET"))
     return cid, csec
+
+
+def spotify_credential_source() -> str:
+    """回傳金鑰來源說明（除錯用，不含 secret）。"""
+    try:
+        import streamlit as st
+
+        cid, csec = _read_spotify_block(st.secrets.get("spotify"))
+        if cid and csec:
+            return "Streamlit Secrets → [spotify]"
+        if _clean(st.secrets.get("SPOTIFY_CLIENT_ID")):
+            return "Streamlit Secrets → 根層級變數"
+    except Exception:
+        pass
+    if os.environ.get("SPOTIFY_CLIENT_ID"):
+        return "環境變數"
+    return "未偵測到"
 
 
 def mask_secret(value: str | None, visible: int = 4) -> str:
@@ -48,3 +81,21 @@ def mask_secret(value: str | None, visible: int = 4) -> str:
 def spotify_configured() -> bool:
     cid, csec = get_spotify_credentials()
     return bool(cid and csec)
+
+
+def verify_spotify_connection() -> tuple[bool, str]:
+    """
+    實際呼叫 Spotify API 測試金鑰是否有效。
+    回傳 (成功與否, 訊息)。
+    """
+    from music_search import verify_spotify_api
+
+    cid, csec = get_spotify_credentials()
+    if not cid or not csec:
+        return False, "Secrets 未讀到 client_id / client_secret"
+    try:
+        sample = verify_spotify_api(cid, csec)
+        title = sample.get("title", "測試曲目") if sample else "OK"
+        return True, f"連線成功（範例：{title}）"
+    except Exception as exc:
+        return False, str(exc)
