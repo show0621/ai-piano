@@ -43,6 +43,16 @@
             margin: 0;
             overflow: hidden;
         }
+        body.mode-mobile-land .game-shell > .piano-section {
+            order: 3;
+        }
+        body.mode-mobile-land .game-shell > .playfield {
+            order: 2;
+            flex: 1;
+        }
+        body.mode-mobile-land .game-shell > .playfield-chrome {
+            order: 1;
+        }
         .playfield {
             width: 100%;
         }
@@ -393,8 +403,12 @@
         body.mode-mobile-land .ctrl-ab { display: none !important; }
         body.mode-mobile-land .playfield-chrome .controls { display: none !important; }
         body.mode-mobile-land .keyboard-hint { display: none !important; }
-        body.mode-mobile-land .p-key .kn { display: none; }
-        body.mode-mobile-land .p-key span:not(.kn) { font-size: 0.48rem; opacity: 0.85; }
+        body.mode-mobile-land .p-key .kn {
+            display: block;
+            font-size: 0.62rem;
+            line-height: 1;
+        }
+        body.mode-mobile-land .p-key span:not(.kn) { font-size: 0.5rem; opacity: 0.9; }
         .mobile-dock {
             display: none;
             flex-shrink: 0;
@@ -457,7 +471,7 @@
             text-shadow: 0 0 24px rgba(255, 213, 100, 0.6);
         }
         body.mode-mobile-land .canvas-wrap {
-            flex: 1;
+            flex: 0 0 auto;
             min-height: 0;
             width: 100%;
             display: flex;
@@ -477,8 +491,11 @@
             flex-shrink: 0;
             width: 100%;
             margin: 0;
-            padding: 0 0 2px;
+            padding: 0 0 max(2px, env(safe-area-inset-bottom));
             max-width: none;
+            position: relative;
+            z-index: 20;
+            background: linear-gradient(180deg, transparent 0%, rgba(247, 243, 235, 0.98) 12%);
         }
         body.mode-mobile-land .piano-section .piano-rows {
             display: flex;
@@ -593,16 +610,16 @@
             </select>
             <button type="button" class="dock-btn" id="btnRestartDock">↺ 重來</button>
         </div>
-
-        <section class="piano-section">
-            <div class="piano-rows" id="pianoRows">
-                <p class="octave-label">一 · C4–B4</p>
-                <div class="piano-wrap" id="piano-low"></div>
-                <p class="octave-label">二 · C5–B5</p>
-                <div class="piano-wrap" id="piano-high"></div>
-            </div>
-        </section>
     </div>
+
+    <section class="piano-section" aria-label="鋼琴鍵盤">
+        <div class="piano-rows" id="pianoRows">
+            <p class="octave-label">一 · C4–B4</p>
+            <div class="piano-wrap" id="piano-low"></div>
+            <p class="octave-label">二 · C5–B5</p>
+            <div class="piano-wrap" id="piano-high"></div>
+        </div>
+    </section>
 
     <p class="keyboard-hint keyboard-hint-desktop">
         電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
@@ -708,8 +725,8 @@
         function measureChromeHeight() {
             let total = 0;
             const selectors = document.body.classList.contains('mode-mobile-land')
-                ? '.playfield-chrome, .mobile-dock'
-                : '.playfield-chrome, .keyboard-hint';
+                ? '.playfield-chrome, .mobile-dock, .piano-section'
+                : '.playfield-chrome, .keyboard-hint, .piano-section';
             document.querySelectorAll(selectors).forEach(el => {
                 if (!el || el.offsetParent === null) return;
                 const st = getComputedStyle(el);
@@ -762,7 +779,7 @@
                 w = Math.floor(Math.min(viewW - 8, availW));
                 keyW = Math.max(22, Math.floor((w - 8) / 14));
                 w = keyW * 14 + 8;
-                let keyH = Math.min(52, Math.max(40, Math.floor(viewH * 0.13)));
+                let keyH = Math.min(56, Math.max(44, Math.floor(viewH * 0.14)));
                 document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
                 const chromeH = measureChromeHeight();
                 const pianoH = keyH + 6;

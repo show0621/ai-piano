@@ -134,19 +134,25 @@ _KEY_SCALES: dict[str, tuple[int, list[int]]] = {
 }
 
 DEMO_CATALOG = [
-    {"id": "twinkle", "title": "小星星", "artist": "兒歌", "full": False},
-    {"id": "xiaoaojianghu", "title": "笑傲江湖（滄海一聲笑·完整版）", "artist": "黃霑", "full": True},
-    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫", "full": True},
-    {"id": "anjing", "title": "安靜", "artist": "周杰倫", "full": True},
-    {"id": "kaibulekou", "title": "開不了口", "artist": "周杰倫", "full": True},
-    {"id": "wobunanguo", "title": "我不難過", "artist": "孫燕姿", "full": True},
-    {"id": "lvguang", "title": "綠光", "artist": "孫燕姿", "full": True},
-    {
-        "id": "cruelangel",
-        "title": "残酷天使のテーゼ（少年よ神話になれ）",
-        "artist": "高橋洋子 / EVA",
-        "full": True,
-    },
+    {"id": "twinkle", "title": "小星星", "artist": "兒歌 · 範例", "full": False},
+    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫 · 範例", "full": True},
+    # 兒歌
+    {"id": "liangzhilaohu", "title": "兩隻老虎", "artist": "兒歌", "full": False},
+    {"id": "xiaomifeng", "title": "小蜜蜂", "artist": "兒歌", "full": False},
+    {"id": "happy_birthday", "title": "生日快樂", "artist": "兒歌", "full": False},
+    {"id": "fenshuajiang", "title": "粉刷匠", "artist": "兒歌", "full": False},
+    {"id": "molihua", "title": "茉莉花", "artist": "民歌", "full": False},
+    # 動畫
+    {"id": "doraemon", "title": "哆啦A夢", "artist": "動畫主題", "full": False},
+    {"id": "maruko", "title": "櫻桃小丸子", "artist": "動畫主題", "full": False},
+    {"id": "totoro", "title": "龍貓", "artist": "吉卜力", "full": False},
+    {"id": "conan", "title": "名偵探柯南", "artist": "動畫主題", "full": False},
+    {"id": "anpanman", "title": "麵包超人", "artist": "動畫主題", "full": False},
+    # 古典（公版）
+    {"id": "canon", "title": "卡農", "artist": "Pachelbel", "full": False},
+    {"id": "fur_elise", "title": "致愛麗絲", "artist": "Beethoven", "full": False},
+    {"id": "ode_to_joy", "title": "歡樂頌", "artist": "Beethoven", "full": False},
+    {"id": "beethoven_fifth", "title": "命運交響曲（主題）", "artist": "Beethoven", "full": False},
 ]
 
 
