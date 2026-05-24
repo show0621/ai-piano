@@ -468,9 +468,30 @@
             font-family: 'Noto Serif JP', serif;
         }
         .piano-wrap {
-            display: flex; justify-content: center;
-            gap: 2px; overflow-x: auto; padding-bottom: 4px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            overflow: visible;
+            padding-bottom: 4px;
             touch-action: none;
+        }
+        .piano-octave {
+            position: relative;
+            display: flex;
+            flex: 0 0 auto;
+        }
+        .piano-octave .white-row {
+            display: flex;
+            flex-direction: row;
+        }
+        .piano-octave .black-row {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 62%;
+            pointer-events: none;
+            z-index: 2;
         }
         .piano-section { width: 100%; max-width: 1100px; margin: 0 auto; }
         .piano-section .piano-rows {
@@ -481,32 +502,57 @@
             width: 100%;
         }
         .piano-section .piano-wrap {
-            display: flex;
             justify-content: center;
             flex-wrap: nowrap;
             width: 100%;
         }
         .p-key {
-            width: var(--key-w);
-            min-width: var(--key-w);
-            height: var(--key-h);
-            background: #FAF8F4;
-            color: #4A4035;
-            border: 1px solid #D4C9B8;
-            border-radius: 0 0 4px 4px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            align-items: center;
-            padding-bottom: 6px;
-            font-size: 0.65rem;
-            transition: background 0.08s, transform 0.06s;
+            box-sizing: border-box;
             user-select: none;
             -webkit-user-select: none;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             cursor: pointer;
+            transition: background 0.08s, transform 0.06s, box-shadow 0.08s;
         }
+        .p-key.white {
+            width: var(--white-w, var(--key-w));
+            min-width: var(--white-w, var(--key-w));
+            height: var(--key-h);
+            background: linear-gradient(180deg, #FFFEFB 0%, #F0EBE3 55%, #E4DDD2 100%);
+            color: #4A4035;
+            border: 1px solid #C9BFB0;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 6px;
+            font-size: 0.62rem;
+            box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .p-key.black {
+            position: absolute;
+            top: 0;
+            width: calc(var(--white-w, var(--key-w)) * 0.58);
+            min-width: 10px;
+            height: 100%;
+            background: linear-gradient(180deg, #3D3834 0%, #1A1715 100%);
+            color: #D4C9B8;
+            border: 1px solid #0D0C0B;
+            border-radius: 0 0 4px 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 3px;
+            font-size: 0.48rem;
+            pointer-events: auto;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            z-index: 3;
+        }
+        .p-key.white + .p-key.white { border-left: 1px solid #B8AEA0; }
         .touch-hint { display: none; margin-top: 8px; }
         .touch-device .keyboard-hint-desktop { display: none; }
         .touch-device .touch-hint { display: block; }
@@ -566,6 +612,11 @@
             z-index: 30;
         }
         body.layout-compact .mobile-dock { display: flex; }
+        /* iPhone／iPad：直向、橫向皆顯示底部操作列（含自動彈奏） */
+        body.profile-phone .mobile-dock,
+        body.profile-tablet .mobile-dock { display: flex; }
+        body.profile-phone .playfield-chrome .controls,
+        body.profile-tablet .playfield-chrome .controls { display: none !important; }
         .mobile-dock .dock-btn {
             min-height: 48px;
             padding: 0 16px;
@@ -682,14 +733,27 @@
         @media (min-width: 1025px) {
             body { padding: 16px 12px 24px; }
         }
-        .p-key.active { background: #D4A59A; transform: translateY(2px); }
-        .p-key.teach { background: #B8C4B0; }
-        .p-key.auto { background: #C9B8A4; }
-        .p-key .kn {
-            font-size: 1rem;
-            color: #8B7355;
-            font-family: 'Noto Serif JP', serif;
+        .p-key.white.active {
+            background: linear-gradient(180deg, #FFE8E0 0%, #E8B8A8 100%);
+            transform: translateY(2px);
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
         }
+        .p-key.black.active {
+            background: linear-gradient(180deg, #5A524C 0%, #2A2624 100%);
+            transform: translateY(2px);
+        }
+        .p-key.white.teach { background: linear-gradient(180deg, #E8F0E4 0%, #C8D8C0 100%); }
+        .p-key.black.teach { background: linear-gradient(180deg, #4A5448 0%, #2A3228 100%); }
+        .p-key.white.auto { background: linear-gradient(180deg, #EDE8E0 0%, #D4C9B8 100%); }
+        .p-key.black.auto { background: linear-gradient(180deg, #4A4540 0%, #322E2A 100%); }
+        .p-key .kn {
+            font-size: 0.95rem;
+            color: #6B5742;
+            font-family: 'Noto Serif JP', serif;
+            line-height: 1;
+        }
+        .p-key.black .kn { font-size: 0.55rem; color: #A89888; }
+        .p-key .lbl { font-size: 0.5rem; opacity: 0.75; margin-top: 2px; }
         label { font-size: 0.75rem; color: #8B7355; }
         audio { display: none; }
     </style>
@@ -754,6 +818,7 @@
 
         <div class="mobile-dock" id="mobileDock">
             <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
+            <button type="button" class="dock-btn" id="btnAutoDock">♪ 自動彈奏</button>
             <select id="speedSelDock" class="dock-speed" aria-label="速度">
                 <option value="0.5">0.5×</option>
                 <option value="0.75">0.75×</option>
@@ -790,25 +855,49 @@
         const PRACTICE_MODE = "{{PRACTICE_MODE}}";
         const AUTO_PLAY_ON_LOAD = {{AUTO_PLAY}};
 
-        const PITCH_MAP = [
-            { pitch: 60, key: 'a', label: 'C4', kn: 'A', octave: 1 },
-            { pitch: 62, key: 's', label: 'D4', kn: 'S', octave: 1 },
-            { pitch: 64, key: 'd', label: 'E4', kn: 'D', octave: 1 },
-            { pitch: 65, key: 'f', label: 'F4', kn: 'F', octave: 1 },
-            { pitch: 67, key: 'g', label: 'G4', kn: 'G', octave: 1 },
-            { pitch: 69, key: 'h', label: 'A4', kn: 'H', octave: 1 },
-            { pitch: 71, key: 'j', label: 'B4', kn: 'J', octave: 1 },
-            { pitch: 72, key: 'q', label: 'C5', kn: 'Q', octave: 2 },
-            { pitch: 74, key: 'w', label: 'D5', kn: 'W', octave: 2 },
-            { pitch: 76, key: 'e', label: 'E5', kn: 'E', octave: 2 },
-            { pitch: 77, key: 'r', label: 'F5', kn: 'R', octave: 2 },
-            { pitch: 79, key: 't', label: 'G5', kn: 'T', octave: 2 },
-            { pitch: 81, key: 'y', label: 'A5', kn: 'Y', octave: 2 },
-            { pitch: 83, key: 'u', label: 'B5', kn: 'U', octave: 2 },
+        const WHITE_KEYS = [
+            { pitch: 60, key: 'a', label: 'C4', kn: 'A', octave: 1, whiteIdx: 0 },
+            { pitch: 62, key: 's', label: 'D4', kn: 'S', octave: 1, whiteIdx: 1 },
+            { pitch: 64, key: 'd', label: 'E4', kn: 'D', octave: 1, whiteIdx: 2 },
+            { pitch: 65, key: 'f', label: 'F4', kn: 'F', octave: 1, whiteIdx: 3 },
+            { pitch: 67, key: 'g', label: 'G4', kn: 'G', octave: 1, whiteIdx: 4 },
+            { pitch: 69, key: 'h', label: 'A4', kn: 'H', octave: 1, whiteIdx: 5 },
+            { pitch: 71, key: 'j', label: 'B4', kn: 'J', octave: 1, whiteIdx: 6 },
+            { pitch: 72, key: 'q', label: 'C5', kn: 'Q', octave: 2, whiteIdx: 0 },
+            { pitch: 74, key: 'w', label: 'D5', kn: 'W', octave: 2, whiteIdx: 1 },
+            { pitch: 76, key: 'e', label: 'E5', kn: 'E', octave: 2, whiteIdx: 2 },
+            { pitch: 77, key: 'r', label: 'F5', kn: 'R', octave: 2, whiteIdx: 3 },
+            { pitch: 79, key: 't', label: 'G5', kn: 'T', octave: 2, whiteIdx: 4 },
+            { pitch: 81, key: 'y', label: 'A5', kn: 'Y', octave: 2, whiteIdx: 5 },
+            { pitch: 83, key: 'u', label: 'B5', kn: 'U', octave: 2, whiteIdx: 6 },
         ];
+        const BLACK_KEYS = [
+            { pitch: 61, label: 'C#4', octave: 1, afterWhite: 0 },
+            { pitch: 63, label: 'D#4', octave: 1, afterWhite: 1 },
+            { pitch: 66, label: 'F#4', octave: 1, afterWhite: 3 },
+            { pitch: 68, label: 'G#4', octave: 1, afterWhite: 4 },
+            { pitch: 70, label: 'A#4', octave: 1, afterWhite: 5 },
+            { pitch: 73, label: 'C#5', octave: 2, afterWhite: 0 },
+            { pitch: 75, label: 'D#5', octave: 2, afterWhite: 1 },
+            { pitch: 78, label: 'F#5', octave: 2, afterWhite: 3 },
+            { pitch: 80, label: 'G#5', octave: 2, afterWhite: 4 },
+            { pitch: 82, label: 'A#5', octave: 2, afterWhite: 5 },
+        ];
+        const PITCH_MAP = WHITE_KEYS;
+        const ALL_KEYS = WHITE_KEYS.concat(BLACK_KEYS);
         const PITCH_MIN = 60, PITCH_MAX = 83;
-        const pitchToKey = Object.fromEntries(PITCH_MAP.map(p => [p.pitch, p]));
-        const keyToPitch = Object.fromEntries(PITCH_MAP.map(p => [p.key, p.pitch]));
+        const pitchToKey = Object.fromEntries(ALL_KEYS.map(p => [p.pitch, p]));
+        const keyToPitch = Object.fromEntries(WHITE_KEYS.map(p => [p.key, p.pitch]));
+
+        function nearestWhitePitch(pitch) {
+            let best = WHITE_KEYS[0].pitch;
+            let bestD = Math.abs(pitch - best);
+            WHITE_KEYS.forEach(p => {
+                const d = Math.abs(pitch - p.pitch);
+                if (d < bestD) { bestD = d; best = p.pitch; }
+            });
+            return best;
+        }
 
         function initNotes(data) {
             const arr = JSON.parse(JSON.stringify(data || []));
@@ -816,8 +905,17 @@
                 n.isHit = false;
                 n.isMissed = false;
                 const pk = pitchToKey[n.pitch];
-                n.keyHint = pk ? pk.kn : '?';
-                n.playable = !!pk;
+                if (pk) {
+                    n.keyHint = pk.kn || '♯';
+                    n.playable = true;
+                    n.lanePitch = pk.whiteIdx != null ? pk.pitch : nearestWhitePitch(n.pitch);
+                } else {
+                    const near = nearestWhitePitch(n.pitch);
+                    const wp = pitchToKey[near];
+                    n.keyHint = wp ? wp.kn : '?';
+                    n.playable = Math.abs(n.pitch - near) <= 1;
+                    n.lanePitch = near;
+                }
             });
             return arr;
         }
@@ -951,10 +1049,11 @@
             const rows = document.getElementById('pianoRows');
             const low = document.getElementById('piano-low');
             const high = document.getElementById('piano-high');
-            const rowW = keyW * 7;
-            const band = keyW * 14;
+            const whiteW = keyW;
+            const rowW = whiteW * 7;
+            document.documentElement.style.setProperty('--white-w', Math.round(whiteW) + 'px');
             if (rows) {
-                rows.style.width = rowW + 'px';
+                rows.style.width = (rowW * 2) + 'px';
                 rows.style.maxWidth = '100%';
                 rows.style.marginLeft = 'auto';
                 rows.style.marginRight = 'auto';
@@ -1093,7 +1192,8 @@
 
         const pianoLow = document.getElementById('piano-low');
         const pianoHigh = document.getElementById('piano-high');
-        function bindPianoKey(el, key) {
+
+        function bindPianoKey(el, pitch) {
             let lastFire = 0;
             const tap = (e) => {
                 if (e.pointerType === 'mouse' && e.buttons !== 1 && e.type === 'pointerdown') return;
@@ -1103,21 +1203,52 @@
                 if (now - lastFire < 70) return;
                 lastFire = now;
                 if (audioCtx.state === 'suspended') audioCtx.resume();
-                onKeyPress(key);
+                onKeyPress(pitch);
             };
             el.addEventListener('pointerdown', tap);
             el.addEventListener('contextmenu', (e) => e.preventDefault());
         }
 
-        PITCH_MAP.forEach(p => {
-            const el = document.createElement('div');
-            el.className = 'p-key';
-            el.id = 'pk-' + p.key;
-            el.innerHTML = `<span class="kn">${p.kn}</span><span>${p.label}</span>`;
-            bindPianoKey(el, p.key);
-            (p.octave === 1 ? pianoLow : pianoHigh).appendChild(el);
-            keyEls[p.key] = el;
-        });
+        function buildPianoOctave(container, octave) {
+            const wrap = document.createElement('div');
+            wrap.className = 'piano-octave';
+            const whiteRow = document.createElement('div');
+            whiteRow.className = 'white-row';
+            const blackRow = document.createElement('div');
+            blackRow.className = 'black-row';
+
+            WHITE_KEYS.filter(p => p.octave === octave).forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'p-key white';
+                el.id = 'pk-' + p.pitch;
+                el.innerHTML = `<span class="kn">${p.kn}</span><span class="lbl">${p.label}</span>`;
+                bindPianoKey(el, p.pitch);
+                whiteRow.appendChild(el);
+                keyEls[p.pitch] = el;
+            });
+
+            BLACK_KEYS.filter(p => p.octave === octave).forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'p-key black';
+                el.id = 'pk-' + p.pitch;
+                const leftPct = ((p.afterWhite + 0.72) / 7) * 100;
+                el.style.left = `calc(${leftPct}% - var(--white-w, var(--key-w)) * 0.29)`;
+                el.innerHTML = `<span class="lbl">${p.label.replace('4', '').replace('5', '')}</span>`;
+                bindPianoKey(el, p.pitch);
+                blackRow.appendChild(el);
+                keyEls[p.pitch] = el;
+            });
+
+            wrap.appendChild(whiteRow);
+            wrap.appendChild(blackRow);
+            container.appendChild(wrap);
+        }
+
+        function buildPianoKeyboard() {
+            if (pianoLow) { pianoLow.innerHTML = ''; buildPianoOctave(pianoLow, 1); }
+            if (pianoHigh) { pianoHigh.innerHTML = ''; buildPianoOctave(pianoHigh, 2); }
+        }
+        buildPianoKeyboard();
 
         applyProfileClasses();
 
@@ -1139,6 +1270,13 @@
                 restart();
             });
         }
+        const btnAutoDock = document.getElementById('btnAutoDock');
+        if (btnAutoDock) {
+            btnAutoDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                startAutoPlay();
+            });
+        }
 
         function midiToFreq(midi) {
             return 440 * Math.pow(2, (midi - 69) / 12);
@@ -1158,8 +1296,12 @@
             osc.stop(audioCtx.currentTime + dur);
         }
 
-        function highlightKey(key, cls) {
-            const el = keyEls[key];
+        function highlightKey(keyOrPitch, cls) {
+            const pitch = typeof keyOrPitch === 'number'
+                ? keyOrPitch
+                : (keyToPitch[keyOrPitch] != null ? keyToPitch[keyOrPitch] : null);
+            if (pitch == null) return;
+            const el = keyEls[pitch];
             if (!el) return;
             el.classList.remove('active', 'teach', 'auto');
             if (cls) el.classList.add(cls);
@@ -1182,10 +1324,21 @@
         }
 
         function getNoteX(pitch) {
-            const idx = PITCH_MAP.findIndex(p => p.pitch === pitch);
+            const pk = pitchToKey[pitch];
+            if (pk && pk.whiteIdx != null) {
+                const idx = PITCH_MAP.findIndex(p => p.pitch === pitch);
+                if (idx >= 0) return layout.canvasLeft + idx * layout.keyWidth;
+            }
+            if (pk && pk.afterWhite != null) {
+                const base = PITCH_MAP.findIndex(p => p.octave === pk.octave && p.whiteIdx === 0);
+                if (base >= 0) {
+                    return layout.canvasLeft + (base + pk.afterWhite + 0.68) * layout.keyWidth;
+                }
+            }
+            const lane = nearestWhitePitch(pitch);
+            const idx = PITCH_MAP.findIndex(p => p.pitch === lane);
             if (idx >= 0) return layout.canvasLeft + idx * layout.keyWidth;
-            const clamped = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch));
-            return layout.canvasLeft + (clamped - PITCH_MIN) * (layout.keyWidth * 0.58);
+            return layout.canvasLeft + 6.5 * layout.keyWidth;
         }
 
         function updateStatsUI() {
@@ -1460,19 +1613,22 @@
             updateStatsUI();
         }
 
-        function onKeyPress(key) {
-            const pitch = keyToPitch[key];
-            if (!pitch) return;
-            highlightKey(key, 'active');
+        function onKeyPress(keyOrPitch) {
+            const pitch = typeof keyOrPitch === 'number'
+                ? keyOrPitch
+                : keyToPitch[keyOrPitch];
+            if (pitch == null) return;
+            highlightKey(pitch, 'active');
             playSynth(pitch, 0.25);
-            setTimeout(() => highlightKey(key, null), 100);
+            setTimeout(() => highlightKey(pitch, null), 100);
             if (teachMode || autoPlayMode || !isPlaying) return;
 
             const t = getCurrentTime();
-            const candidates = notes.filter(n =>
-                n.pitch === pitch && !n.isHit && !n.isMissed && n.playable &&
-                Math.abs(n.start_time - t) <= HIT_WINDOW
-            );
+            const candidates = notes.filter(n => {
+                if (n.isHit || n.isMissed || !n.playable) return false;
+                if (n.pitch !== pitch && Math.abs(n.pitch - pitch) > 1) return false;
+                return Math.abs(n.start_time - t) <= HIT_WINDOW;
+            });
             if (!candidates.length) {
                 stats.combo = 0;
                 updateComboDisplay(0);
@@ -1782,9 +1938,10 @@
             teachTimeouts = [];
             autoTimeouts = [];
             clearKeyHighlights();
-            document.getElementById('btnTeach').classList.remove('active-mode');
-            document.getElementById('btnAuto').classList.remove('active-mode');
-            document.getElementById('btnPlay').classList.remove('active-mode');
+            document.getElementById('btnTeach')?.classList.remove('active-mode');
+            document.getElementById('btnAuto')?.classList.remove('active-mode');
+            document.getElementById('btnAutoDock')?.classList.remove('active-mode');
+            document.getElementById('btnPlay')?.classList.remove('active-mode');
         }
 
         function beginPlayback(fromSec) {
@@ -1922,9 +2079,9 @@
                 const pk = pitchToKey[note.pitch];
                 const delay = (note.start_time * 1000) / speed;
                 const id = setTimeout(() => {
-                    highlightKey(pk.key, mode);
+                    highlightKey(note.pitch, mode);
                     playSynth(note.pitch, Math.min(note.duration, 0.55));
-                    setTimeout(() => highlightKey(pk.key, null), note.duration * 1000 / speed);
+                    setTimeout(() => highlightKey(note.pitch, null), note.duration * 1000 / speed);
                 }, delay);
                 (mode === 'auto' ? autoTimeouts : teachTimeouts).push(id);
             });
@@ -1948,7 +2105,8 @@
         function startAutoPlay() {
             restart();
             autoPlayMode = true;
-            document.getElementById('btnAuto').classList.add('active-mode');
+            document.getElementById('btnAuto')?.classList.add('active-mode');
+            document.getElementById('btnAutoDock')?.classList.add('active-mode');
             beginPlayback(0);
             scheduleNotes('auto');
             const maxT = notes.length ? Math.max(...notes.map(n => n.start_time + n.duration)) + 1 : 8;

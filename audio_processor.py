@@ -308,7 +308,18 @@ def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
 
 
 def get_demo_score(demo_id: str) -> list:
-    """內建示範曲（不依賴 AI）。"""
+    """內建示範曲（不依賴 AI）。簡單愛優先讀 scores/jianndanai.json（MIDI 轉譜）。"""
+    if demo_id == "jianndanai":
+        midi_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "scores",
+            "jianndanai.json",
+        )
+        if os.path.isfile(midi_path):
+            from score_library import load_score
+
+            return load_score("jianndanai")
+
     from demo_melodies import DEMO_BUILDERS
 
     build = DEMO_BUILDERS.get(demo_id)
