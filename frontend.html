@@ -79,10 +79,39 @@
             min-height: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: flex-end;
+            align-items: stretch;
+            justify-content: stretch;
             width: 100%;
+            height: 100%;
             overflow: hidden;
+            position: relative;
+        }
+        /* 觸碰橫向：色塊區滿版（HUD／抽屜為浮層不占高度） */
+        body.input-touch.mode-land .game-shell {
+            height: 100dvh;
+            max-height: 100dvh;
+        }
+        body.input-touch.mode-land .playfield {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+        }
+        body.input-touch.mode-land .canvas-wrap {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            display: block;
+        }
+        body.input-touch.mode-land #gameCanvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border: none;
+            border-radius: 0;
         }
         body.layout-compact .playfield-chrome {
             flex-shrink: 0;
@@ -627,75 +656,232 @@
         /* iPhone／iPad：操作列在 mobile-tool-panel 內 */
         body.profile-phone .playfield-chrome .controls,
         body.profile-tablet .playfield-chrome .controls { display: none !important; }
-        /* 手機／iPad：可收合設定列 */
-        body.profile-desktop .mobile-tool-toggle { display: none !important; }
-        body.profile-desktop .mobile-tool-panel {
-            display: contents;
+        /* 手機遊戲風 HUD（不占版面） */
+        .game-hud {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 28;
+            pointer-events: none;
         }
-        body.profile-phone .mobile-tool-panel,
-        body.profile-tablet .mobile-tool-panel {
-            position: fixed;
+        body.profile-phone .game-hud,
+        body.profile-tablet .game-hud {
+            display: block;
+        }
+        body.profile-phone .playfield-chrome,
+        body.profile-tablet .playfield-chrome {
+            position: absolute;
+            top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            z-index: 45;
-            max-height: min(46vh, 320px);
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: rgba(247, 243, 235, 0.98);
-            border-top: 1px solid #D4C9B8;
-            box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.22);
-            transform: translateY(100%);
-            transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
-            padding-bottom: max(6px, env(safe-area-inset-bottom));
+            z-index: 26;
+            pointer-events: none;
+            padding: max(4px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+            background: linear-gradient(180deg, rgba(12, 10, 8, 0.55) 0%, rgba(12, 10, 8, 0) 72%);
         }
-        body.profile-phone .mobile-tool-panel.expanded,
-        body.profile-tablet .mobile-tool-panel.expanded {
-            transform: translateY(0);
+        body.profile-phone .playfield-chrome .game-header,
+        body.profile-tablet .playfield-chrome .game-header,
+        body.profile-phone .playfield-chrome .controls,
+        body.profile-tablet .playfield-chrome .controls {
+            display: none !important;
         }
-        body.profile-phone .mobile-tool-panel .playfield-chrome,
-        body.profile-tablet .mobile-tool-panel .playfield-chrome {
-            padding: 4px 8px 0;
-        }
-        body.profile-phone .mobile-tool-panel .mobile-dock,
-        body.profile-tablet .mobile-tool-panel .mobile-dock {
+        body.profile-phone .playfield-chrome .stats-bar,
+        body.profile-tablet .playfield-chrome .stats-bar {
             display: flex;
-            position: static;
-            border-top: none;
-            box-shadow: none;
+            justify-content: flex-start;
+            gap: 6px;
+            flex-wrap: wrap;
+            pointer-events: none;
+            margin: 0;
         }
-        .mobile-tool-toggle {
-            display: none;
-            position: fixed;
-            right: max(10px, env(safe-area-inset-right));
-            bottom: max(12px, env(safe-area-inset-bottom));
-            z-index: 55;
-            width: 48px;
-            height: 48px;
-            border-radius: 8px;
-            border: 1px solid #C9B8A4;
-            background: rgba(139, 115, 85, 0.94);
+        body.profile-phone .playfield-chrome .stats-bar span,
+        body.profile-tablet .playfield-chrome .stats-bar span {
+            font-size: 0.68rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.42);
             color: #FFF8F0;
+            letter-spacing: 0.04em;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .hud-fabs {
+            position: absolute;
+            right: max(10px, env(safe-area-inset-right));
+            bottom: max(10px, env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .hud-fab {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 248, 240, 0.35);
             font-size: 1.15rem;
             font-weight: 700;
-            letter-spacing: -0.12em;
-            line-height: 1;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+            cursor: pointer;
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-            cursor: pointer;
-        }
-        body.profile-phone .mobile-tool-toggle,
-        body.profile-tablet .mobile-tool-toggle {
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0;
         }
-        body.profile-phone.tools-panel-open .mobile-tool-toggle,
-        body.profile-tablet.tools-panel-open .mobile-tool-toggle {
-            bottom: auto;
-            top: max(8px, env(safe-area-inset-top));
-            background: rgba(74, 64, 53, 0.92);
+        .hud-fab.play {
+            background: linear-gradient(145deg, #A08060 0%, #6B5742 100%);
+            color: #FFF8F0;
+            font-size: 1.05rem;
+        }
+        .hud-fab.play.active-mode {
+            background: linear-gradient(145deg, #C9A070 0%, #8B7355 100%);
+            box-shadow: 0 0 20px rgba(255, 180, 80, 0.45);
+        }
+        .hud-fab.menu {
+            background: rgba(30, 26, 22, 0.78);
+            color: #F7F3EB;
+            font-size: 1.35rem;
+        }
+        /* 右側設定抽屜（手遊風格） */
+        .game-drawer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            pointer-events: none;
+        }
+        body.profile-phone .game-drawer,
+        body.profile-tablet .game-drawer {
+            display: block;
+        }
+        .game-drawer.open {
+            pointer-events: auto;
+        }
+        .drawer-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.25s ease;
+        }
+        .game-drawer.open .drawer-backdrop {
+            background: rgba(0, 0, 0, 0.52);
+        }
+        .drawer-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(82vw, 300px);
+            max-width: 100%;
+            background: linear-gradient(180deg, #F7F3EB 0%, #EDE8DF 100%);
+            box-shadow: -12px 0 40px rgba(0, 0, 0, 0.28);
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 16px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .game-drawer.open .drawer-panel {
+            transform: translateX(0);
+        }
+        .drawer-head {
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #D4C9B8;
+        }
+        .drawer-head h3 {
+            margin: 0 0 4px;
+            font-size: 1rem;
+            letter-spacing: 0.12em;
+            text-align: left;
+        }
+        .drawer-head .subtitle {
+            margin: 0;
+            text-align: left;
+            font-size: 0.68rem;
+        }
+        .drawer-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .drawer-actions .dock-btn,
+        .drawer-actions .dock-speed,
+        .drawer-actions .dock-mode {
+            width: 100%;
+            min-height: 48px;
+            font-size: 0.95rem;
+            border-radius: 8px;
+        }
+        .drawer-actions .dock-btn.primary {
+            min-height: 52px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .drawer-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .drawer-row label {
+            flex: 0 0 auto;
+            font-size: 0.72rem;
+            min-width: 3.2em;
+        }
+        .drawer-row select {
+            flex: 1;
+            min-height: 44px;
+            border-radius: 8px;
+            border: 1px solid #C9B8A4;
+            background: #FFFDF9;
+            font-size: 0.88rem;
+        }
+        .drawer-close {
+            margin-top: 12px;
+            width: 100%;
+            min-height: 44px;
+            border: 1px solid #C9B8A4;
+            border-radius: 8px;
+            background: #EFEBE3;
+            color: #4A4035;
+            font-size: 0.9rem;
+        }
+        body.input-touch .mobile-tool-panel,
+        body.input-touch .mobile-tool-toggle {
+            display: none !important;
+        }
+        body.profile-desktop .game-drawer,
+        body.profile-desktop .game-hud {
+            display: none !important;
+        }
+        body.profile-desktop .playfield-chrome {
+            position: static;
+            pointer-events: auto;
+            padding: 0;
+            background: transparent;
+        }
+        body.profile-desktop .playfield-chrome .game-header,
+        body.profile-desktop .playfield-chrome .controls {
+            display: block !important;
+        }
+        body.profile-desktop .playfield-chrome .stats-bar {
+            justify-content: center;
+            margin: 2px 0 6px;
+        }
+        body.profile-desktop .playfield-chrome .stats-bar span {
+            font-size: inherit;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: inherit;
+            backdrop-filter: none;
+        }
+        body.profile-desktop .mobile-tool-panel {
+            display: contents;
         }
         /* 觸碰色塊模式：隱藏琴鍵、放大下落區 */
         body.input-touch.profile-phone .piano-section,
@@ -897,56 +1083,79 @@
             </div>
             <div id="judgmentPop"></div>
             <div id="rapidBanner"></div>
+            <div class="game-hud" id="gameHud" aria-hidden="false">
+                <div class="hud-fabs">
+                    <button type="button" class="hud-fab play" id="btnHudPlay" title="開始跟彈">▶</button>
+                    <button type="button" class="hud-fab menu" id="btnGameMenu" title="設定">⚙</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <button type="button" class="mobile-tool-toggle" id="btnToolToggle" aria-expanded="false" aria-controls="mobileToolPanel" title="展開設定">››</button>
-    <div class="mobile-tool-panel" id="mobileToolPanel">
-        <div class="playfield-chrome">
-            <header class="game-header">
-                <h3>{{SONG_TITLE}}</h3>
-                <p class="subtitle" id="modeLabel">練習模式</p>
-            </header>
-            <div class="stats-bar">
-                <span id="statCombo">連擊 0</span>
-                <span id="statAcc">正確率 —</span>
-                <span id="statMiss">漏接 0</span>
-            </div>
-            <div class="controls">
-                <audio id="bgm" preload="auto"></audio>
-                <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
-                <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
-                <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
-                <button class="secondary" onclick="restart()">重來</button>
-                <label>速度</label>
-                <select id="speedSel" onchange="setSpeed()">
-                    <option value="0.5">0.5×</option>
-                    <option value="0.75">0.75×</option>
-                    <option value="1" selected>1.0×</option>
-                </select>
-                <label class="ctrl-ab">A–B</label>
-                <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
-                <span class="ctrl-ab">–</span>
-                <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
-                <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
-                <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
-            </div>
+    <div class="playfield-chrome" id="playfieldChrome">
+        <header class="game-header">
+            <h3>{{SONG_TITLE}}</h3>
+            <p class="subtitle" id="modeLabel">練習模式</p>
+        </header>
+        <div class="stats-bar">
+            <span id="statCombo">連擊 0</span>
+            <span id="statAcc">正確率 —</span>
+            <span id="statMiss">漏接 0</span>
         </div>
-        <div class="mobile-dock" id="mobileDock">
-            <select id="inputModeDock" class="dock-mode" aria-label="彈奏方式">
-                <option value="touch" selected>👆 觸碰色塊</option>
-                <option value="keyboard">🎹 琴鍵彈奏</option>
-            </select>
-            <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
-            <button type="button" class="dock-btn" id="btnAutoDock">♪ 自動彈奏</button>
-            <select id="speedSelDock" class="dock-speed" aria-label="速度">
+        <div class="controls">
+            <audio id="bgm" preload="auto"></audio>
+            <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
+            <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
+            <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
+            <button class="secondary" onclick="restart()">重來</button>
+            <label>速度</label>
+            <select id="speedSel" onchange="setSpeed()">
                 <option value="0.5">0.5×</option>
                 <option value="0.75">0.75×</option>
                 <option value="1" selected>1.0×</option>
             </select>
-            <button type="button" class="dock-btn" id="btnRestartDock">↺ 重來</button>
+            <label class="ctrl-ab">A–B</label>
+            <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
+            <span class="ctrl-ab">–</span>
+            <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
+            <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
+            <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
         </div>
     </div>
+
+    <div class="game-drawer" id="gameDrawer" aria-hidden="true">
+        <div class="drawer-backdrop" id="drawerBackdrop"></div>
+        <div class="drawer-panel" role="dialog" aria-label="遊戲設定">
+            <div class="drawer-head">
+                <h3>{{SONG_TITLE}}</h3>
+                <p class="subtitle" id="modeLabelDrawer">練習模式</p>
+            </div>
+            <div class="drawer-actions mobile-dock" id="mobileDock">
+                <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
+                <button type="button" class="dock-btn" id="btnAutoDock">♪ 自動彈奏</button>
+                <button type="button" class="dock-btn" id="btnRestartDock">↺ 重來</button>
+                <div class="drawer-row">
+                    <label>彈奏</label>
+                    <select id="inputModeDock" class="dock-mode" aria-label="彈奏方式">
+                        <option value="touch" selected>觸碰色塊</option>
+                        <option value="keyboard">琴鍵彈奏</option>
+                    </select>
+                </div>
+                <div class="drawer-row">
+                    <label>速度</label>
+                    <select id="speedSelDock" class="dock-speed" aria-label="速度">
+                        <option value="0.5">0.5×</option>
+                        <option value="0.75">0.75×</option>
+                        <option value="1" selected>1.0×</option>
+                    </select>
+                </div>
+                <button type="button" class="drawer-close" id="btnDrawerClose">關閉 · 回到全螢幕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 琴鍵模式用：桌面排版 -->
+    <div class="mobile-tool-panel" id="mobileToolPanel" aria-hidden="true"></div>
 
     <section class="piano-section" aria-label="鋼琴鍵盤">
         <div class="piano-rows" id="pianoRows">
@@ -965,8 +1174,7 @@
         下排 C4–B4　上排 C5–B5（外接鍵盤：A–J / Q–U）
     </p>
     <p class="keyboard-hint touch-hint touch-hint-blocks">
-        👆 <strong>觸碰色塊模式</strong>：直接點畫面上掉下來的音符色塊即可彈奏<br>
-        底部可切換「琴鍵彈奏」
+        👆 <strong>觸碰色塊</strong>：點下落音符彈奏　｜　右下 <strong>▶</strong> 開始、<strong>⚙</strong> 設定
     </p>
     </div><!-- .game-shell -->
 
@@ -1110,37 +1318,50 @@
             if (deviceProfile === 'desktop') {
                 return '.playfield-chrome, .piano-section, .keyboard-hint';
             }
-            if (document.body.classList.contains('tools-collapsed')) {
-                return '.mobile-tool-toggle';
-            }
             if (playInputMode === 'touch') {
-                return '.mobile-tool-panel';
+                return document.body.classList.contains('drawer-open')
+                    ? '.game-drawer .drawer-panel' : '';
             }
-            return '.mobile-tool-panel, .piano-section';
+            return '.playfield-chrome, .piano-section';
         }
 
-        function setToolsPanelExpanded(expanded) {
-            const panel = document.getElementById('mobileToolPanel');
-            const btn = document.getElementById('btnToolToggle');
-            if (!panel || !btn || !isTouchProfile()) return;
-            panel.classList.toggle('expanded', expanded);
-            panel.classList.toggle('collapsed', !expanded);
-            document.body.classList.toggle('tools-panel-open', expanded);
-            document.body.classList.toggle('tools-collapsed', !expanded);
-            btn.textContent = expanded ? '‹‹' : '››';
-            btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            btn.title = expanded ? '收合設定' : '展開設定';
+        function measureChromeHeight() {
+            if (isTouchProfile() && playInputMode === 'touch' && !document.body.classList.contains('drawer-open')) {
+                return 0;
+            }
+            const sel = chromeSelectors();
+            if (!sel) return 0;
+            let total = 0;
+            document.querySelectorAll(sel).forEach(el => {
+                if (!el || el.offsetParent === null) return;
+                const st = getComputedStyle(el);
+                if (st.display === 'none' || st.visibility === 'hidden') return;
+                total += el.getBoundingClientRect().height;
+            });
+            return Math.ceil(total) + 4;
+        }
+
+        function setGameDrawerOpen(open) {
+            const drawer = document.getElementById('gameDrawer');
+            if (!drawer || !isTouchProfile()) return;
+            drawer.classList.toggle('open', open);
+            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            document.body.classList.toggle('drawer-open', open);
             applyLayout();
         }
 
-        function collapseToolsPanel() {
-            setToolsPanelExpanded(false);
+        function openGameDrawer() {
+            setGameDrawerOpen(true);
         }
 
-        function toggleToolsPanel() {
-            const panel = document.getElementById('mobileToolPanel');
-            if (!panel) return;
-            setToolsPanelExpanded(!panel.classList.contains('expanded'));
+        function closeGameDrawer() {
+            setGameDrawerOpen(false);
+        }
+
+        function toggleGameDrawer() {
+            const drawer = document.getElementById('gameDrawer');
+            if (!drawer) return;
+            setGameDrawerOpen(!drawer.classList.contains('open'));
         }
 
         function applyInputMode(mode, persist) {
@@ -1151,7 +1372,7 @@
             if (dockSel && dockSel.value !== mode) dockSel.value = mode;
             if (persist && isTouchProfile()) {
                 try { localStorage.setItem('pianoInputMode', mode); } catch (e) { /* ignore */ }
-                setTimeout(collapseToolsPanel, 350);
+                setTimeout(closeGameDrawer, 280);
             }
             applyLayout();
         }
@@ -1162,18 +1383,7 @@
                 return;
             }
             applyInputMode('touch', false);
-            collapseToolsPanel();
-        }
-
-        function measureChromeHeight() {
-            let total = 0;
-            document.querySelectorAll(chromeSelectors()).forEach(el => {
-                if (!el || el.offsetParent === null) return;
-                const st = getComputedStyle(el);
-                if (st.display === 'none' || st.visibility === 'hidden') return;
-                total += el.getBoundingClientRect().height;
-            });
-            return Math.ceil(total) + 4;
+            closeGameDrawer();
         }
 
         function applyProfileClasses() {
@@ -1270,6 +1480,32 @@
                 h = Math.floor(Math.max(140, Math.min(w * 0.34, 280)));
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (land && playInputMode === 'touch' && isTouchProfile()) {
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                w = Math.floor(viewW);
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 12) / 14));
+                const left = Math.max(0, Math.floor((w - keyW * 14) / 2));
+                h = Math.floor(viewH);
+                keyH = 48;
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                layout = {
+                    canvasW: w, canvasH: h,
+                    keyWidth: keyW, canvasLeft: left,
+                    pianoTop: h - 4, judgeY: h - 8,
+                };
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                syncPianoToCanvas(w, keyW, left);
+                document.body.classList.toggle('layout-landscape', true);
+                document.body.classList.toggle('layout-portrait', false);
+                const rh = document.getElementById('rotateHint');
+                if (rh) rh.classList.remove('show');
+                return;
             } else if (land) {
                 document.documentElement.style.height = viewH + 'px';
                 document.body.style.height = viewH + 'px';
@@ -1321,10 +1557,10 @@
 
             if (profile === 'desktop') {
                 refineCanvasHeight(0.48);
+            } else if (land && playInputMode === 'touch' && isTouchProfile()) {
+                /* 觸碰橫向已滿版，不再縮小 */
             } else if (land) {
-                const ratio = playInputMode === 'touch'
-                    ? (profile === 'tablet' ? 0.58 : 0.52)
-                    : (profile === 'tablet' ? 0.42 : 0.38);
+                const ratio = profile === 'tablet' ? 0.42 : 0.38;
                 refineCanvasHeight(ratio);
             } else if (profile === 'tablet') {
                 refineCanvasHeight(playInputMode === 'touch' ? 0.48 : 0.36);
@@ -1439,6 +1675,7 @@
         if (btnPlayDock) {
             btnPlayDock.addEventListener('click', (e) => {
                 e.preventDefault();
+                closeGameDrawer();
                 togglePlay();
             });
         }
@@ -1457,6 +1694,7 @@
         if (btnAutoDock) {
             btnAutoDock.addEventListener('click', (e) => {
                 e.preventDefault();
+                closeGameDrawer();
                 startAutoPlay();
             });
         }
@@ -1466,12 +1704,32 @@
                 applyInputMode(inputModeDock.value, true);
             });
         }
-        const btnToolToggle = document.getElementById('btnToolToggle');
-        if (btnToolToggle) {
-            btnToolToggle.addEventListener('click', (e) => {
+        const btnGameMenu = document.getElementById('btnGameMenu');
+        if (btnGameMenu) {
+            btnGameMenu.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleToolsPanel();
+                openGameDrawer();
+            });
+        }
+        const btnHudPlay = document.getElementById('btnHudPlay');
+        if (btnHudPlay) {
+            btnHudPlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeGameDrawer();
+                togglePlay();
+            });
+        }
+        const drawerBackdrop = document.getElementById('drawerBackdrop');
+        if (drawerBackdrop) {
+            drawerBackdrop.addEventListener('click', closeGameDrawer);
+        }
+        const btnDrawerClose = document.getElementById('btnDrawerClose');
+        if (btnDrawerClose) {
+            btnDrawerClose.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeGameDrawer();
             });
         }
 
@@ -2260,6 +2518,11 @@
             if (dock) {
                 dock.textContent = playLabel;
                 dock.classList.toggle('active-mode', playing);
+            }
+            const hudPlay = document.getElementById('btnHudPlay');
+            if (hudPlay) {
+                hudPlay.textContent = playing ? '⏸' : '▶';
+                hudPlay.classList.toggle('active-mode', playing);
             }
         }
 

@@ -166,10 +166,15 @@ body.st-mobile-practice div[data-testid="stHtml"] {
 body.st-mobile-practice div[data-testid="stHtml"] iframe {
     position: fixed !important;
     inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    width: 100vw !important;
+    height: 100dvh !important;
     min-height: 100dvh !important;
+    max-height: 100dvh !important;
     border: none !important;
+}
+body.st-mobile-practice.lesson-active div[data-testid="stHtml"] iframe {
+    height: 100svh !important;
+    min-height: 100svh !important;
 }
 </style>
 """, unsafe_allow_html=True)
