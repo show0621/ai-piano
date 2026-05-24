@@ -195,6 +195,7 @@ def build_twinkle() -> list:
 
 
 def build_jianndanai() -> list:
+    """後備簡譜；正式示範請用 scores/jianndanai.json（由 周杰倫簡單愛.mid 轉出）。"""
     return _score(_JIAN_DANAI, 85)
 
 

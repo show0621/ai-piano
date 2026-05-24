@@ -308,14 +308,16 @@ def _raw_to_notes(raw: list[tuple[int, float, float]]) -> list:
 
 
 def get_demo_score(demo_id: str) -> list:
-    """內建示範曲（不依賴 AI）。簡單愛優先讀 scores/jianndanai.json（MIDI 轉譜）。"""
+    """內建示範曲（不依賴 AI）。簡單愛優先讀專案內 周杰倫簡單愛.mid，其次 scores/jianndanai.json。"""
     if demo_id == "jianndanai":
-        midi_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "scores",
-            "jianndanai.json",
-        )
-        if os.path.isfile(midi_path):
+        root = os.path.dirname(os.path.abspath(__file__))
+        user_mid = os.path.join(root, "周杰倫簡單愛.mid")
+        if os.path.isfile(user_mid):
+            notes = midi_to_web_notes(user_mid)
+            notes = filter_notes(notes, max_notes=1200)
+            return simplify_to_melody(notes)
+        json_path = os.path.join(root, "scores", "jianndanai.json")
+        if os.path.isfile(json_path):
             from score_library import load_score
 
             return load_score("jianndanai")
