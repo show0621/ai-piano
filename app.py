@@ -143,15 +143,17 @@ body.st-mobile-practice .block-container {
 }
 body.st-mobile-practice .lesson-setup-panel,
 body.st-mobile-practice .lesson-meta-panel,
-body.st-mobile-practice .lesson-export-panel,
-body.st-mobile-practice .lesson-practice-active ~ div,
-body.st-mobile-practice .lesson-practice-active ~ [data-testid="stVerticalBlock"] > div:has([data-testid="stCaption"]),
-body.st-mobile-practice .lesson-practice-active ~ [data-testid="stDownloadButton"] {
+body.st-mobile-practice .lesson-export-panel {
     display: none !important;
 }
-body.st-mobile-practice .lesson-practice-active {
-    margin: 0 !important;
-    padding: 0 !important;
+/* 練習中：PC／平板直向也顯示遊戲區（勿用 ~ div 會誤藏 iframe） */
+body.lesson-active div[data-testid="stHtml"] {
+    min-height: 720px;
+}
+body.lesson-active div[data-testid="stHtml"] iframe {
+    min-height: 700px !important;
+    height: 88vh !important;
+    width: 100% !important;
 }
 body.st-mobile-practice div[data-testid="stHtml"] {
     position: fixed !important;
@@ -176,11 +178,13 @@ MOBILE_PRACTICE_BOOT = """
 <script>
 (function () {
     function apply() {
-        var active = document.querySelector(".lesson-practice-active");
-        if (!active) {
-            document.body.classList.remove("st-mobile-practice");
+        var marker = document.querySelector(".lesson-piano-marker");
+        var iframe = document.querySelector('[data-testid="stHtml"] iframe');
+        if (!marker && !iframe) {
+            document.body.classList.remove("st-mobile-practice", "lesson-active");
             return;
         }
+        document.body.classList.add("lesson-active");
         var touch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
         var narrow = window.innerWidth <= 1024;
         var tablet = /iPad/i.test(navigator.userAgent)
@@ -189,6 +193,11 @@ MOBILE_PRACTICE_BOOT = """
             document.body.classList.add("st-mobile-practice");
         } else {
             document.body.classList.remove("st-mobile-practice");
+        }
+        var box = document.querySelector('[data-testid="stHtml"]');
+        if (box && !box.dataset.scrolled) {
+            box.dataset.scrolled = "1";
+            setTimeout(function () { box.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120);
         }
     }
     apply();
@@ -231,8 +240,8 @@ def render_piano(
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
     boot = MOBILE_PRACTICE_BOOT
-    # 外層 CSS 於手機／iPad 練習時將 iframe 拉至滿版
-    components.html(boot + html, height=1, scrolling=False)
+    # 需足夠高度讓 PC 顯示；手機滿版由 lesson-active / st-mobile-practice CSS 覆蓋
+    components.html(boot + html, height=920, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
@@ -782,7 +791,10 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         audio_src = audio_to_data_uri(L["audio_path"])
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="lesson-practice-active">', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="lesson-piano-marker" style="display:none" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
     render_piano(
         L["score"],
         audio_src,
@@ -793,7 +805,6 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         audio_offset=L["audio_offset"],
         auto_play=L.get("auto_play", False),
     )
-    st.markdown("</div>", unsafe_allow_html=True)
 
     if L.get("auto_play") and not IS_CLOUD:
         st.caption("已啟用「載入後自動彈奏」— 請在教學區點擊播放或等待自動開始。")
