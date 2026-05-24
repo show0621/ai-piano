@@ -12,3 +12,8 @@ enableXsrfProtection = true
 
 [browser]
 gatherUsageStats = false
+
+[client]
+# 隱藏右下角 Deploy / 開發者選單，避免練習時誤觸
+toolbarMode = "minimal"
+showSidebarNavigation = false

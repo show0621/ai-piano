@@ -33,6 +33,11 @@ st.set_page_config(
     layout="wide",
     page_icon="🎹",
     initial_sidebar_state="collapsed",
+    menu_items={
+        "Get help": None,
+        "Report a bug": None,
+        "About": None,
+    },
 )
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -109,46 +114,60 @@ h1, h2, h3, .stMarkdown h1, .stMarkdown h2 {
     .block-container { padding: 0.35rem 0.5rem 0.75rem; }
     [data-testid="column"] { width: 100% !important; flex: 1 1 100%; }
 }
-/* 手機橫向練習：全螢幕 iframe，隱藏 Streamlit 頂欄／底部與頁面上方設定區 */
-@media (max-height: 520px) and (orientation: landscape) {
-    body.st-mobile-practice [data-testid="stHeader"],
-    body.st-mobile-practice [data-testid="stToolbar"],
-    body.st-mobile-practice [data-testid="stDecoration"],
-    body.st-mobile-practice footer,
-    body.st-mobile-practice [data-testid="stAppDeployButton"],
-    body.st-mobile-practice .stDeployButton,
-    body.st-mobile-practice a[href*="streamlit.io"],
-    body.st-mobile-practice [data-testid="stSidebar"],
-    body.st-mobile-practice [data-testid="stSidebarCollapsedControl"] {
-        display: none !important;
-    }
-    body.st-mobile-practice .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
-    }
-    body.st-mobile-practice .lesson-setup-panel {
-        display: none !important;
-    }
-    body.st-mobile-practice .lesson-meta-panel {
-        display: none !important;
-    }
-    body.st-mobile-practice .lesson-export-panel {
-        display: none !important;
-    }
-    body.st-mobile-practice div[data-testid="stHtml"] {
-        position: fixed !important;
-        inset: 0 !important;
-        z-index: 999990 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: #EFEBE3 !important;
-    }
-    body.st-mobile-practice div[data-testid="stHtml"] iframe {
-        width: 100% !important;
-        height: 100% !important;
-        min-height: 100% !important;
-        border: none !important;
-    }
+/* 手機／iPad 練習：滿版 iframe，隱藏 Streamlit 介面避免誤觸 */
+body.st-mobile-practice [data-testid="stHeader"],
+body.st-mobile-practice header[data-testid="stHeader"],
+body.st-mobile-practice [data-testid="stToolbar"],
+body.st-mobile-practice [data-testid="stDecoration"],
+body.st-mobile-practice [data-testid="stStatusWidget"],
+body.st-mobile-practice footer,
+body.st-mobile-practice [data-testid="stAppDeployButton"],
+body.st-mobile-practice .stDeployButton,
+body.st-mobile-practice [data-testid="stMainMenu"],
+body.st-mobile-practice button[kind="header"],
+body.st-mobile-practice a[href*="streamlit.io"],
+body.st-mobile-practice [data-testid="stSidebar"],
+body.st-mobile-practice [data-testid="stSidebarCollapsedControl"],
+body.st-mobile-practice [data-testid="collapsedControl"],
+body.st-mobile-practice .stApp > header {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+body.st-mobile-practice .stApp {
+    padding-top: 0 !important;
+}
+body.st-mobile-practice .block-container {
+    padding: 0 !important;
+    max-width: 100% !important;
+}
+body.st-mobile-practice .lesson-setup-panel,
+body.st-mobile-practice .lesson-meta-panel,
+body.st-mobile-practice .lesson-export-panel,
+body.st-mobile-practice .lesson-practice-active ~ div,
+body.st-mobile-practice .lesson-practice-active ~ [data-testid="stVerticalBlock"] > div:has([data-testid="stCaption"]),
+body.st-mobile-practice .lesson-practice-active ~ [data-testid="stDownloadButton"] {
+    display: none !important;
+}
+body.st-mobile-practice .lesson-practice-active {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+body.st-mobile-practice div[data-testid="stHtml"] {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999990 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #2C2824 !important;
+}
+body.st-mobile-practice div[data-testid="stHtml"] iframe {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100dvh !important;
+    border: none !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -157,10 +176,16 @@ MOBILE_PRACTICE_BOOT = """
 <script>
 (function () {
     function apply() {
-        var land = window.matchMedia("(orientation: landscape)").matches;
-        var short = window.innerHeight <= 520 || (window.visualViewport && window.visualViewport.height <= 520);
+        var active = document.querySelector(".lesson-practice-active");
+        if (!active) {
+            document.body.classList.remove("st-mobile-practice");
+            return;
+        }
+        var touch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
         var narrow = window.innerWidth <= 1024;
-        if (land && (short || narrow)) {
+        var tablet = /iPad/i.test(navigator.userAgent)
+            || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        if (touch || narrow || tablet) {
             document.body.classList.add("st-mobile-practice");
         } else {
             document.body.classList.remove("st-mobile-practice");
@@ -169,6 +194,7 @@ MOBILE_PRACTICE_BOOT = """
     apply();
     window.addEventListener("resize", apply);
     window.addEventListener("orientationchange", function () { setTimeout(apply, 200); });
+    new MutationObserver(apply).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 """
@@ -205,8 +231,8 @@ def render_piano(
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
     boot = MOBILE_PRACTICE_BOOT
-    # PC 需容納畫布＋雙排琴鍵＋鍵盤提示；觸控裝置橫向由內部 100dvh 排版
-    components.html(boot + html, height=920, scrolling=True)
+    # 外層 CSS 於手機／iPad 練習時將 iframe 拉至滿版
+    components.html(boot + html, height=1, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
@@ -756,6 +782,7 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         audio_src = audio_to_data_uri(L["audio_path"])
     st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div class="lesson-practice-active">', unsafe_allow_html=True)
     render_piano(
         L["score"],
         audio_src,
@@ -766,8 +793,9 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         audio_offset=L["audio_offset"],
         auto_play=L.get("auto_play", False),
     )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-    if L.get("auto_play"):
+    if L.get("auto_play") and not IS_CLOUD:
         st.caption("已啟用「載入後自動彈奏」— 請在教學區點擊播放或等待自動開始。")
 
     st.markdown('<div class="lesson-export-panel">', unsafe_allow_html=True)

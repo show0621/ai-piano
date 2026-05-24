@@ -24,6 +24,16 @@
             overflow-x: hidden;
             touch-action: manipulation;
         }
+        html, body.profile-phone.layout-compact,
+        html, body.profile-tablet.layout-compact {
+            height: 100%;
+            height: 100dvh;
+            max-height: 100dvh;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            background: #2C2824;
+        }
         /* PC：自然捲動，完整顯示雙排琴鍵與鍵盤提示 */
         body.profile-desktop {
             overflow-y: auto;
@@ -58,8 +68,11 @@
             overflow: hidden;
         }
         body.layout-compact .game-shell > .piano-section { order: 3; }
-        body.layout-compact .game-shell > .playfield { order: 2; flex: 1; }
-        body.layout-compact .game-shell > .playfield-chrome { order: 1; }
+        body.layout-compact .game-shell > .playfield { order: 1; flex: 1; min-height: 0; }
+        body.profile-desktop .playfield-chrome { order: 0; }
+        body.profile-desktop .playfield { order: 1; }
+        body.profile-desktop .piano-section { order: 2; }
+        body.profile-desktop .mobile-dock { display: none !important; }
         .playfield { width: 100%; }
         body.layout-compact .playfield {
             flex: 1;
@@ -611,12 +624,79 @@
             border-top: 1px solid #D4C9B8;
             z-index: 30;
         }
-        body.layout-compact .mobile-dock { display: flex; }
-        /* iPhone／iPad：直向、橫向皆顯示底部操作列（含自動彈奏） */
-        body.profile-phone .mobile-dock,
-        body.profile-tablet .mobile-dock { display: flex; }
+        /* iPhone／iPad：操作列在 mobile-tool-panel 內 */
         body.profile-phone .playfield-chrome .controls,
         body.profile-tablet .playfield-chrome .controls { display: none !important; }
+        /* 手機／iPad：可收合設定列 */
+        body.profile-desktop .mobile-tool-toggle { display: none !important; }
+        body.profile-desktop .mobile-tool-panel {
+            display: contents;
+        }
+        body.profile-phone .mobile-tool-panel,
+        body.profile-tablet .mobile-tool-panel {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 45;
+            max-height: min(46vh, 320px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: rgba(247, 243, 235, 0.98);
+            border-top: 1px solid #D4C9B8;
+            box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.22);
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+            padding-bottom: max(6px, env(safe-area-inset-bottom));
+        }
+        body.profile-phone .mobile-tool-panel.expanded,
+        body.profile-tablet .mobile-tool-panel.expanded {
+            transform: translateY(0);
+        }
+        body.profile-phone .mobile-tool-panel .playfield-chrome,
+        body.profile-tablet .mobile-tool-panel .playfield-chrome {
+            padding: 4px 8px 0;
+        }
+        body.profile-phone .mobile-tool-panel .mobile-dock,
+        body.profile-tablet .mobile-tool-panel .mobile-dock {
+            display: flex;
+            position: static;
+            border-top: none;
+            box-shadow: none;
+        }
+        .mobile-tool-toggle {
+            display: none;
+            position: fixed;
+            right: max(10px, env(safe-area-inset-right));
+            bottom: max(12px, env(safe-area-inset-bottom));
+            z-index: 55;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            border: 1px solid #C9B8A4;
+            background: rgba(139, 115, 85, 0.94);
+            color: #FFF8F0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.12em;
+            line-height: 1;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        body.profile-phone .mobile-tool-toggle,
+        body.profile-tablet .mobile-tool-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body.profile-phone.tools-panel-open .mobile-tool-toggle,
+        body.profile-tablet.tools-panel-open .mobile-tool-toggle {
+            bottom: auto;
+            top: max(8px, env(safe-area-inset-top));
+            background: rgba(74, 64, 53, 0.92);
+        }
         /* 觸碰色塊模式：隱藏琴鍵、放大下落區 */
         body.input-touch.profile-phone .piano-section,
         body.input-touch.profile-tablet .piano-section {
@@ -744,10 +824,17 @@
         body.layout-compact #comboNumber { font-size: 1.8rem; }
         body.layout-compact #comboNumber.mega { font-size: 2.2rem; }
         body.layout-compact #judgmentPop { font-size: 1.35rem; }
-        /* 僅 iPhone 直向：提示橫放 */
-        body.profile-phone.mode-port .game-shell {
+        /* iPhone 直向：琴鍵模式提示橫放；觸碰色塊模式可直向滿版練習 */
+        body.profile-phone.mode-port:not(.input-touch) .game-shell {
             opacity: 0.35;
             pointer-events: none;
+        }
+        body.profile-phone.mode-port.input-touch .game-shell {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        body.profile-phone.mode-port.input-touch #rotateHint {
+            display: none !important;
         }
         body.profile-tablet .touch-hint,
         body.profile-phone .touch-hint { display: block; }
@@ -794,37 +881,6 @@
     </div>
 
     <div class="game-shell">
-    <div class="playfield-chrome">
-        <header class="game-header">
-            <h3>{{SONG_TITLE}}</h3>
-            <p class="subtitle" id="modeLabel">練習模式</p>
-        </header>
-        <div class="stats-bar">
-            <span id="statCombo">連擊 0</span>
-            <span id="statAcc">正確率 —</span>
-            <span id="statMiss">漏接 0</span>
-        </div>
-        <div class="controls">
-            <audio id="bgm" preload="auto"></audio>
-            <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
-            <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
-            <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
-            <button class="secondary" onclick="restart()">重來</button>
-            <label>速度</label>
-            <select id="speedSel" onchange="setSpeed()">
-                <option value="0.5">0.5×</option>
-                <option value="0.75">0.75×</option>
-                <option value="1" selected>1.0×</option>
-            </select>
-            <label class="ctrl-ab">A–B</label>
-            <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
-            <span class="ctrl-ab">–</span>
-            <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
-            <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
-            <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
-        </div>
-    </div>
-
     <div class="playfield">
         <div class="canvas-wrap">
             <canvas id="gameCanvas" width="1100" height="420"></canvas>
@@ -842,10 +898,43 @@
             <div id="judgmentPop"></div>
             <div id="rapidBanner"></div>
         </div>
+    </div>
 
+    <button type="button" class="mobile-tool-toggle" id="btnToolToggle" aria-expanded="false" aria-controls="mobileToolPanel" title="展開設定">››</button>
+    <div class="mobile-tool-panel" id="mobileToolPanel">
+        <div class="playfield-chrome">
+            <header class="game-header">
+                <h3>{{SONG_TITLE}}</h3>
+                <p class="subtitle" id="modeLabel">練習模式</p>
+            </header>
+            <div class="stats-bar">
+                <span id="statCombo">連擊 0</span>
+                <span id="statAcc">正確率 —</span>
+                <span id="statMiss">漏接 0</span>
+            </div>
+            <div class="controls">
+                <audio id="bgm" preload="auto"></audio>
+                <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
+                <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
+                <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
+                <button class="secondary" onclick="restart()">重來</button>
+                <label>速度</label>
+                <select id="speedSel" onchange="setSpeed()">
+                    <option value="0.5">0.5×</option>
+                    <option value="0.75">0.75×</option>
+                    <option value="1" selected>1.0×</option>
+                </select>
+                <label class="ctrl-ab">A–B</label>
+                <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
+                <span class="ctrl-ab">–</span>
+                <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
+                <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
+                <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
+            </div>
+        </div>
         <div class="mobile-dock" id="mobileDock">
             <select id="inputModeDock" class="dock-mode" aria-label="彈奏方式">
-                <option value="touch">👆 觸碰色塊</option>
+                <option value="touch" selected>👆 觸碰色塊</option>
                 <option value="keyboard">🎹 琴鍵彈奏</option>
             </select>
             <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
@@ -1021,13 +1110,37 @@
             if (deviceProfile === 'desktop') {
                 return '.playfield-chrome, .piano-section, .keyboard-hint';
             }
+            if (document.body.classList.contains('tools-collapsed')) {
+                return '.mobile-tool-toggle';
+            }
             if (playInputMode === 'touch') {
-                return '.playfield-chrome, .mobile-dock';
+                return '.mobile-tool-panel';
             }
-            if (document.body.classList.contains('layout-compact')) {
-                return '.playfield-chrome, .mobile-dock, .piano-section';
-            }
-            return '.playfield-chrome, .piano-section, .keyboard-hint';
+            return '.mobile-tool-panel, .piano-section';
+        }
+
+        function setToolsPanelExpanded(expanded) {
+            const panel = document.getElementById('mobileToolPanel');
+            const btn = document.getElementById('btnToolToggle');
+            if (!panel || !btn || !isTouchProfile()) return;
+            panel.classList.toggle('expanded', expanded);
+            panel.classList.toggle('collapsed', !expanded);
+            document.body.classList.toggle('tools-panel-open', expanded);
+            document.body.classList.toggle('tools-collapsed', !expanded);
+            btn.textContent = expanded ? '‹‹' : '››';
+            btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            btn.title = expanded ? '收合設定' : '展開設定';
+            applyLayout();
+        }
+
+        function collapseToolsPanel() {
+            setToolsPanelExpanded(false);
+        }
+
+        function toggleToolsPanel() {
+            const panel = document.getElementById('mobileToolPanel');
+            if (!panel) return;
+            setToolsPanelExpanded(!panel.classList.contains('expanded'));
         }
 
         function applyInputMode(mode, persist) {
@@ -1038,6 +1151,7 @@
             if (dockSel && dockSel.value !== mode) dockSel.value = mode;
             if (persist && isTouchProfile()) {
                 try { localStorage.setItem('pianoInputMode', mode); } catch (e) { /* ignore */ }
+                setTimeout(collapseToolsPanel, 350);
             }
             applyLayout();
         }
@@ -1047,12 +1161,8 @@
                 applyInputMode('keyboard', false);
                 return;
             }
-            let mode = 'touch';
-            try {
-                const saved = localStorage.getItem('pianoInputMode');
-                if (saved === 'keyboard' || saved === 'touch') mode = saved;
-            } catch (e) { /* ignore */ }
-            applyInputMode(mode, false);
+            applyInputMode('touch', false);
+            collapseToolsPanel();
         }
 
         function measureChromeHeight() {
@@ -1078,10 +1188,7 @@
             document.body.classList.toggle('mode-land', land);
             document.body.classList.toggle('mode-port', !land);
             if (profile !== 'desktop') {
-                document.body.classList.add('touch-device');
-            }
-            if (profile !== 'desktop' && land) {
-                document.body.classList.add('layout-compact', 'touch-play');
+                document.body.classList.add('touch-device', 'layout-compact', 'touch-play');
             }
             deviceProfile = profile;
             return { profile, land };
@@ -1208,7 +1315,9 @@
             document.body.classList.toggle('layout-portrait', !land);
 
             const rh = document.getElementById('rotateHint');
-            if (rh) rh.classList.toggle('show', profile === 'phone' && !land);
+            if (rh) {
+                rh.classList.toggle('show', profile === 'phone' && !land && playInputMode !== 'touch');
+            }
 
             if (profile === 'desktop') {
                 refineCanvasHeight(0.48);
@@ -1355,6 +1464,14 @@
         if (inputModeDock) {
             inputModeDock.addEventListener('change', () => {
                 applyInputMode(inputModeDock.value, true);
+            });
+        }
+        const btnToolToggle = document.getElementById('btnToolToggle');
+        if (btnToolToggle) {
+            btnToolToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleToolsPanel();
             });
         }
 
