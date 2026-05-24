@@ -343,6 +343,19 @@
             touch-action: none;
         }
         .piano-section { width: 100%; max-width: 1100px; margin: 0 auto; }
+        .piano-section .piano-rows {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+        .piano-section .piano-wrap {
+            display: flex;
+            justify-content: center;
+            flex-wrap: nowrap;
+            width: 100%;
+        }
         .p-key {
             width: var(--key-w);
             min-width: var(--key-w);
@@ -486,29 +499,28 @@
             height: auto !important;
             flex-shrink: 0;
         }
-        body.mode-mobile-land .octave-label { display: none; }
+        body.mode-mobile-land .octave-label {
+            display: block;
+            margin: 0;
+            font-size: 0.5rem;
+            letter-spacing: 0.12em;
+        }
         body.mode-mobile-land .piano-section {
             flex-shrink: 0;
             width: 100%;
             margin: 0;
-            padding: 0 0 max(2px, env(safe-area-inset-bottom));
+            padding: 2px 0 max(4px, env(safe-area-inset-bottom));
             max-width: none;
+            min-height: calc(var(--key-h) * 2 + 32px);
             position: relative;
             z-index: 20;
             background: linear-gradient(180deg, transparent 0%, rgba(247, 243, 235, 0.98) 12%);
         }
         body.mode-mobile-land .piano-section .piano-rows {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: flex-end;
-            gap: 0;
-            margin: 0 auto;
-            padding: 0;
+            flex-direction: column;
+            gap: 4px;
         }
         body.mode-mobile-land .piano-section .piano-wrap {
-            flex: 0 0 auto;
-            max-width: none;
             overflow: visible;
             padding-bottom: 0;
         }
@@ -532,7 +544,6 @@
         /* 電腦寬螢幕 */
         @media (min-width: 1025px) {
             body { padding: 16px 12px 24px; }
-            .piano-section .piano-rows { display: block; }
         }
         .p-key.active { background: #D4A59A; transform: translateY(2px); }
         .p-key.teach { background: #B8C4B0; }
@@ -551,7 +562,7 @@
     <div id="rotateHint">
         <div class="icon">📱↻</div>
         <p><strong>請將裝置橫放</strong></p>
-        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向即可（左右橫放皆可），用手指點琴鍵彈奏</p>
+        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向後可見<strong>兩排</strong>琴鍵（C4–B4 與 C5–B5）</p>
     </div>
 
     <div class="game-shell">
@@ -624,7 +635,10 @@
     <p class="keyboard-hint keyboard-hint-desktop">
         電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
     </p>
-    <p class="keyboard-hint touch-hint">👆 用手指點下方琴鍵彈奏（不需鍵盤；請橫放裝置）</p>
+    <p class="keyboard-hint touch-hint">
+        👆 橫放後點<strong>兩排</strong>琴鍵彈奏<br>
+        下排 C4–B4　上排 C5–B5（外接鍵盤：A–J / Q–U）
+    </p>
     </div><!-- .game-shell -->
 
     <script>
@@ -740,16 +754,16 @@
             const rows = document.getElementById('pianoRows');
             const low = document.getElementById('piano-low');
             const high = document.getElementById('piano-high');
+            const rowW = keyW * 7;
             const band = keyW * 14;
             if (rows) {
-                rows.style.width = band + 'px';
+                rows.style.width = rowW + 'px';
                 rows.style.maxWidth = '100%';
                 rows.style.marginLeft = 'auto';
                 rows.style.marginRight = 'auto';
             }
-            const half = keyW * 7;
-            if (low) low.style.width = half + 'px';
-            if (high) high.style.width = half + 'px';
+            if (low) low.style.width = rowW + 'px';
+            if (high) high.style.width = rowW + 'px';
             const sec = document.querySelector('.piano-section');
             if (sec) {
                 sec.style.width = '100%';
@@ -779,12 +793,11 @@
                 w = Math.floor(Math.min(viewW - 8, availW));
                 keyW = Math.max(22, Math.floor((w - 8) / 14));
                 w = keyW * 14 + 8;
-                let keyH = Math.min(56, Math.max(44, Math.floor(viewH * 0.14)));
+                let keyH = Math.min(50, Math.max(38, Math.floor(viewH * 0.11)));
                 document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
                 const chromeH = measureChromeHeight();
-                const pianoH = keyH + 6;
-                h = Math.floor(viewH - chromeH - pianoH);
-                h = Math.max(120, Math.min(h, 400));
+                h = Math.floor(viewH - chromeH);
+                h = Math.max(100, Math.min(h, 360));
                 document.body.classList.add('mode-mobile-land');
                 document.body.classList.remove('mode-mobile-portrait');
             } else if (mobile) {
@@ -835,6 +848,21 @@
 
             const rh = document.getElementById('rotateHint');
             if (rh) rh.classList.toggle('show', mobile && !land);
+
+            if (mobile && land) {
+                requestAnimationFrame(() => {
+                    const vh = viewportHeight();
+                    const ch = measureChromeHeight();
+                    const h2 = Math.max(100, Math.min(Math.floor(vh - ch), 360));
+                    if (Math.abs(h2 - layout.canvasH) > 6) {
+                        layout.canvasH = h2;
+                        layout.pianoTop = h2 - 4;
+                        layout.judgeY = layout.pianoTop - 4;
+                        canvas.height = h2;
+                        canvas.style.height = h2 + 'px';
+                    }
+                });
+            }
         }
         const RAPID_WINDOW_MS = 520;
 
@@ -1186,10 +1214,15 @@
         }
 
         window.addEventListener('keydown', e => {
-            if (isMobileView() && isTouchDevice()) return;
             if (e.repeat) return;
             const k = e.key.toLowerCase();
-            if (keyToPitch[k]) { e.preventDefault(); onKeyPress(k); }
+            if (!keyToPitch[k]) return;
+            if (isTouchDevice() && isMobileView() && isLandscapeView()) {
+                /* 手機橫向以觸控琴鍵為主；iPad 外接鍵盤仍可用 */
+                if (!isIPadLike() && window.innerWidth < 900) return;
+            }
+            e.preventDefault();
+            onKeyPress(k);
         });
 
         function drawJudgeLine() {
