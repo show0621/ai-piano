@@ -205,8 +205,8 @@ def render_piano(
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
     boot = MOBILE_PRACTICE_BOOT
-    # 橫向手機：父頁全螢幕 iframe；高度設小讓外層不捲動，內部用 100dvh
-    components.html(boot + html, height=680, scrolling=False)
+    # PC 需容納畫布＋雙排琴鍵＋鍵盤提示；觸控裝置橫向由內部 100dvh 排版
+    components.html(boot + html, height=920, scrolling=True)
 
 
 def save_upload(uploaded_file) -> str:

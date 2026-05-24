@@ -24,7 +24,21 @@
             overflow-x: hidden;
             touch-action: manipulation;
         }
-        body.mode-mobile-land {
+        /* PC：自然捲動，完整顯示雙排琴鍵與鍵盤提示 */
+        body.profile-desktop {
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 100%;
+        }
+        body.profile-desktop .game-shell {
+            padding-bottom: 12px;
+        }
+        body.profile-desktop .mobile-dock { display: none !important; }
+        body.profile-desktop .keyboard-hint-desktop { display: block !important; }
+        body.profile-desktop .touch-hint { display: none !important; }
+        body.profile-desktop .p-key .kn { font-size: 1rem; }
+        /* 手機／平板橫向：緊湊全螢幕 */
+        body.layout-compact {
             height: 100dvh;
             max-height: 100dvh;
             overflow: hidden;
@@ -34,7 +48,7 @@
             max-width: 1200px;
             margin: 0 auto;
         }
-        body.mode-mobile-land .game-shell {
+        body.layout-compact .game-shell {
             display: flex;
             flex-direction: column;
             height: 100%;
@@ -43,20 +57,11 @@
             margin: 0;
             overflow: hidden;
         }
-        body.mode-mobile-land .game-shell > .piano-section {
-            order: 3;
-        }
-        body.mode-mobile-land .game-shell > .playfield {
-            order: 2;
-            flex: 1;
-        }
-        body.mode-mobile-land .game-shell > .playfield-chrome {
-            order: 1;
-        }
-        .playfield {
-            width: 100%;
-        }
-        body.mode-mobile-land .playfield {
+        body.layout-compact .game-shell > .piano-section { order: 3; }
+        body.layout-compact .game-shell > .playfield { order: 2; flex: 1; }
+        body.layout-compact .game-shell > .playfield-chrome { order: 1; }
+        .playfield { width: 100%; }
+        body.layout-compact .playfield {
             flex: 1;
             min-height: 0;
             display: flex;
@@ -66,10 +71,15 @@
             width: 100%;
             overflow: hidden;
         }
-        body.mode-mobile-land .playfield-chrome {
+        body.layout-compact .playfield-chrome {
             flex-shrink: 0;
             width: 100%;
             padding: 2px 4px 0;
+        }
+        /* iPad 直向：可練習（捲動），僅 iPhone 直向鎖定 */
+        body.profile-tablet.mode-port .game-shell {
+            opacity: 1;
+            pointer-events: auto;
         }
         .game-header { margin-bottom: 6px; }
         h3 {
@@ -380,48 +390,48 @@
         .touch-hint { display: none; margin-top: 8px; }
         .touch-device .keyboard-hint-desktop { display: none; }
         .touch-device .touch-hint { display: block; }
-        /* 平板橫向 / 手機橫向（含倒掛）：由 JS 加 mode-mobile-land */
-        body.mode-mobile-land .game-header {
+        /* 手機／平板橫向緊湊模式：由 JS 加 layout-compact */
+        body.layout-compact .game-header {
             margin: 0;
             padding: 2px 0;
         }
-        body.mode-mobile-land .game-header h3 {
+        body.layout-compact .game-header h3 {
             font-size: 0.82rem;
             letter-spacing: 0.08em;
             margin: 0;
         }
-        body.mode-mobile-land .game-header .subtitle { display: none; }
-        body.mode-mobile-land .stats-bar {
+        body.layout-compact .game-header .subtitle { display: none; }
+        body.layout-compact .stats-bar {
             font-size: 0.65rem;
             gap: 10px;
             margin: 2px 0;
         }
-        body.mode-mobile-land .controls {
+        body.layout-compact .controls {
             gap: 4px;
             margin: 2px 0 0;
             flex-wrap: wrap;
             justify-content: center;
         }
-        body.mode-mobile-land .controls button,
-        body.mode-mobile-land .controls select {
+        body.layout-compact .controls button,
+        body.layout-compact .controls select {
             min-height: 36px;
             padding: 4px 8px;
             font-size: 0.7rem;
         }
-        body.mode-mobile-land .controls label { font-size: 0.65rem; }
-        body.mode-mobile-land .controls input[type="number"] {
+        body.layout-compact .controls label { font-size: 0.65rem; }
+        body.layout-compact .controls input[type="number"] {
             width: 44px !important;
             font-size: 0.7rem;
         }
-        body.mode-mobile-land .ctrl-ab { display: none !important; }
-        body.mode-mobile-land .playfield-chrome .controls { display: none !important; }
-        body.mode-mobile-land .keyboard-hint { display: none !important; }
-        body.mode-mobile-land .p-key .kn {
+        body.layout-compact .ctrl-ab { display: none !important; }
+        body.layout-compact .playfield-chrome .controls { display: none !important; }
+        body.layout-compact .keyboard-hint { display: none !important; }
+        body.layout-compact .p-key .kn {
             display: block;
             font-size: 0.62rem;
             line-height: 1;
         }
-        body.mode-mobile-land .p-key span:not(.kn) { font-size: 0.5rem; opacity: 0.9; }
+        body.layout-compact .p-key span:not(.kn) { font-size: 0.5rem; opacity: 0.9; }
         .mobile-dock {
             display: none;
             flex-shrink: 0;
@@ -435,7 +445,7 @@
             border-top: 1px solid #D4C9B8;
             z-index: 30;
         }
-        body.mode-mobile-land .mobile-dock { display: flex; }
+        body.layout-compact .mobile-dock { display: flex; }
         .mobile-dock .dock-btn {
             min-height: 48px;
             padding: 0 16px;
@@ -483,7 +493,7 @@
             color: #FFD54F;
             text-shadow: 0 0 24px rgba(255, 213, 100, 0.6);
         }
-        body.mode-mobile-land .canvas-wrap {
+        body.layout-compact .canvas-wrap {
             flex: 0 0 auto;
             min-height: 0;
             width: 100%;
@@ -493,19 +503,22 @@
             margin: 0;
             max-width: none;
         }
-        body.mode-mobile-land #gameCanvas {
+        body.layout-compact #gameCanvas {
             width: auto !important;
             max-width: 100%;
             height: auto !important;
             flex-shrink: 0;
         }
-        body.mode-mobile-land .octave-label {
+        body.layout-compact .octave-label {
             display: block;
             margin: 0;
             font-size: 0.5rem;
             letter-spacing: 0.12em;
         }
-        body.mode-mobile-land .piano-section {
+        body.profile-tablet.layout-compact .p-key {
+            min-height: 48px;
+        }
+        body.layout-compact .piano-section {
             flex-shrink: 0;
             width: 100%;
             margin: 0;
@@ -516,29 +529,33 @@
             z-index: 20;
             background: linear-gradient(180deg, transparent 0%, rgba(247, 243, 235, 0.98) 12%);
         }
-        body.mode-mobile-land .piano-section .piano-rows {
+        body.layout-compact .piano-section .piano-rows {
             flex-direction: column;
             gap: 4px;
         }
-        body.mode-mobile-land .piano-section .piano-wrap {
+        body.layout-compact .piano-section .piano-wrap {
             overflow: visible;
             padding-bottom: 0;
         }
-        body.mode-mobile-land .p-key {
+        body.layout-compact .p-key {
             min-height: 44px;
             padding-bottom: 4px;
             font-size: 0.55rem;
         }
-        body.mode-mobile-land .p-key .kn { font-size: 0.85rem; }
-        body.mode-mobile-land #comboNumber { font-size: 1.8rem; }
-        body.mode-mobile-land #comboNumber.mega { font-size: 2.2rem; }
-        body.mode-mobile-land #judgmentPop { font-size: 1.35rem; }
-        /* 手機／平板直向：提示橫放 */
-        body.mode-mobile-portrait .game-shell {
+        body.layout-compact .p-key .kn { font-size: 0.85rem; }
+        body.layout-compact #comboNumber { font-size: 1.8rem; }
+        body.layout-compact #comboNumber.mega { font-size: 2.2rem; }
+        body.layout-compact #judgmentPop { font-size: 1.35rem; }
+        /* 僅 iPhone 直向：提示橫放 */
+        body.profile-phone.mode-port .game-shell {
             opacity: 0.35;
             pointer-events: none;
         }
-        body.touch-play .keyboard-hint-desktop {
+        body.profile-tablet .touch-hint,
+        body.profile-phone .touch-hint { display: block; }
+        body.profile-desktop .touch-hint { display: none !important; }
+        body.layout-compact .keyboard-hint { display: none !important; }
+        body.touch-device:not(.profile-desktop) .keyboard-hint-desktop {
             display: none !important;
         }
         /* 電腦寬螢幕 */
@@ -562,7 +579,7 @@
     <div id="rotateHint">
         <div class="icon">📱↻</div>
         <p><strong>請將裝置橫放</strong></p>
-        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">橫向後可見<strong>兩排</strong>琴鍵（C4–B4 與 C5–B5）</p>
+        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">iPhone 請橫放，可見<strong>兩排</strong>琴鍵（C4–B4 與 C5–B5）</p>
     </div>
 
     <div class="game-shell">
@@ -698,6 +715,8 @@
             pianoTop: 366, judgeY: 362,
         };
 
+        let deviceProfile = 'desktop';
+
         function isTouchDevice() {
             return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         }
@@ -706,14 +725,20 @@
             return /iPad/i.test(ua)
                 || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         }
-        /** 手機／平板（含 iPad 橫向寬螢幕） */
-        function isMobileView() {
-            if (isIPadLike()) return true;
-            if (window.matchMedia('(max-width: 1024px)').matches) return true;
-            if (isTouchDevice() && Math.min(window.innerWidth, window.innerHeight) <= 1024) {
-                return true;
+        /** desktop | tablet | phone */
+        function detectDeviceProfile() {
+            const short = Math.min(window.innerWidth, window.innerHeight);
+            const long = Math.max(window.innerWidth, window.innerHeight);
+            const finePointer = window.matchMedia('(pointer: fine)').matches;
+            if (!isTouchDevice() || (finePointer && !isIPadLike() && short >= 520)) {
+                return 'desktop';
             }
-            return false;
+            if (isIPadLike()) return 'tablet';
+            if (short >= 600 || (long >= 900 && short >= 500)) return 'tablet';
+            return 'phone';
+        }
+        function isTouchProfile() {
+            return deviceProfile === 'tablet' || deviceProfile === 'phone';
         }
         /** 以實際寬高判斷橫向（支援倒掛 landscape-secondary） */
         function isLandscapeView() {
@@ -736,18 +761,67 @@
             return window.visualViewport ? window.visualViewport.height : window.innerHeight;
         }
 
+        function chromeSelectors() {
+            if (deviceProfile === 'desktop') {
+                return '.playfield-chrome, .piano-section, .keyboard-hint';
+            }
+            if (document.body.classList.contains('layout-compact')) {
+                return '.playfield-chrome, .mobile-dock, .piano-section';
+            }
+            return '.playfield-chrome, .piano-section, .keyboard-hint';
+        }
+
         function measureChromeHeight() {
             let total = 0;
-            const selectors = document.body.classList.contains('mode-mobile-land')
-                ? '.playfield-chrome, .mobile-dock, .piano-section'
-                : '.playfield-chrome, .keyboard-hint, .piano-section';
-            document.querySelectorAll(selectors).forEach(el => {
+            document.querySelectorAll(chromeSelectors()).forEach(el => {
                 if (!el || el.offsetParent === null) return;
                 const st = getComputedStyle(el);
                 if (st.display === 'none' || st.visibility === 'hidden') return;
                 total += el.getBoundingClientRect().height;
             });
             return Math.ceil(total) + 4;
+        }
+
+        function applyProfileClasses() {
+            const profile = detectDeviceProfile();
+            const land = isLandscapeView();
+            document.body.classList.remove(
+                'profile-desktop', 'profile-tablet', 'profile-phone',
+                'layout-compact', 'mode-land', 'mode-port',
+                'touch-device', 'touch-play'
+            );
+            document.body.classList.add('profile-' + profile);
+            document.body.classList.toggle('mode-land', land);
+            document.body.classList.toggle('mode-port', !land);
+            if (profile !== 'desktop') {
+                document.body.classList.add('touch-device');
+            }
+            if (profile !== 'desktop' && land) {
+                document.body.classList.add('layout-compact', 'touch-play');
+            }
+            deviceProfile = profile;
+            return { profile, land };
+        }
+
+        function minKeyWidth() {
+            if (deviceProfile === 'desktop') return 30;
+            if (deviceProfile === 'tablet') return 24;
+            return 20;
+        }
+
+        function refineCanvasHeight(maxRatio) {
+            requestAnimationFrame(() => {
+                const vh = viewportHeight();
+                const ch = measureChromeHeight();
+                const maxH = Math.round(layout.canvasW * maxRatio);
+                const h2 = Math.max(120, Math.min(Math.floor(vh - ch - 8), maxH));
+                if (Math.abs(h2 - layout.canvasH) <= 4) return;
+                layout.canvasH = h2;
+                layout.pianoTop = h2 - 4;
+                layout.judgeY = layout.pianoTop - 4;
+                canvas.height = h2;
+                canvas.style.height = h2 + 'px';
+            });
         }
 
         function syncPianoToCanvas(w, keyW, left) {
@@ -781,44 +855,55 @@
         function applyLayout() {
             const wrap = document.querySelector('.canvas-wrap');
             const availW = wrap ? Math.max(280, wrap.clientWidth) : Math.min(1100, window.innerWidth - 16);
-            const mobile = isMobileView();
-            const land = isLandscapeView();
-            let w, h, keyW;
+            const { profile, land } = applyProfileClasses();
+            const viewH = viewportHeight();
+            let w, h, keyW, keyH;
+            const pad = profile === 'desktop' ? 56 : 8;
 
-            if (mobile && land) {
-                const viewH = viewportHeight();
+            if (profile === 'desktop') {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(1100, availW) - pad) / 14));
+                w = keyW * 14 + pad;
+                keyH = Math.min(92, Math.max(76, Math.round(keyW * 2.35)));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                h = Math.max(200, Math.min(Math.floor(viewH - measureChromeHeight() - 12), Math.round(w * 0.46)));
+            } else if (profile === 'phone' && !land) {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(availW, 900) - 28) / 14));
+                w = keyW * 14 + 28;
+                keyH = 64;
+                h = Math.floor(Math.max(140, Math.min(w * 0.34, 280)));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (land) {
                 document.documentElement.style.height = viewH + 'px';
                 document.body.style.height = viewH + 'px';
                 const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-                w = Math.floor(Math.min(viewW - 8, availW));
-                keyW = Math.max(22, Math.floor((w - 8) / 14));
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(viewW - 8, availW) - 8) / 14));
                 w = keyW * 14 + 8;
-                let keyH = Math.min(50, Math.max(38, Math.floor(viewH * 0.11)));
+                keyH = profile === 'tablet'
+                    ? Math.min(58, Math.max(44, Math.floor(viewH * 0.115)))
+                    : Math.min(48, Math.max(36, Math.floor(viewH * 0.10)));
                 document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
-                const chromeH = measureChromeHeight();
-                h = Math.floor(viewH - chromeH);
-                h = Math.max(100, Math.min(h, 360));
-                document.body.classList.add('mode-mobile-land');
-                document.body.classList.remove('mode-mobile-portrait');
-            } else if (mobile) {
-                document.documentElement.style.height = '';
-                document.body.style.height = '';
-                w = Math.floor(Math.min(availW, 900));
-                h = Math.floor(Math.max(160, Math.min(w * 0.38, 320)));
-                keyW = Math.max(22, Math.floor((w - 28) / 14));
-                document.body.classList.add('mode-mobile-portrait');
-                document.body.classList.remove('mode-mobile-land');
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                h = Math.max(100, Math.min(Math.floor(viewH - measureChromeHeight() - 6), profile === 'tablet' ? 400 : 340));
             } else {
                 document.documentElement.style.height = '';
                 document.body.style.height = '';
-                w = Math.floor(Math.min(1100, availW));
-                h = Math.round(w * 420 / 1100);
-                keyW = Math.max(30, Math.floor((w - 56) / 14));
-                document.body.classList.remove('mode-mobile-portrait', 'mode-mobile-land');
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(availW, 1000) - 32) / 14));
+                w = keyW * 14 + 32;
+                keyH = 66;
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                h = Math.max(160, Math.min(Math.floor(viewH - measureChromeHeight() - 12), 340));
             }
 
             const left = Math.max(4, Math.floor((w - keyW * 14) / 2));
-            const pianoTop = (mobile && land)
+            const compactLand = profile !== 'desktop' && land;
+            const pianoTop = compactLand
                 ? h - 4
                 : h - Math.max(44, Math.round(h * 0.128));
             layout = {
@@ -832,36 +917,20 @@
             canvas.style.width = w + 'px';
             canvas.style.height = h + 'px';
 
-            let keyH = 84;
-            if (mobile && land) {
-                keyH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--key-h'), 10) || 48;
-            } else if (mobile) keyH = 64;
-            document.documentElement.style.setProperty('--key-w', keyW + 'px');
-            if (!(mobile && land)) {
-                document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
-            }
-
             syncPianoToCanvas(w, keyW, left);
 
             document.body.classList.toggle('layout-landscape', land);
             document.body.classList.toggle('layout-portrait', !land);
 
             const rh = document.getElementById('rotateHint');
-            if (rh) rh.classList.toggle('show', mobile && !land);
+            if (rh) rh.classList.toggle('show', profile === 'phone' && !land);
 
-            if (mobile && land) {
-                requestAnimationFrame(() => {
-                    const vh = viewportHeight();
-                    const ch = measureChromeHeight();
-                    const h2 = Math.max(100, Math.min(Math.floor(vh - ch), 360));
-                    if (Math.abs(h2 - layout.canvasH) > 6) {
-                        layout.canvasH = h2;
-                        layout.pianoTop = h2 - 4;
-                        layout.judgeY = layout.pianoTop - 4;
-                        canvas.height = h2;
-                        canvas.style.height = h2 + 'px';
-                    }
-                });
+            if (profile === 'desktop') {
+                refineCanvasHeight(0.48);
+            } else if (land) {
+                refineCanvasHeight(profile === 'tablet' ? 0.42 : 0.38);
+            } else if (profile === 'tablet') {
+                refineCanvasHeight(0.36);
             }
         }
         const RAPID_WINDOW_MS = 520;
@@ -922,9 +991,7 @@
             keyEls[p.key] = el;
         });
 
-        if (isTouchDevice()) {
-            document.body.classList.add('touch-device', 'touch-play');
-        }
+        applyProfileClasses();
 
         const btnPlayDock = document.getElementById('btnPlayDock');
         if (btnPlayDock) {
@@ -1217,9 +1284,8 @@
             if (e.repeat) return;
             const k = e.key.toLowerCase();
             if (!keyToPitch[k]) return;
-            if (isTouchDevice() && isMobileView() && isLandscapeView()) {
-                /* 手機橫向以觸控琴鍵為主；iPad 外接鍵盤仍可用 */
-                if (!isIPadLike() && window.innerWidth < 900) return;
+            if (deviceProfile === 'phone' && isLandscapeView() && window.innerWidth < 900) {
+                return;
             }
             e.preventDefault();
             onKeyPress(k);
@@ -1554,7 +1620,7 @@
             if (countdownRunning) return;
             const overlay = document.getElementById('countdownOverlay');
             const numEl = document.getElementById('countdownNum');
-            if (!overlay || !numEl || !(isMobileView() && isLandscapeView())) {
+            if (!overlay || !numEl || !(isTouchProfile() && isLandscapeView())) {
                 onGo();
                 return;
             }
@@ -1593,7 +1659,7 @@
                 beginPlayback(fromStart ? 0 : getCurrentTime());
                 updatePlayButtonLabels();
             };
-            if (fromStart && isMobileView() && isLandscapeView()) {
+            if (fromStart && isTouchProfile() && isLandscapeView()) {
                 startWithCountdown(go);
             } else {
                 go();
