@@ -1,3 +1,4 @@
+import inspect
 import os
 
 import pretty_midi
@@ -5,9 +6,13 @@ import pretty_midi
 # basic-pitch 體積大，允許未安裝時降級
 try:
     from basic_pitch.inference import predict_and_save
+
     HAS_BASIC_PITCH = True
+    _PREDICT_AND_SAVE_SIG = inspect.signature(predict_and_save)
 except ImportError:
     HAS_BASIC_PITCH = False
+    predict_and_save = None  # type: ignore[misc, assignment]
+    _PREDICT_AND_SAVE_SIG = None
 
 MIN_PITCH = 60   # C4（雙八度下限）
 MAX_PITCH = 83   # B5（雙八度上限）
@@ -91,14 +96,19 @@ def process_audio_to_json(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    predict_and_save(
-        audio_path_list=[audio_file_path],
-        output_directory=output_dir,
-        save_midi=True,
-        sonify_midi=False,
-        save_model_outputs=False,
-        save_notes=False,
-    )
+    predict_kwargs = {
+        "audio_path_list": [audio_file_path],
+        "output_directory": output_dir,
+        "save_midi": True,
+        "sonify_midi": False,
+        "save_model_outputs": False,
+        "save_notes": False,
+    }
+    if _PREDICT_AND_SAVE_SIG and "model_or_model_path" in _PREDICT_AND_SAVE_SIG.parameters:
+        from basic_pitch import ICASSP_2022_MODEL_PATH
+
+        predict_kwargs["model_or_model_path"] = ICASSP_2022_MODEL_PATH
+    predict_and_save(**predict_kwargs)
 
     base_name = os.path.basename(audio_file_path).rsplit(".", 1)[0]
     # 移除 temp_ 前綴
