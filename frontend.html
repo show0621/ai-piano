@@ -141,127 +141,246 @@
         }
         #comboOverlay {
             position: absolute;
-            right: 6%;
-            top: 32%;
+            right: 4%;
+            top: 28%;
             pointer-events: none;
             text-align: right;
-            z-index: 5;
+            z-index: 8;
+        }
+        #comboAura {
+            position: absolute;
+            right: -8%;
+            top: 50%;
+            width: 140px;
+            height: 140px;
+            margin-top: -70px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 120, 40, 0.55) 0%, transparent 70%);
+            opacity: 0;
+            transform: scale(0.6);
+            transition: opacity 0.12s, transform 0.2s;
+            filter: blur(8px);
+        }
+        #comboAura.on { opacity: 1; transform: scale(1); }
+        #comboAura.heat-high {
+            width: 200px;
+            height: 200px;
+            margin-top: -100px;
+            background: radial-gradient(circle, rgba(255, 200, 0, 0.7) 0%, rgba(255, 60, 0, 0.35) 45%, transparent 72%);
+            animation: auraPulse 0.35s ease-in-out infinite;
+        }
+        #comboAura.heat-max {
+            width: 260px;
+            height: 260px;
+            margin-top: -130px;
+            background: radial-gradient(circle, rgba(255, 255, 200, 0.85) 0%, rgba(255, 140, 0, 0.55) 40%, rgba(255, 40, 0, 0.25) 65%, transparent 78%);
+            animation: auraPulse 0.18s ease-in-out infinite;
+        }
+        @keyframes auraPulse {
+            0%, 100% { transform: scale(1); filter: blur(8px) brightness(1); }
+            50% { transform: scale(1.12); filter: blur(10px) brightness(1.35); }
         }
         #comboNumber {
-            font-family: 'Noto Serif JP', 'Noto Sans TC', serif;
-            font-size: 3.6rem;
-            font-weight: 700;
+            position: relative;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 900;
             line-height: 1;
-            color: #E85D3A;
+            color: #FF6D00;
+            -webkit-text-stroke: 1px rgba(120, 30, 0, 0.35);
             text-shadow:
-                0 0 12px rgba(255, 120, 60, 0.9),
-                0 2px 0 #8B3A22,
-                0 4px 8px rgba(0, 0, 0, 0.45);
+                0 0 16px rgba(255, 100, 30, 1),
+                0 0 32px rgba(255, 60, 0, 0.75),
+                0 3px 0 #8B2500,
+                0 6px 12px rgba(0, 0, 0, 0.5);
             transform: scale(1);
             opacity: 0;
-            transition: opacity 0.15s;
+            transition: opacity 0.1s;
         }
         #comboNumber.visible { opacity: 1; }
         #comboNumber.bump {
-            animation: comboBump 0.22s cubic-bezier(0.2, 1.4, 0.4, 1);
+            animation: comboBump 0.2s cubic-bezier(0.15, 1.55, 0.35, 1);
         }
         #comboNumber.mega {
-            color: #FFD54F;
-            font-size: 4.4rem;
+            color: #FFD600;
+            font-size: 4.6rem;
             text-shadow:
-                0 0 20px rgba(255, 215, 0, 1),
-                0 0 40px rgba(255, 100, 50, 0.6),
-                0 3px 0 #B8860B;
+                0 0 24px rgba(255, 220, 0, 1),
+                0 0 48px rgba(255, 120, 0, 0.85),
+                0 4px 0 #B8860B,
+                0 8px 16px rgba(0, 0, 0, 0.45);
         }
         #comboNumber.ultra {
-            color: #FFF8E7;
-            font-size: 5rem;
-            animation: comboUltra 0.35s ease-out;
+            color: #FFFDE7;
+            font-size: 5.4rem;
+            animation: comboUltra 0.4s ease-out;
         }
         #comboNumber.fire {
-            color: #FF5722;
-            font-size: 4rem;
-            animation: comboFire 0.28s ease-out infinite;
+            color: #FF3D00;
+            font-size: 4.8rem;
+            animation: comboFire 0.22s ease-in-out infinite;
             text-shadow:
-                0 0 18px rgba(255, 87, 34, 1),
-                0 0 36px rgba(255, 200, 0, 0.7),
-                0 3px 0 #BF360C;
+                0 0 28px #FF6D00,
+                0 0 56px rgba(255, 200, 0, 0.9),
+                0 4px 0 #BF360C;
         }
         #comboNumber.inferno {
             color: #FFEB3B;
-            font-size: 5.2rem;
-            animation: comboInferno 0.22s ease-in-out infinite;
+            font-size: 5.8rem;
+            animation: comboInferno 0.16s ease-in-out infinite;
             text-shadow:
-                0 0 24px #FF5722,
-                0 0 48px #FFD54F,
-                0 0 72px rgba(255, 100, 0, 0.5),
-                0 4px 0 #E65100;
+                0 0 32px #FF5722,
+                0 0 64px #FFD54F,
+                0 0 96px rgba(255, 80, 0, 0.65),
+                0 5px 0 #E65100;
+        }
+        #comboNumber.godlike {
+            color: #FFFFFF;
+            font-size: 6.2rem;
+            animation: comboGodlike 0.12s ease-in-out infinite;
+            text-shadow:
+                0 0 20px #FF1744,
+                0 0 40px #FF9100,
+                0 0 60px #FFEA00,
+                0 0 80px #76FF03,
+                0 5px 0 #D50000;
         }
         @keyframes comboFire {
-            0%, 100% { transform: scale(1) rotate(-2deg); }
-            50% { transform: scale(1.08) rotate(2deg); }
+            0%, 100% { transform: scale(1) rotate(-3deg) skewX(-2deg); }
+            50% { transform: scale(1.12) rotate(3deg) skewX(2deg); }
         }
         @keyframes comboInferno {
-            0% { transform: scale(1.15) rotate(-3deg); filter: brightness(1.3); }
-            50% { transform: scale(1.25) rotate(3deg); filter: brightness(1.6); }
-            100% { transform: scale(1.1) rotate(-2deg); filter: brightness(1.2); }
+            0% { transform: scale(1.1) rotate(-4deg); filter: brightness(1.4) hue-rotate(0deg); }
+            50% { transform: scale(1.22) rotate(4deg); filter: brightness(1.7) hue-rotate(8deg); }
+            100% { transform: scale(1.08) rotate(-3deg); filter: brightness(1.35) hue-rotate(-5deg); }
+        }
+        @keyframes comboGodlike {
+            0%, 100% { transform: scale(1.15) rotate(-2deg); filter: brightness(1.5) saturate(1.4); }
+            33% { transform: scale(1.28) rotate(2deg); filter: brightness(1.8) saturate(1.6) hue-rotate(15deg); }
+            66% { transform: scale(1.2) rotate(-1deg); filter: brightness(1.65) saturate(1.5) hue-rotate(-10deg); }
         }
         #comboLabel {
-            font-size: 0.85rem;
-            letter-spacing: 0.35em;
-            color: #F7C59F;
-            margin-top: 2px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.28em;
+            color: #FFB74D;
+            margin-top: 4px;
             opacity: 0;
-            transition: opacity 0.15s;
+            transition: opacity 0.12s;
+            text-shadow: 0 0 8px rgba(255, 140, 0, 0.8);
         }
         #comboLabel.visible { opacity: 1; }
+        #comboLabel.rage {
+            font-size: 1.05rem;
+            color: #FFEB3B;
+            letter-spacing: 0.2em;
+            animation: labelShake 0.15s ease-in-out infinite;
+        }
+        @keyframes labelShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        #comboMilestone {
+            position: absolute;
+            left: 50%;
+            top: 22%;
+            transform: translateX(-50%) scale(0.3);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #FFEB3B;
+            opacity: 0;
+            z-index: 9;
+            white-space: nowrap;
+            text-shadow:
+                0 0 20px #FF6D00,
+                0 0 40px rgba(255, 200, 0, 0.9),
+                0 4px 0 #BF360C,
+                3px 3px 0 rgba(0, 0, 0, 0.4);
+        }
+        #comboMilestone.show {
+            animation: milestonePop 0.85s cubic-bezier(0.12, 1.45, 0.28, 1) forwards;
+        }
+        @keyframes milestonePop {
+            0% { opacity: 0; transform: translateX(-50%) scale(0.2) rotate(-8deg); }
+            20% { opacity: 1; transform: translateX(-50%) scale(1.35) rotate(4deg); }
+            45% { opacity: 1; transform: translateX(-50%) scale(1.1) rotate(-2deg); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.25) translateY(-36px) rotate(6deg); }
+        }
+        #edgeGlow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            box-shadow: inset 0 0 60px rgba(255, 120, 0, 0);
+            border-radius: 2px;
+        }
+        #edgeGlow.on {
+            animation: edgeGlowFlash 0.35s ease-out forwards;
+        }
+        @keyframes edgeGlowFlash {
+            0% { opacity: 1; box-shadow: inset 0 0 80px rgba(255, 200, 60, 0.85), inset 0 0 120px rgba(255, 80, 0, 0.45); }
+            100% { opacity: 0; box-shadow: inset 0 0 20px rgba(255, 120, 0, 0); }
+        }
         #judgmentPop {
             position: absolute;
             left: 50%;
-            top: 58%;
+            top: 54%;
             transform: translate(-50%, -50%) scale(0.3);
             pointer-events: none;
-            font-family: 'Noto Serif JP', serif;
-            font-size: 2.4rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
             opacity: 0;
             z-index: 6;
             white-space: nowrap;
         }
         #judgmentPop.show {
-            animation: judgmentPop 0.45s cubic-bezier(0.15, 1.2, 0.3, 1) forwards;
+            animation: judgmentPop 0.5s cubic-bezier(0.12, 1.35, 0.25, 1) forwards;
         }
-        #judgmentPop.good { color: #A8D5BA; text-shadow: 0 0 10px rgba(168, 213, 186, 0.8); }
+        #judgmentPop.good {
+            color: #B9F6CA;
+            text-shadow: 0 0 14px rgba(129, 199, 132, 0.95), 0 2px 0 #2E7D32;
+        }
         #rapidBanner {
             position: absolute;
             left: 50%;
-            top: 18%;
-            transform: translateX(-50%) scale(0.4);
+            top: 14%;
+            transform: translateX(-50%) scale(0.35);
             pointer-events: none;
-            font-family: 'Noto Serif JP', 'Noto Sans TC', serif;
-            font-size: 2.4rem;
-            font-weight: 800;
-            color: #FF3D00;
-            letter-spacing: 0.06em;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            color: #FF1744;
+            letter-spacing: 0.04em;
             opacity: 0;
             z-index: 7;
             white-space: nowrap;
+            -webkit-text-stroke: 1px rgba(100, 0, 0, 0.4);
             text-shadow:
-                0 0 16px #FF6D00,
-                0 0 32px rgba(255, 214, 0, 0.9),
-                0 3px 0 #BF360C,
-                2px 2px 0 rgba(0, 0, 0, 0.35);
+                0 0 24px #FF6D00,
+                0 0 48px rgba(255, 230, 0, 1),
+                0 0 72px rgba(255, 60, 0, 0.6),
+                0 4px 0 #B71C1C,
+                3px 3px 0 rgba(0, 0, 0, 0.35);
         }
         #rapidBanner.show {
-            animation: rapidBanner 0.65s cubic-bezier(0.15, 1.45, 0.25, 1) forwards;
+            animation: rapidBanner 0.75s cubic-bezier(0.1, 1.5, 0.22, 1) forwards;
         }
         #judgmentPop.perfect {
             color: #FFEB3B;
+            font-size: 3.4rem;
             text-shadow:
-                0 0 20px #FF9800,
-                0 0 40px rgba(255, 235, 59, 0.8),
-                0 2px 0 #E65100;
+                0 0 24px #FF9800,
+                0 0 48px rgba(255, 235, 59, 1),
+                0 0 72px rgba(255, 120, 0, 0.7),
+                0 3px 0 #E65100,
+                0 6px 0 rgba(0, 0, 0, 0.25);
         }
         #screenFlash {
             position: absolute;
@@ -291,10 +410,11 @@
             100% { opacity: 0; transform: translate(-50%, -72%) scale(0.85); }
         }
         @keyframes rapidBanner {
-            0% { opacity: 0; transform: translateX(-50%) scale(0.35) rotate(-12deg); }
-            18% { opacity: 1; transform: translateX(-50%) scale(1.45) rotate(4deg); }
-            45% { opacity: 1; transform: translateX(-50%) scale(1.2) rotate(-2deg); }
-            100% { opacity: 0; transform: translateX(-50%) scale(1.3) translateY(-28px) rotate(6deg); }
+            0% { opacity: 0; transform: translateX(-50%) scale(0.25) rotate(-14deg); }
+            15% { opacity: 1; transform: translateX(-50%) scale(1.55) rotate(5deg); }
+            35% { opacity: 1; transform: translateX(-50%) scale(1.25) rotate(-3deg); }
+            55% { opacity: 1; transform: translateX(-50%) scale(1.35) rotate(2deg); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.4) translateY(-42px) rotate(8deg); }
         }
         @keyframes screenFlash {
             0% { opacity: 0.7; }
@@ -621,7 +741,10 @@
                 <span id="countdownNum">3</span>
             </div>
             <div id="screenFlash"></div>
+            <div id="edgeGlow"></div>
+            <div id="comboMilestone"></div>
             <div id="comboOverlay">
+                <div id="comboAura"></div>
                 <div id="comboNumber">0</div>
                 <div id="comboLabel">COMBO</div>
             </div>
@@ -952,10 +1075,15 @@
 
         const comboEl = document.getElementById('comboNumber');
         const comboLabelEl = document.getElementById('comboLabel');
+        const comboAuraEl = document.getElementById('comboAura');
+        const comboMilestoneEl = document.getElementById('comboMilestone');
         const judgmentEl = document.getElementById('judgmentPop');
         const rapidBannerEl = document.getElementById('rapidBanner');
         const screenFlashEl = document.getElementById('screenFlash');
+        const edgeGlowEl = document.getElementById('edgeGlow');
         const statComboEl = document.getElementById('statCombo');
+        let comboHeat = 0;
+        let lastMilestoneCombo = 0;
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const keyEls = {};
@@ -1080,20 +1208,37 @@
         }
 
         function spawnParticles(cx, cy, perfect, count) {
-            const n = count || (perfect ? 22 : 14);
-            const baseHue = perfect ? 42 : 18;
+            const heat = comboHeat;
+            const n = count || (perfect ? 22 + Math.min(heat, 20) : 14 + Math.min(heat, 10));
+            const baseHue = perfect
+                ? (heat >= 30 ? 8 + Math.random() * 50 : 42)
+                : 18;
             for (let i = 0; i < n; i++) {
-                const angle = (Math.PI * 2 * i) / n + Math.random() * 0.4;
-                const speed = (perfect ? 4.5 : 3) + Math.random() * 3.5;
+                const angle = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+                const speed = (perfect ? 5 + heat * 0.08 : 3.2) + Math.random() * 4;
                 particles.push({
                     x: cx, y: cy,
                     vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed - 1.2,
+                    vy: Math.sin(angle) * speed - (1.4 + heat * 0.02),
                     life: 1,
-                    decay: 0.028 + Math.random() * 0.02,
-                    size: perfect ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
-                    hue: baseHue + Math.random() * 20,
+                    decay: 0.024 + Math.random() * 0.018,
+                    size: (perfect ? 5 : 3) + Math.random() * (4 + heat * 0.08),
+                    hue: baseHue + Math.random() * 28,
                 });
+            }
+            if (heat >= 15 && perfect) {
+                for (let j = 0; j < 8; j++) {
+                    particles.push({
+                        x: cx + (Math.random() - 0.5) * 40,
+                        y: cy,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: -4 - Math.random() * 5,
+                        life: 1,
+                        decay: 0.02,
+                        size: 2 + Math.random() * 3,
+                        hue: 45 + Math.random() * 15,
+                    });
+                }
             }
         }
 
@@ -1112,7 +1257,10 @@
             if (combo < 2) return;
             let text = '+';
             let color = '#FFE082';
-            if (combo >= 20) {
+            if (combo >= 30) {
+                text = '無雙 ' + combo;
+                color = '#FFEB3B';
+            } else if (combo >= 20) {
                 text = combo + ' 連擊!!';
                 color = '#FFEB3B';
             } else if (combo >= 10) {
@@ -1138,8 +1286,50 @@
             screenFlashEl.classList.add('on');
         }
 
+        function flashEdge() {
+            if (!edgeGlowEl) return;
+            edgeGlowEl.classList.remove('on');
+            void edgeGlowEl.offsetWidth;
+            edgeGlowEl.classList.add('on');
+        }
+
+        function showMilestone(text) {
+            if (!comboMilestoneEl) return;
+            comboMilestoneEl.textContent = text;
+            comboMilestoneEl.classList.remove('show');
+            void comboMilestoneEl.offsetWidth;
+            comboMilestoneEl.classList.add('show');
+            flashEdge();
+            flashScreen(0.75);
+            screenShake = Math.max(screenShake, 16);
+        }
+
+        function checkComboMilestone(combo) {
+            const marks = [5, 10, 20, 30, 50, 100];
+            for (const m of marks) {
+                if (combo >= m && lastMilestoneCombo < m) {
+                    lastMilestoneCombo = m;
+                    const msg =
+                        m >= 100 ? '100 連擊！！神！' :
+                        m >= 50 ? '50 連擊！！無雙！' :
+                        m >= 30 ? '30 連擊！！熱血！' :
+                        m >= 20 ? '20 連擊！！' :
+                        m >= 10 ? '10 COMBO！' :
+                        '火力全開！';
+                    showMilestone(msg);
+                    return;
+                }
+            }
+        }
+
         function showJudgment(kind) {
-            const text = kind === 'perfect' ? '可' : kind === 'good' ? '良' : '不可';
+            const heat = comboHeat;
+            let text = '不可';
+            if (kind === 'perfect') {
+                text = heat >= 20 ? '完美！！' : heat >= 10 ? '完美！' : '完美';
+            } else if (kind === 'good') {
+                text = heat >= 15 ? '好棒！' : '好';
+            }
             judgmentEl.textContent = text;
             judgmentEl.className = kind === 'perfect' ? 'perfect' : kind === 'good' ? 'good' : '';
             judgmentEl.classList.remove('show');
@@ -1149,37 +1339,45 @@
 
         function showRapidBanner(count) {
             const now = performance.now();
-            if (now - lastRapidBannerAt < 320) return;
+            if (now - lastRapidBannerAt < 280) return;
             lastRapidBannerAt = now;
-            rapidBannerEl.textContent = count + ' 連擊！！';
+            rapidBannerEl.textContent = count >= 5 ? '神速 ' + count + ' 連！！' : count + ' 連擊！！';
             rapidBannerEl.classList.remove('show');
             void rapidBannerEl.offsetWidth;
             rapidBannerEl.classList.add('show');
-            flashScreen(Math.min(0.35 + count * 0.05, 0.75));
-            screenShake = Math.min(8 + count * 1.8, 18);
+            flashScreen(Math.min(0.45 + count * 0.06, 0.9));
+            flashEdge();
+            screenShake = Math.min(10 + count * 2.2, 22);
         }
 
         function updateComboDisplay(combo) {
+            comboHeat = combo;
+            if (comboAuraEl) {
+                comboAuraEl.classList.toggle('on', combo >= 3);
+                comboAuraEl.classList.toggle('heat-high', combo >= 15);
+                comboAuraEl.classList.toggle('heat-max', combo >= 30);
+            }
             if (combo < 2) {
-                comboEl.classList.remove('visible', 'bump', 'mega', 'ultra', 'fire', 'inferno');
-                comboLabelEl.classList.remove('visible');
+                comboEl.classList.remove('visible', 'bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
+                comboLabelEl.classList.remove('visible', 'rage');
                 return;
             }
             comboEl.textContent = combo;
             comboEl.classList.add('visible');
             comboLabelEl.classList.add('visible');
+            comboLabelEl.classList.toggle('rage', combo >= 20);
             comboLabelEl.textContent =
-                combo >= 50 ? '🔥 超神連擊' :
-                combo >= 30 ? '🔥 無雙' :
-                combo >= 20 ? '大連擊' :
-                combo >= 10 ? '連擊中!' :
+                combo >= 50 ? '超神連擊' :
+                combo >= 30 ? '無雙模式' :
+                combo >= 20 ? '熱血全開' :
+                combo >= 10 ? '連擊加速' :
                 combo >= 5 ? 'COMBO' : 'COMBO';
 
-            comboEl.classList.remove('bump', 'mega', 'ultra', 'fire', 'inferno');
+            comboEl.classList.remove('bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
             void comboEl.offsetWidth;
             comboEl.classList.add('bump');
-            if (combo >= 50) comboEl.classList.add('ultra', 'inferno');
-            else if (combo >= 30) comboEl.classList.add('inferno');
+            if (combo >= 50) comboEl.classList.add('ultra', 'inferno', 'godlike');
+            else if (combo >= 30) comboEl.classList.add('inferno', 'fire');
             else if (combo >= 20) comboEl.classList.add('mega', 'fire');
             else if (combo >= 15) comboEl.classList.add('fire');
             else if (combo >= 10) comboEl.classList.add('mega');
@@ -1191,10 +1389,14 @@
             hitBursts = [];
             recentHitTimes = [];
             screenShake = 0;
-            comboEl.classList.remove('visible', 'bump', 'mega', 'ultra');
-            comboLabelEl.classList.remove('visible');
+            comboHeat = 0;
+            lastMilestoneCombo = 0;
+            comboEl.classList.remove('visible', 'bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
+            comboLabelEl.classList.remove('visible', 'rage');
+            if (comboAuraEl) comboAuraEl.classList.remove('on', 'heat-high', 'heat-max');
             judgmentEl.classList.remove('show');
             rapidBannerEl.classList.remove('show');
+            if (comboMilestoneEl) comboMilestoneEl.classList.remove('show');
         }
 
         function registerHit(note, delta) {
@@ -1212,26 +1414,30 @@
 
             const comboNow = stats.combo;
             const particleN = perfect
-                ? 18 + Math.min(comboNow * 2, 28)
-                : 12 + Math.min(comboNow, 16);
+                ? 20 + Math.min(comboNow * 2, 40)
+                : 14 + Math.min(comboNow, 18);
             spawnParticles(cx, layout.judgeY, perfect, particleN);
             spawnHitRing(cx, layout.judgeY, perfect, comboNow);
             spawnHitBurst(cx, layout.judgeY, comboNow);
             showJudgment(perfect ? 'perfect' : 'good');
             updateComboDisplay(comboNow);
+            checkComboMilestone(comboNow);
 
-            const shake = (perfect ? 4 : 2) + Math.min(comboNow * 0.45, 14);
+            const shake = (perfect ? 5 : 2.5) + Math.min(comboNow * 0.55, 18);
             screenShake = Math.max(screenShake, shake);
-            flashScreen(0.18 + Math.min(comboNow * 0.018, 0.35));
+            const flashAmt = 0.22 + Math.min(comboNow * 0.022, 0.45);
+            flashScreen(flashAmt);
+            if (comboNow >= 10) flashEdge();
 
             if (comboNow % 10 === 0 && comboNow >= 10) {
-                flashScreen(0.65);
-                screenShake = Math.max(screenShake, 14);
+                flashScreen(0.8);
+                screenShake = Math.max(screenShake, 18);
                 showFeedback(comboNow + ' 連擊！！', '#FFEB3B');
-                spawnParticles(cx, layout.judgeY, true, 36);
+                spawnParticles(cx, layout.judgeY, true, 48);
             } else if (comboNow % 5 === 0 && comboNow >= 5) {
-                flashScreen(0.4);
-                showFeedback('火力全開!', '#FFAB40');
+                flashScreen(0.55);
+                flashEdge();
+                showFeedback('火力全開！', '#FFAB40');
             }
 
             recentHitTimes.push(now);
@@ -1247,6 +1453,7 @@
             stats.mistakes++;
             stats.combo = 0;
             recentHitTimes = [];
+            lastMilestoneCombo = 0;
             updateComboDisplay(0);
             showJudgment('miss');
             showFeedback('漏接', '#A08078');
@@ -1292,16 +1499,21 @@
         });
 
         function drawJudgeLine() {
-            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 280);
-            const grad = ctx.createLinearGradient(0, layout.judgeY - 20, 0, layout.judgeY + 20);
-            grad.addColorStop(0, 'rgba(255, 180, 100, 0)');
-            grad.addColorStop(0.5, `rgba(255, 200, 120, ${0.25 + pulse * 0.15})`);
-            grad.addColorStop(1, 'rgba(255, 180, 100, 0)');
+            const heat = comboHeat;
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / (heat >= 20 ? 120 : 280));
+            const heatBoost = Math.min(heat * 0.012, 0.45);
+            const grad = ctx.createLinearGradient(0, layout.judgeY - 24, 0, layout.judgeY + 24);
+            grad.addColorStop(0, 'rgba(255, 120, 40, 0)');
+            grad.addColorStop(0.5, `rgba(255, ${160 + heat * 2}, ${80 + heat}, ${0.28 + pulse * 0.2 + heatBoost})`);
+            grad.addColorStop(1, 'rgba(255, 120, 40, 0)');
             ctx.fillStyle = grad;
-            ctx.fillRect(0, layout.judgeY - 18, canvas.width, 36);
+            ctx.fillRect(0, layout.judgeY - 22, canvas.width, 44);
 
-            ctx.strokeStyle = `rgba(255, 213, 140, ${0.55 + pulse * 0.25})`;
-            ctx.lineWidth = 3;
+            const lineW = heat >= 30 ? 5 : heat >= 15 ? 4 : 3;
+            ctx.strokeStyle = heat >= 20
+                ? `rgba(255, ${200 + pulse * 40}, 80, ${0.75 + pulse * 0.2})`
+                : `rgba(255, 213, 140, ${0.55 + pulse * 0.25 + heatBoost})`;
+            ctx.lineWidth = lineW;
             ctx.beginPath();
             ctx.moveTo(layout.canvasLeft, layout.judgeY);
             ctx.lineTo(layout.canvasLeft + PITCH_MAP.length * layout.keyWidth, layout.judgeY);
