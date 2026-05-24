@@ -617,6 +617,33 @@
         body.profile-tablet .mobile-dock { display: flex; }
         body.profile-phone .playfield-chrome .controls,
         body.profile-tablet .playfield-chrome .controls { display: none !important; }
+        /* 觸碰色塊模式：隱藏琴鍵、放大下落區 */
+        body.input-touch.profile-phone .piano-section,
+        body.input-touch.profile-tablet .piano-section {
+            display: none !important;
+        }
+        body.input-touch .canvas-wrap {
+            flex: 1 1 auto;
+            min-height: 0;
+            touch-action: none;
+        }
+        body.input-touch #gameCanvas {
+            cursor: pointer;
+            touch-action: none;
+        }
+        body.input-touch .touch-hint-keyboard { display: none; }
+        body.input-touch .touch-hint-blocks { display: block; }
+        body:not(.input-touch) .touch-hint-blocks { display: none; }
+        .mobile-dock .dock-mode {
+            min-height: 44px;
+            max-width: 118px;
+            font-size: 0.72rem;
+            border: 1px solid #C9B8A4;
+            border-radius: 4px;
+            background: #F7F3EB;
+            color: #4A4035;
+            padding: 0 6px;
+        }
         .mobile-dock .dock-btn {
             min-height: 48px;
             padding: 0 16px;
@@ -817,6 +844,10 @@
         </div>
 
         <div class="mobile-dock" id="mobileDock">
+            <select id="inputModeDock" class="dock-mode" aria-label="彈奏方式">
+                <option value="touch">👆 觸碰色塊</option>
+                <option value="keyboard">🎹 琴鍵彈奏</option>
+            </select>
             <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
             <button type="button" class="dock-btn" id="btnAutoDock">♪ 自動彈奏</button>
             <select id="speedSelDock" class="dock-speed" aria-label="速度">
@@ -840,9 +871,13 @@
     <p class="keyboard-hint keyboard-hint-desktop">
         電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
     </p>
-    <p class="keyboard-hint touch-hint">
+    <p class="keyboard-hint touch-hint touch-hint-keyboard">
         👆 橫放後點<strong>兩排</strong>琴鍵彈奏<br>
         下排 C4–B4　上排 C5–B5（外接鍵盤：A–J / Q–U）
+    </p>
+    <p class="keyboard-hint touch-hint touch-hint-blocks">
+        👆 <strong>觸碰色塊模式</strong>：直接點畫面上掉下來的音符色塊即可彈奏<br>
+        底部可切換「琴鍵彈奏」
     </p>
     </div><!-- .game-shell -->
 
@@ -986,10 +1021,38 @@
             if (deviceProfile === 'desktop') {
                 return '.playfield-chrome, .piano-section, .keyboard-hint';
             }
+            if (playInputMode === 'touch') {
+                return '.playfield-chrome, .mobile-dock';
+            }
             if (document.body.classList.contains('layout-compact')) {
                 return '.playfield-chrome, .mobile-dock, .piano-section';
             }
             return '.playfield-chrome, .piano-section, .keyboard-hint';
+        }
+
+        function applyInputMode(mode, persist) {
+            if (mode !== 'touch' && mode !== 'keyboard') mode = 'keyboard';
+            playInputMode = mode;
+            document.body.classList.toggle('input-touch', mode === 'touch');
+            const dockSel = document.getElementById('inputModeDock');
+            if (dockSel && dockSel.value !== mode) dockSel.value = mode;
+            if (persist && isTouchProfile()) {
+                try { localStorage.setItem('pianoInputMode', mode); } catch (e) { /* ignore */ }
+            }
+            applyLayout();
+        }
+
+        function initInputMode() {
+            if (!isTouchProfile()) {
+                applyInputMode('keyboard', false);
+                return;
+            }
+            let mode = 'touch';
+            try {
+                const saved = localStorage.getItem('pianoInputMode');
+                if (saved === 'keyboard' || saved === 'touch') mode = saved;
+            } catch (e) { /* ignore */ }
+            applyInputMode(mode, false);
         }
 
         function measureChromeHeight() {
@@ -1150,9 +1213,14 @@
             if (profile === 'desktop') {
                 refineCanvasHeight(0.48);
             } else if (land) {
-                refineCanvasHeight(profile === 'tablet' ? 0.42 : 0.38);
+                const ratio = playInputMode === 'touch'
+                    ? (profile === 'tablet' ? 0.58 : 0.52)
+                    : (profile === 'tablet' ? 0.42 : 0.38);
+                refineCanvasHeight(ratio);
             } else if (profile === 'tablet') {
-                refineCanvasHeight(0.36);
+                refineCanvasHeight(playInputMode === 'touch' ? 0.48 : 0.36);
+            } else if (profile === 'phone' && playInputMode === 'touch') {
+                refineCanvasHeight(0.44);
             }
         }
         const RAPID_WINDOW_MS = 520;
@@ -1161,6 +1229,12 @@
         let stats = { hits: 0, mistakes: 0, combo: 0, maxCombo: 0 };
         let feedbackText = '', feedbackColor = '#E8DED0', feedbackTimer = 0;
         let teachMode = false, autoPlayMode = false;
+        let playInputMode = 'keyboard'; // keyboard | touch（iPhone/iPad 可切換）
+        const TOUCH_HIT_PAD = 16;
+        const AUTO_HYPE_LINES = [
+            '暴擊！！', '熱血全開！！', '超神！', '無雙！', '完美暴擊！',
+            '火力 MAX！！', '連擊炸裂！', '節奏爆棚！', '王者降臨！', '無敵狀態！',
+        ];
         let teachTimeouts = [], autoTimeouts = [];
         let loopEnabled = PRACTICE_MODE === 'chorus';
         let useInternalClock = !AUDIO_SRC;
@@ -1277,6 +1351,74 @@
                 startAutoPlay();
             });
         }
+        const inputModeDock = document.getElementById('inputModeDock');
+        if (inputModeDock) {
+            inputModeDock.addEventListener('change', () => {
+                applyInputMode(inputModeDock.value, true);
+            });
+        }
+
+        function canvasPointFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return null;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clientX = e.clientX != null ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : null);
+            const clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+            if (clientX == null || clientY == null) return null;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY,
+            };
+        }
+
+        function getNoteRect(note, t) {
+            const dist = (note.start_time - t) * PIXELS_PER_SECOND;
+            const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
+            const y = layout.pianoTop - dist - h;
+            const x = getNoteX(note.pitch);
+            const w = noteW();
+            return { x, y, w, h, dist };
+        }
+
+        function findTouchedNote(px, py) {
+            if (!isPlaying || teachMode || autoPlayMode) return null;
+            const t = getCurrentTime();
+            let best = null;
+            let bestScore = Infinity;
+            notes.forEach(note => {
+                if (note.isHit || note.isMissed || !note.playable) return;
+                const r = getNoteRect(note, t);
+                if (py < r.y - TOUCH_HIT_PAD || py > r.y + r.h + TOUCH_HIT_PAD) return;
+                if (px < r.x - TOUCH_HIT_PAD || px > r.x + r.w + TOUCH_HIT_PAD) return;
+                const timeDelta = Math.abs(note.start_time - t);
+                if (timeDelta > HIT_WINDOW * 1.35) return;
+                const score = timeDelta * 100 + Math.abs(r.dist) * 0.5;
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = note;
+                }
+            });
+            return best;
+        }
+
+        function onCanvasTouchPlay(e) {
+            if (playInputMode !== 'touch' || !isTouchProfile()) return;
+            if (teachMode || autoPlayMode || !isPlaying) return;
+            const pt = canvasPointFromEvent(e);
+            if (!pt) return;
+            const note = findTouchedNote(pt.x, pt.y);
+            if (!note) return;
+            if (e.cancelable) e.preventDefault();
+            const t = getCurrentTime();
+            const delta = Math.abs(note.start_time - t);
+            registerHit(note, delta);
+            playSynth(note.pitch, 0.22);
+            updateStatsUI();
+        }
+
+        canvas.style.touchAction = 'none';
+        canvas.addEventListener('pointerdown', onCanvasTouchPlay, { passive: false });
 
         function midiToFreq(midi) {
             return 440 * Math.pow(2, (midi - 69) / 12);
@@ -1593,6 +1735,15 @@
                 showFeedback('火力全開！', '#FFAB40');
             }
 
+            if (autoPlayMode && perfect && comboNow % 6 === 0) {
+                const hype = AUTO_HYPE_LINES[comboNow % AUTO_HYPE_LINES.length];
+                showFeedback(hype, '#FF6D00');
+                flashScreen(0.65);
+                flashEdge();
+                screenShake = Math.max(screenShake, 12 + Math.min(comboNow * 0.3, 16));
+                spawnParticles(cx, layout.judgeY, true, 36 + Math.min(comboNow, 24));
+            }
+
             recentHitTimes.push(now);
             recentHitTimes = recentHitTimes.filter(t => now - t < RAPID_WINDOW_MS);
             if (recentHitTimes.length >= 3) {
@@ -1622,6 +1773,7 @@
             playSynth(pitch, 0.25);
             setTimeout(() => highlightKey(pitch, null), 100);
             if (teachMode || autoPlayMode || !isPlaying) return;
+            if (playInputMode === 'touch' && isTouchProfile()) return;
 
             const t = getCurrentTime();
             const candidates = notes.filter(n => {
@@ -1878,6 +2030,8 @@
                 let alpha = 1;
                 let scale = 1;
                 const nearJudge = dist < 35 && dist > -15 && !note.isMissed;
+                const touchTarget = playInputMode === 'touch' && isTouchProfile()
+                    && !note.isMissed && !note.isHit && dist < 55 && dist > -25;
 
                 if (note.isMissed && note.missAt) {
                     const mp = Math.min(1, (now - note.missAt) / 500);
@@ -1888,7 +2042,15 @@
                     return;
                 }
 
-                drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge);
+                if (touchTarget) {
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(255, 200, 80, 0.9)';
+                    ctx.shadowBlur = 14;
+                    drawNoteBlock(x, y, w, h, note, alpha, scale * 1.04, true);
+                    ctx.restore();
+                } else {
+                    drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge);
+                }
             });
 
             drawParticlesAndRings();
@@ -2076,9 +2238,13 @@
             const speed = getSpeed();
             notes.forEach(note => {
                 if (!note.playable) return;
-                const pk = pitchToKey[note.pitch];
                 const delay = (note.start_time * 1000) / speed;
                 const id = setTimeout(() => {
+                    if (mode === 'auto') {
+                        const delta = Math.random() * PERFECT_WINDOW * 0.45;
+                        registerHit(note, delta);
+                        updateStatsUI();
+                    }
                     highlightKey(note.pitch, mode);
                     playSynth(note.pitch, Math.min(note.duration, 0.55));
                     setTimeout(() => highlightKey(note.pitch, null), note.duration * 1000 / speed);
@@ -2132,6 +2298,7 @@
             }
         }
 
+        initInputMode();
         applyLayout();
         window.addEventListener('resize', applyLayout);
         window.addEventListener('orientationchange', () => setTimeout(applyLayout, 120));
