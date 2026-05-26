@@ -176,6 +176,13 @@ body.st-mobile-practice.lesson-active div[data-testid="stHtml"] iframe {
     height: 100svh !important;
     min-height: 100svh !important;
 }
+/* 橫向：允許 iframe 內部上下滑（黑邊區域捲到 ▶） */
+@media (orientation: landscape) and (max-width: 1024px) {
+    body.st-mobile-practice div[data-testid="stHtml"] iframe {
+        overflow: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -292,8 +299,8 @@ def render_piano(
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    # 需足夠高度讓 PC 顯示；手機滿版由 lesson-active / st-mobile-practice CSS 覆蓋
-    components.html(html, height=920, scrolling=False)
+    # 手機需可上下滑；滿版由 lesson-active / st-mobile-practice CSS 覆蓋
+    components.html(html, height=920, scrolling=True)
 
 
 def save_upload(uploaded_file) -> str:
