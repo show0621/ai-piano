@@ -900,52 +900,18 @@
         body.input-touch .touch-hint-keyboard { display: none; }
         body.input-touch .touch-hint-blocks { display: block; }
         body:not(.input-touch) .touch-hint-blocks { display: none; }
-        /* 手機橫向：game-shell 可上下滑，黑邊區域可滑動捲到 ▶ */
-        body.input-touch.mode-land.profile-phone .game-shell,
-        body.input-touch.mode-land.profile-tablet .game-shell {
-            height: 100dvh;
-            max-height: 100dvh;
-            overflow-x: hidden;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
-            scroll-behavior: smooth;
+        /* 手機橫向：HUD 固定於視窗右下角（不依賴捲動） */
+        body.input-touch.mode-land.profile-phone .game-hud,
+        body.input-touch.mode-land.profile-tablet .game-hud {
+            position: fixed;
+            inset: 0;
+            z-index: 28;
+            pointer-events: none;
         }
-        body.input-touch.mode-land.profile-phone .playfield,
-        body.input-touch.mode-land.profile-tablet .playfield {
-            flex: none;
-            min-height: calc(100dvh + 72px);
-            padding-bottom: max(76px, calc(env(safe-area-inset-bottom) + 68px));
-            box-sizing: border-box;
-        }
-        body.input-touch.mode-land .land-scroll-gutter {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            width: 100%;
-            min-height: clamp(36px, 10vh, 56px);
-            touch-action: pan-y;
-            -webkit-user-select: none;
-            user-select: none;
-            z-index: 45;
-            background: #2C2824;
-            color: rgba(247, 243, 235, 0.55);
-            font-size: 0.72rem;
-            letter-spacing: 0.12em;
-        }
-        body.input-touch.mode-land .land-scroll-gutter-top {
-            border-bottom: 1px solid rgba(201, 184, 164, 0.12);
-        }
-        body.input-touch.mode-land .land-scroll-gutter-bottom {
-            border-top: 1px solid rgba(201, 184, 164, 0.12);
-            min-height: clamp(44px, 12vh, 64px);
-        }
-        .land-scroll-gutter { display: none; }
         body.input-touch.mode-land.profile-phone .hud-fabs,
         body.input-touch.mode-land.profile-tablet .hud-fabs {
-            position: absolute;
-            bottom: max(8px, env(safe-area-inset-bottom));
+            position: fixed;
+            bottom: max(4px, env(safe-area-inset-bottom));
             right: max(8px, env(safe-area-inset-right));
             z-index: 50;
         }
@@ -1122,8 +1088,7 @@
         <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">iPhone 請橫放，可見<strong>兩排</strong>琴鍵（C4–B4 與 C5–B5）</p>
     </div>
 
-    <div class="game-shell" id="gameShell">
-    <div class="land-scroll-gutter land-scroll-gutter-top" aria-hidden="true">⇅ 上下滑動</div>
+    <div class="game-shell">
     <div class="playfield">
         <div class="canvas-wrap">
             <canvas id="gameCanvas" width="1100" height="420"></canvas>
@@ -1148,7 +1113,6 @@
             </div>
         </div>
     </div>
-    <div class="land-scroll-gutter land-scroll-gutter-bottom" aria-hidden="true">⇅ 滑此處往下 · 按 ▶</div>
 
     <div class="playfield-chrome" id="playfieldChrome">
         <header class="game-header">
@@ -1416,62 +1380,11 @@
             setGameDrawerOpen(false);
         }
 
-        function getLandscapeScrollRoot() {
-            return document.getElementById('gameShell') || document.scrollingElement;
-        }
-
-        /** 橫向：捲到 game-shell 底部，讓 ▶ 進入可點區 */
-        function scrollToPracticeControls() {
-            if (!isTouchProfile() || !isLandscapeView()) return;
-            const root = getLandscapeScrollRoot();
-            const run = () => {
-                const max = root && root.scrollHeight
-                    ? root.scrollHeight - (root.clientHeight || 0)
-                    : Math.max(
-                        document.body.scrollHeight,
-                        document.documentElement.scrollHeight
-                    ) - window.innerHeight;
-                const top = Math.max(0, max);
-                if (root && root.scrollHeight) {
-                    root.scrollTop = top;
-                }
-                try {
-                    window.scrollTo({ top: document.body.scrollHeight, left: 0, behavior: 'smooth' });
-                } catch (e) { /* ignore */ }
-            };
-            [0, 120, 350, 650].forEach((ms) => setTimeout(run, ms));
-        }
-
-        function initLandscapeScrollGestures() {
-            const root = getLandscapeScrollRoot();
-            document.querySelectorAll('.land-scroll-gutter').forEach((gutter) => {
-                let startY = 0;
-                let startScroll = 0;
-                gutter.addEventListener('touchstart', (e) => {
-                    if (!isLandscapeView()) return;
-                    startY = e.touches[0].clientY;
-                    startScroll = root && root.scrollHeight ? root.scrollTop : window.scrollY;
-                }, { passive: true });
-                gutter.addEventListener('touchmove', (e) => {
-                    if (!isLandscapeView()) return;
-                    const dy = startY - e.touches[0].clientY;
-                    const next = Math.max(0, startScroll + dy);
-                    if (root && root.scrollHeight) root.scrollTop = next;
-                    else window.scrollTo(0, next);
-                }, { passive: true });
-                gutter.addEventListener('touchend', () => {
-                    if (!isLandscapeView()) return;
-                    scrollToPracticeControls();
-                }, { passive: true });
-            });
-        }
-
-        /** 橫向：捲到底並提示 ▶ */
+        /** 橫向：固定 HUD 在右下角並提示 ▶（iframe 內無捲軸，不靠 scrollIntoView） */
         function ensureHudVisible() {
             if (!isTouchProfile() || !isLandscapeView()) return;
             closeGameDrawer();
             applyLayout();
-            scrollToPracticeControls();
             const play = document.getElementById('btnHudPlay');
             if (play) {
                 play.classList.remove('hud-nudge');
@@ -1633,7 +1546,6 @@
                 document.body.classList.toggle('layout-portrait', false);
                 const rh = document.getElementById('rotateHint');
                 if (rh) rh.classList.remove('show');
-                if (land) setTimeout(scrollToPracticeControls, 80);
                 return;
             } else if (land) {
                 document.documentElement.style.height = viewH + 'px';
@@ -2809,7 +2721,6 @@
 
         initInputMode();
         applyLayout();
-        initLandscapeScrollGestures();
         setTimeout(ensureHudVisible, 200);
         setTimeout(ensureHudVisible, 550);
         window.addEventListener('resize', () => {
