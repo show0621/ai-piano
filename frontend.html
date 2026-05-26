@@ -2683,26 +2683,27 @@
             if (countdownRunning) return;
             const overlay = document.getElementById('countdownOverlay');
             const numEl = document.getElementById('countdownNum');
-            if (!overlay || !numEl || !(isTouchProfile() && isLandscapeView())) {
+            if (!overlay || !numEl) {
                 onGo();
                 return;
             }
             countdownRunning = true;
             let n = 3;
+            const tickMs = 1000;
             numEl.textContent = String(n);
             overlay.classList.add('show');
             const step = () => {
                 n -= 1;
                 if (n > 0) {
                     numEl.textContent = String(n);
-                    setTimeout(step, 650);
+                    setTimeout(step, tickMs);
                 } else {
                     overlay.classList.remove('show');
                     countdownRunning = false;
                     onGo();
                 }
             };
-            setTimeout(step, 650);
+            setTimeout(step, tickMs);
         }
 
         function togglePlay() {
@@ -2722,7 +2723,7 @@
                 beginPlayback(fromStart ? 0 : getCurrentTime());
                 updatePlayButtonLabels();
             };
-            if (fromStart && isTouchProfile() && isLandscapeView()) {
+            if (fromStart) {
                 startWithCountdown(go);
             } else {
                 go();
