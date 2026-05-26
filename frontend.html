@@ -900,11 +900,27 @@
         body.input-touch .touch-hint-keyboard { display: none; }
         body.input-touch .touch-hint-blocks { display: block; }
         body:not(.input-touch) .touch-hint-blocks { display: none; }
-        /* 手機橫向：右下角 ▶ / ⚙ 貼近底部，配合自動捲動後可直接按 */
+        /* 手機橫向：HUD 固定於視窗右下角（不依賴捲動） */
+        body.input-touch.mode-land.profile-phone .game-hud,
+        body.input-touch.mode-land.profile-tablet .game-hud {
+            position: fixed;
+            inset: 0;
+            z-index: 28;
+            pointer-events: none;
+        }
         body.input-touch.mode-land.profile-phone .hud-fabs,
         body.input-touch.mode-land.profile-tablet .hud-fabs {
+            position: fixed;
             bottom: max(4px, env(safe-area-inset-bottom));
             right: max(8px, env(safe-area-inset-right));
+            z-index: 50;
+        }
+        .hud-fab.play.hud-nudge {
+            animation: hud-nudge 0.85s ease-out 1;
+        }
+        @keyframes hud-nudge {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35); }
+            40% { transform: scale(1.12); box-shadow: 0 0 24px rgba(255, 200, 120, 0.65); }
         }
         .mobile-dock .dock-mode {
             min-height: 44px;
@@ -1364,19 +1380,24 @@
             setGameDrawerOpen(false);
         }
 
-        /** 橫向：自動捲到畫面下方，讓右下角 ▶ / ⚙ 進入可點區域 */
-        function scrollToPracticeControls() {
+        /** 橫向：固定 HUD 在右下角並提示 ▶（iframe 內無捲軸，不靠 scrollIntoView） */
+        function ensureHudVisible() {
             if (!isTouchProfile() || !isLandscapeView()) return;
             closeGameDrawer();
-            const btn = document.getElementById('btnHudPlay');
-            const run = () => {
-                if (btn) {
-                    try { btn.scrollIntoView({ block: 'end', inline: 'nearest', behavior: 'smooth' }); } catch (e) { /* ignore */ }
-                }
-                try { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); } catch (e) { /* ignore */ }
-            };
-            requestAnimationFrame(() => setTimeout(run, 80));
+            applyLayout();
+            const play = document.getElementById('btnHudPlay');
+            if (play) {
+                play.classList.remove('hud-nudge');
+                void play.offsetWidth;
+                play.classList.add('hud-nudge');
+            }
         }
+
+        window.addEventListener('message', (ev) => {
+            if (!ev.data || ev.data.type !== 'ai-piano-landscape') return;
+            setTimeout(ensureHudVisible, 50);
+            setTimeout(ensureHudVisible, 350);
+        });
 
         function toggleGameDrawer() {
             const drawer = document.getElementById('gameDrawer');
@@ -2700,23 +2721,32 @@
 
         initInputMode();
         applyLayout();
-        setTimeout(scrollToPracticeControls, 280);
+        setTimeout(ensureHudVisible, 200);
+        setTimeout(ensureHudVisible, 550);
         window.addEventListener('resize', () => {
             applyLayout();
-            if (isLandscapeView()) setTimeout(scrollToPracticeControls, 120);
+            if (isLandscapeView()) {
+                setTimeout(ensureHudVisible, 80);
+                setTimeout(ensureHudVisible, 320);
+            }
         });
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
                 applyLayout();
-                scrollToPracticeControls();
-            }, 160);
+                ensureHudVisible();
+            }, 200);
+            setTimeout(() => {
+                applyLayout();
+                ensureHudVisible();
+            }, 550);
         });
         if (screen.orientation && screen.orientation.addEventListener) {
             screen.orientation.addEventListener('change', () => {
                 setTimeout(() => {
                     applyLayout();
-                    scrollToPracticeControls();
-                }, 160);
+                    ensureHudVisible();
+                }, 200);
+                setTimeout(ensureHudVisible, 550);
             });
         }
         if (window.visualViewport) {

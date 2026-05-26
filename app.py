@@ -182,6 +182,34 @@ body.st-mobile-practice.lesson-active div[data-testid="stHtml"] iframe {
 MOBILE_PRACTICE_BOOT = """
 <script>
 (function () {
+    function notifyIframeLandscape() {
+        var iframe = document.querySelector('[data-testid="stHtml"] iframe');
+        if (!iframe || !iframe.contentWindow) return;
+        try {
+            iframe.contentWindow.postMessage({ type: "ai-piano-landscape" }, "*");
+        } catch (e) { /* ignore */ }
+    }
+
+    function scrollParentToGame() {
+        if (window.innerWidth <= window.innerHeight) return;
+        var box = document.querySelector('[data-testid="stHtml"]');
+        if (!box) return;
+        var jump = function () {
+            try {
+                box.scrollIntoView({ behavior: "smooth", block: "end" });
+            } catch (e) { /* ignore */ }
+            var h = Math.max(
+                document.body.scrollHeight,
+                document.documentElement.scrollHeight
+            );
+            window.scrollTo({ top: h, left: 0, behavior: "smooth" });
+            document.documentElement.scrollTop = h;
+            document.body.scrollTop = h;
+        };
+        [0, 150, 400, 700].forEach(function (ms) { setTimeout(jump, ms); });
+        notifyIframeLandscape();
+    }
+
     function apply() {
         var marker = document.querySelector(".lesson-piano-marker");
         var iframe = document.querySelector('[data-testid="stHtml"] iframe');
@@ -199,37 +227,35 @@ MOBILE_PRACTICE_BOOT = """
         } else {
             document.body.classList.remove("st-mobile-practice");
         }
-        var box = document.querySelector('[data-testid="stHtml"]');
         var land = window.innerWidth > window.innerHeight;
-        function scrollToGame() {
-            var b = document.querySelector('[data-testid="stHtml"]');
-            if (!b) return;
-            if (land) {
-                b.scrollIntoView({ behavior: "smooth", block: "end" });
-                window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-            } else {
-                b.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
-        }
-        if (box && !box.dataset.scrolled) {
-            box.dataset.scrolled = "1";
-            setTimeout(scrollToGame, 120);
+        if (land) {
+            scrollParentToGame();
+        } else if (iframe && !document.body.classList.contains("st-mobile-practice")) {
+            try { iframe.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { /* ignore */ }
         }
     }
+
+    function onLandscape() {
+        apply();
+        if (document.querySelector(".lesson-piano-marker")) {
+            scrollParentToGame();
+        }
+    }
+
     apply();
-    window.addEventListener("resize", apply);
-    window.addEventListener("orientationchange", function () {
-        setTimeout(function () {
-            apply();
-            if (document.querySelector(".lesson-piano-marker") && window.innerWidth > window.innerHeight) {
-                var b = document.querySelector('[data-testid="stHtml"]');
-                if (b) {
-                    b.scrollIntoView({ behavior: "smooth", block: "end" });
-                    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
-                }
-            }
-        }, 220);
+    window.addEventListener("resize", function () {
+        if (window.innerWidth > window.innerHeight) onLandscape();
+        else apply();
     });
+    window.addEventListener("orientationchange", function () {
+        setTimeout(onLandscape, 280);
+        setTimeout(onLandscape, 600);
+    });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener("resize", function () {
+            if (window.innerWidth > window.innerHeight) onLandscape();
+        });
+    }
     new MutationObserver(apply).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
@@ -266,9 +292,8 @@ def render_piano(
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
 
-    boot = MOBILE_PRACTICE_BOOT
     # 需足夠高度讓 PC 顯示；手機滿版由 lesson-active / st-mobile-practice CSS 覆蓋
-    components.html(boot + html, height=920, scrolling=False)
+    components.html(html, height=920, scrolling=False)
 
 
 def save_upload(uploaded_file) -> str:
