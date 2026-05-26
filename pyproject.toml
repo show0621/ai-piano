@@ -11,6 +11,6 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = [
-    "tensorflow-cpu==2.15.1",
-    "basic-pitch==0.3.0",
+    "tensorflow==2.15.0",
+    "basic-pitch>=0.3.2,<0.5",
 ]
