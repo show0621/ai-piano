@@ -773,7 +773,12 @@ elif audio_source == "🌸 示範曲":
         "不需 AI、不需網路，可直接練習。範例：小星星、簡單愛；"
         "另含 10 首兒歌／動畫主題與貝多芬、卡農等公版古典（C 調簡化主旋律）。"
     )
-    demo_by_label = {f"{d['artist']} · {d['title']}": d for d in DEMO_CATALOG}
+    def _demo_label(d: dict) -> str:
+        if d.get("id") == "jianndanai":
+            return d["title"]
+        return f"{d['artist']} · {d['title']}"
+
+    demo_by_label = {_demo_label(d): d for d in DEMO_CATALOG}
     demo_pick_label = st.radio(
         "選擇曲目",
         options=list(demo_by_label.keys()),
@@ -784,11 +789,7 @@ elif audio_source == "🌸 示範曲":
     if st.button("載入示範曲", type="primary", key="btn_demo"):
         try:
             notes = get_demo_score(ent["id"])
-            title = (
-                ent["title"]
-                if ent["id"] == "jianndanai"
-                else f"{ent['artist']} · {ent['title']}"
-            )
+            title = _demo_label(ent)
             load_score_lesson(notes, title, force_full=bool(ent.get("full")))
             st.rerun()
         except Exception as e:
