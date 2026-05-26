@@ -463,6 +463,14 @@
             100% { opacity: 0; }
         }
         #statCombo.hot { color: #E85D3A; font-weight: 600; }
+        #statPlayTimer {
+            font-variant-numeric: tabular-nums;
+            color: #6B5742;
+        }
+        #statPlayTimer.near-end {
+            color: #E85D3A;
+            font-weight: 600;
+        }
         .stats-bar {
             display: flex; justify-content: center; gap: 24px;
             margin: 10px 0; font-size: 0.85rem;
@@ -1237,6 +1245,7 @@
             <p class="subtitle" id="modeLabel">練習模式</p>
         </header>
         <div class="stats-bar">
+            <span id="statPlayTimer">時間 0:00</span>
             <span id="statCombo">連擊 0</span>
             <span id="statAcc">正確率 —</span>
             <span id="statMiss">漏接 0</span>
@@ -1328,6 +1337,8 @@
         const SONG_TITLE = "{{SONG_TITLE}}";
         const SCORE_ID = "{{SCORE_ID}}";
         const IS_JIANNDANAI = SCORE_ID === 'jianndanai' || /簡單愛/i.test(SONG_TITLE);
+        const JIANNDANAI_MIN_PLAY_SEC = 60;
+        const JIANNDANAI_PASS_SCORE = 70;
 
         const WHITE_KEYS = [
             { pitch: 60, key: 'a', label: 'C4', kn: 'A', octave: 1, whiteIdx: 0 },
@@ -2075,6 +2086,26 @@
             return layout.canvasLeft + 6.5 * layout.keyWidth;
         }
 
+        function formatClock(sec) {
+            const s = Math.max(0, Math.floor(sec));
+            return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        }
+
+        function updatePlayTimer() {
+            const el = document.getElementById('statPlayTimer');
+            if (!el) return;
+            const t = isPlaying ? getCurrentTime() : (clockPausedAt || 0);
+            let label = '時間 ' + formatClock(t);
+            if (IS_JIANNDANAI) {
+                label += ' / ' + formatClock(JIANNDANAI_MIN_PLAY_SEC) + ' 結算';
+                const near = isPlaying && t >= JIANNDANAI_MIN_PLAY_SEC - 5 && t < JIANNDANAI_MIN_PLAY_SEC;
+                el.classList.toggle('near-end', near);
+            } else {
+                el.classList.remove('near-end');
+            }
+            el.textContent = label;
+        }
+
         function updateStatsUI() {
             const total = stats.hits + stats.mistakes;
             const acc = total ? Math.round((stats.hits / total) * 100) : 100;
@@ -2082,6 +2113,7 @@
             statComboEl.classList.toggle('hot', stats.combo >= 10);
             document.getElementById('statAcc').textContent = '正確率 ' + acc + '%';
             document.getElementById('statMiss').textContent = '漏接 ' + stats.mistakes;
+            updatePlayTimer();
         }
 
         function showFeedback(text, color) {
@@ -2104,15 +2136,15 @@
         }
 
         function getJianndanaiComment(score) {
-            if (score >= 85) {
+            if (score >= JIANNDANAI_PASS_SCORE) {
                 return {
-                    zh: '太神拉!!\n你是大神!!',
-                    en: 'You are absolutely legendary!!',
+                    zh: '原諒我的著急，陪我久一點',
+                    en: 'Forgive my impatience — stay with me a little longer.',
                 };
             }
             return {
                 zh: '繼續練，會更好的～',
-                en: 'Forgive me, okay? Life is still long — I want to walk through it with you.',
+                en: '',
             };
         }
 
@@ -2125,13 +2157,11 @@
             const enEl = document.getElementById('finaleCommentEn');
             if (!overlay || !scoreEl) return;
             scoreEl.textContent = '得到 ' + score + ' 分!!';
-            if (zhEl) {
-                if (score >= 85) zhEl.innerHTML = '太神拉!!<br>你是大神!!';
-                else zhEl.textContent = c.zh;
-            }
+            if (zhEl) zhEl.textContent = c.zh;
             if (enEl) enEl.textContent = c.en;
             overlay.hidden = false;
             overlay.classList.add('show');
+            updatePlayTimer();
         }
 
         function hideJianndanaiFinale() {
@@ -2156,9 +2186,15 @@
         function isSongPlaythroughComplete() {
             if (!notes.length) return false;
             const t = getCurrentTime();
+            if (IS_JIANNDANAI && t >= JIANNDANAI_MIN_PLAY_SEC) return true;
             const end = getSongDuration() + HIT_WINDOW;
             if (t < end) return false;
             return notes.every(n => n.isHit || n.isMissed);
+        }
+
+        function jianndanaiFinaleDelaySec() {
+            const maxT = notes.length ? Math.max(...notes.map(n => n.start_time + n.duration)) + 1 : 8;
+            return IS_JIANNDANAI ? Math.min(maxT, JIANNDANAI_MIN_PLAY_SEC) : maxT;
         }
 
         const btnFinaleClose = document.getElementById('btnFinaleClose');
@@ -2746,6 +2782,7 @@
             }
 
             ctx.restore();
+            if (isPlaying) updatePlayTimer();
             animationId = requestAnimationFrame(draw);
         }
 
@@ -2943,14 +2980,14 @@
             document.getElementById('btnTeach').classList.add('active-mode');
             beginPlayback(0);
             scheduleNotes('teach');
-            const maxT = notes.length ? Math.max(...notes.map(n => n.start_time + n.duration)) + 1 : 8;
+            const endSec = jianndanaiFinaleDelaySec();
             teachTimeouts.push(setTimeout(() => {
                 isPlaying = false;
                 teachMode = false;
                 if (!useInternalClock) audio.pause();
                 if (IS_JIANNDANAI) completeJianndanaiSong();
                 else showFeedback('おしまい', '#C9B8A4');
-            }, maxT * 1100 / getSpeed()));
+            }, endSec * 1100 / getSpeed()));
         }
 
         function startAutoPlay() {
@@ -2960,14 +2997,14 @@
             document.getElementById('btnAutoDock')?.classList.add('active-mode');
             beginPlayback(0);
             scheduleNotes('auto');
-            const maxT = notes.length ? Math.max(...notes.map(n => n.start_time + n.duration)) + 1 : 8;
+            const endSec = jianndanaiFinaleDelaySec();
             autoTimeouts.push(setTimeout(() => {
                 isPlaying = false;
                 autoPlayMode = false;
                 if (!useInternalClock) audio.pause();
                 if (IS_JIANNDANAI) completeJianndanaiSong();
                 else showFeedback('自動演奏終', '#C9B8A4');
-            }, maxT * 1100 / getSpeed()));
+            }, endSec * 1100 / getSpeed()));
         }
 
         if (notes.length) {
