@@ -900,6 +900,44 @@
         body.input-touch .touch-hint-keyboard { display: none; }
         body.input-touch .touch-hint-blocks { display: block; }
         body:not(.input-touch) .touch-hint-blocks { display: none; }
+        /* 手機橫向 · 觸碰模式：底部固定「開始跟彈」 */
+        .landscape-start-bar {
+            display: none;
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 40;
+            padding: 20px max(12px, env(safe-area-inset-right))
+                max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+            background: linear-gradient(0deg, rgba(12, 10, 8, 0.94) 0%, rgba(12, 10, 8, 0.5) 65%, transparent 100%);
+            justify-content: center;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+        body.input-touch.mode-land.profile-phone .landscape-start-bar,
+        body.input-touch.mode-land.profile-tablet .landscape-start-bar {
+            display: flex;
+            pointer-events: auto;
+        }
+        .landscape-start-btn {
+            width: min(92vw, 420px);
+            min-height: 54px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #A68B6E 0%, #8B7355 100%);
+            color: #FFF8F0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+        }
+        .landscape-start-btn.active-mode {
+            background: linear-gradient(180deg, #C4A882 0%, #9A7F5F 100%);
+        }
+        body.input-touch.mode-land .hud-fabs {
+            bottom: calc(76px + env(safe-area-inset-bottom));
+        }
         .mobile-dock .dock-mode {
             min-height: 44px;
             max-width: 118px;
@@ -1176,6 +1214,10 @@
     <p class="keyboard-hint touch-hint touch-hint-blocks">
         👆 <strong>觸碰色塊</strong>：點下落音符彈奏　｜　右下 <strong>▶</strong> 開始、<strong>⚙</strong> 設定
     </p>
+    <div class="landscape-start-bar" id="landscapeStartBar" aria-hidden="true">
+        <button type="button" class="landscape-start-btn" id="btnPlayLandscape">▶ 開始跟彈</button>
+    </div>
+
     </div><!-- .game-shell -->
 
     <script>
@@ -1356,6 +1398,22 @@
 
         function closeGameDrawer() {
             setGameDrawerOpen(false);
+        }
+
+        /** 橫向觸碰練習：捲到黑畫面底部「開始」列 */
+        function revealPracticeStart() {
+            if (!isTouchProfile() || !isLandscapeView() || playInputMode !== 'touch') return;
+            closeGameDrawer();
+            const bar = document.getElementById('landscapeStartBar');
+            const btn = document.getElementById('btnPlayLandscape') || document.getElementById('btnHudPlay');
+            if (bar) bar.setAttribute('aria-hidden', 'false');
+            const run = () => {
+                if (btn) {
+                    try { btn.scrollIntoView({ block: 'end', inline: 'center', behavior: 'smooth' }); } catch (e) { /* ignore */ }
+                }
+                try { window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }); } catch (e) { /* ignore */ }
+            };
+            requestAnimationFrame(() => setTimeout(run, 80));
         }
 
         function toggleGameDrawer() {
@@ -1715,6 +1773,15 @@
         const btnHudPlay = document.getElementById('btnHudPlay');
         if (btnHudPlay) {
             btnHudPlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeGameDrawer();
+                togglePlay();
+            });
+        }
+        const btnPlayLandscape = document.getElementById('btnPlayLandscape');
+        if (btnPlayLandscape) {
+            btnPlayLandscape.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 closeGameDrawer();
@@ -2524,6 +2591,11 @@
                 hudPlay.textContent = playing ? '⏸' : '▶';
                 hudPlay.classList.toggle('active-mode', playing);
             }
+            const landPlay = document.getElementById('btnPlayLandscape');
+            if (landPlay) {
+                landPlay.textContent = playLabel;
+                landPlay.classList.toggle('active-mode', playing);
+            }
         }
 
         let countdownRunning = false;
@@ -2680,10 +2752,24 @@
 
         initInputMode();
         applyLayout();
-        window.addEventListener('resize', applyLayout);
-        window.addEventListener('orientationchange', () => setTimeout(applyLayout, 120));
+        setTimeout(revealPracticeStart, 280);
+        window.addEventListener('resize', () => {
+            applyLayout();
+            if (isLandscapeView()) setTimeout(revealPracticeStart, 120);
+        });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                applyLayout();
+                revealPracticeStart();
+            }, 160);
+        });
         if (screen.orientation && screen.orientation.addEventListener) {
-            screen.orientation.addEventListener('change', () => setTimeout(applyLayout, 120));
+            screen.orientation.addEventListener('change', () => {
+                setTimeout(() => {
+                    applyLayout();
+                    revealPracticeStart();
+                }, 160);
+            });
         }
         if (window.visualViewport) {
             visualViewport.addEventListener('resize', applyLayout);

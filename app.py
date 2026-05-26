@@ -200,14 +200,36 @@ MOBILE_PRACTICE_BOOT = """
             document.body.classList.remove("st-mobile-practice");
         }
         var box = document.querySelector('[data-testid="stHtml"]');
+        var land = window.innerWidth > window.innerHeight;
+        function scrollToGame() {
+            var b = document.querySelector('[data-testid="stHtml"]');
+            if (!b) return;
+            if (land) {
+                b.scrollIntoView({ behavior: "smooth", block: "end" });
+                window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+            } else {
+                b.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        }
         if (box && !box.dataset.scrolled) {
             box.dataset.scrolled = "1";
-            setTimeout(function () { box.scrollIntoView({ behavior: "smooth", block: "start" }); }, 120);
+            setTimeout(scrollToGame, 120);
         }
     }
     apply();
     window.addEventListener("resize", apply);
-    window.addEventListener("orientationchange", function () { setTimeout(apply, 200); });
+    window.addEventListener("orientationchange", function () {
+        setTimeout(function () {
+            apply();
+            if (document.querySelector(".lesson-piano-marker") && window.innerWidth > window.innerHeight) {
+                var b = document.querySelector('[data-testid="stHtml"]');
+                if (b) {
+                    b.scrollIntoView({ behavior: "smooth", block: "end" });
+                    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" });
+                }
+            }
+        }, 220);
+    });
     new MutationObserver(apply).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
@@ -726,9 +748,14 @@ elif audio_source == "🌸 示範曲":
         "不需 AI、不需網路，可直接練習。範例：小星星、簡單愛；"
         "另含 10 首兒歌／動畫主題與貝多芬、卡農等公版古典（C 調簡化主旋律）。"
     )
-    demo_labels = [f"{d['artist']} · {d['title']}" for d in DEMO_CATALOG]
-    demo_pick = st.selectbox("選擇曲目", range(len(demo_labels)), format_func=lambda i: demo_labels[i], key="demo_pick")
-    ent = DEMO_CATALOG[demo_pick]
+    demo_by_label = {f"{d['artist']} · {d['title']}": d for d in DEMO_CATALOG}
+    demo_pick_label = st.radio(
+        "選擇曲目",
+        options=list(demo_by_label.keys()),
+        key="demo_pick_radio",
+        help="點選列表即可，不會跳出鍵盤輸入。",
+    )
+    ent = demo_by_label[demo_pick_label]
     if st.button("載入示範曲", type="primary", key="btn_demo"):
         try:
             notes = get_demo_score(ent["id"])
