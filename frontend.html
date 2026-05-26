@@ -915,6 +915,58 @@
             right: max(8px, env(safe-area-inset-right));
             z-index: 50;
         }
+        /* 手機直向觸碰：遊戲框加高，▶ / ⚙ 在左下角橫排（如示意） */
+        body.input-touch.mode-port.profile-phone .playfield,
+        body.input-touch.mode-port.profile-tablet .playfield {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+        }
+        body.input-touch.mode-port.profile-phone .canvas-wrap,
+        body.input-touch.mode-port.profile-tablet .canvas-wrap {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+        }
+        body.input-touch.mode-port.profile-phone .canvas-wrap #gameCanvas,
+        body.input-touch.mode-port.profile-tablet .canvas-wrap #gameCanvas {
+            flex: 1 1 auto;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 200px;
+            height: auto !important;
+        }
+        body.input-touch.mode-port.profile-phone .game-hud,
+        body.input-touch.mode-port.profile-tablet .game-hud {
+            position: relative;
+            inset: auto;
+            flex: 0 0 auto;
+            min-height: 64px;
+            display: flex;
+            align-items: flex-end;
+            pointer-events: none;
+            background: #2C2824;
+        }
+        body.input-touch.mode-port.profile-phone .hud-fabs,
+        body.input-touch.mode-port.profile-tablet .hud-fabs {
+            position: relative;
+            left: max(12px, env(safe-area-inset-left));
+            right: auto;
+            bottom: auto;
+            flex-direction: row;
+            gap: 12px;
+            padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+            justify-content: flex-start;
+            align-items: center;
+        }
         .hud-fab.play.hud-nudge {
             animation: hud-nudge 0.85s ease-out 1;
         }
@@ -1451,6 +1503,10 @@
             return 20;
         }
 
+        function portraitTouchHudReserve() {
+            return 68;
+        }
+
         function refineCanvasHeight(maxRatio) {
             requestAnimationFrame(() => {
                 const vh = viewportHeight();
@@ -1462,6 +1518,24 @@
                 layout.pianoTop = h2 - 4;
                 layout.judgeY = layout.pianoTop - 4;
                 canvas.height = h2;
+                canvas.style.height = h2 + 'px';
+            });
+        }
+
+        /** 直向觸碰：遊戲框盡量拉高，底部留給 ▶ / ⚙ */
+        function refineCanvasHeightPortraitTouch() {
+            requestAnimationFrame(() => {
+                if (!isTouchProfile() || isLandscapeView() || playInputMode !== 'touch') return;
+                const vh = viewportHeight();
+                const reserve = portraitTouchHudReserve();
+                const h2 = Math.max(200, Math.floor(vh - reserve - 12));
+                if (Math.abs(h2 - layout.canvasH) <= 4) return;
+                layout.canvasH = h2;
+                layout.pianoTop = h2 - 4;
+                layout.judgeY = layout.pianoTop - 4;
+                canvas.width = layout.canvasW;
+                canvas.height = h2;
+                canvas.style.width = '100%';
                 canvas.style.height = h2 + 'px';
             });
         }
@@ -1512,6 +1586,16 @@
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
                 h = Math.max(200, Math.min(Math.floor(viewH - measureChromeHeight() - 12), Math.round(w * 0.46)));
+            } else if (profile === 'phone' && !land && playInputMode === 'touch') {
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                w = Math.floor(viewW - 8);
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 12) / 14));
+                keyH = 48;
+                h = Math.max(200, Math.floor(viewH - portraitTouchHudReserve() - 12));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
             } else if (profile === 'phone' && !land) {
                 document.documentElement.style.height = '';
                 document.body.style.height = '';
@@ -1519,6 +1603,15 @@
                 w = keyW * 14 + 28;
                 keyH = 64;
                 h = Math.floor(Math.max(140, Math.min(w * 0.34, 280)));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (profile === 'tablet' && !land && playInputMode === 'touch') {
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                w = Math.floor(Math.min(availW, window.innerWidth - 8));
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 16) / 14));
+                keyH = 52;
+                h = Math.max(220, Math.floor(viewH - portraitTouchHudReserve() - 16));
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
             } else if (land && playInputMode === 'touch' && isTouchProfile()) {
@@ -1603,8 +1696,12 @@
             } else if (land) {
                 const ratio = profile === 'tablet' ? 0.42 : 0.38;
                 refineCanvasHeight(ratio);
+            } else if (profile === 'tablet' && !land && playInputMode === 'touch') {
+                refineCanvasHeightPortraitTouch();
             } else if (profile === 'tablet') {
                 refineCanvasHeight(playInputMode === 'touch' ? 0.48 : 0.36);
+            } else if (profile === 'phone' && playInputMode === 'touch' && !land) {
+                refineCanvasHeightPortraitTouch();
             } else if (profile === 'phone' && playInputMode === 'touch') {
                 refineCanvasHeight(0.44);
             }
