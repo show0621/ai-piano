@@ -279,6 +279,7 @@ def render_piano(
     practice_mode: str = "full",
     audio_offset: float = 0,
     auto_play: bool = False,
+    score_id: str = "",
 ):
     with open(os.path.join(APP_DIR, "frontend.html"), "r", encoding="utf-8") as f:
         html = f.read()
@@ -291,6 +292,7 @@ def render_piano(
     html = html.replace("{{PRACTICE_MODE}}", practice_mode)
     html = html.replace("{{AUDIO_OFFSET}}", str(audio_offset))
     html = html.replace("{{AUTO_PLAY}}", "true" if auto_play else "false")
+    html = html.replace("{{SCORE_ID}}", score_id.replace('"', ""))
 
     # 需足夠高度讓 PC 顯示；手機滿版由 lesson-active / st-mobile-practice CSS 覆蓋
     components.html(html, height=920, scrolling=False)
@@ -433,6 +435,7 @@ def load_score_lesson(
     *,
     force_full: bool = False,
     audio_path: str | None = None,
+    score_id: str = "",
 ) -> None:
     """從曲庫 / 樂譜搜尋載入（不需 AI）。"""
     if force_full:
@@ -459,6 +462,7 @@ def load_score_lesson(
         "practice_mode": practice_mode,
         "auto_play": auto_play_demo,
         "source": st.session_state.get("audio_source", ""),
+        "score_id": score_id,
     }
 
 
@@ -644,6 +648,7 @@ elif audio_source == "📚 曲庫":
                     notes,
                     catalog_entry_title(ent),
                     force_full=force,
+                    score_id=ent["id"],
                 )
                 st.rerun()
             except Exception as e:
@@ -790,7 +795,12 @@ elif audio_source == "🌸 示範曲":
         try:
             notes = get_demo_score(ent["id"])
             title = _demo_label(ent)
-            load_score_lesson(notes, title, force_full=bool(ent.get("full")))
+            load_score_lesson(
+                notes,
+                title,
+                force_full=bool(ent.get("full")),
+                score_id=ent.get("id", ""),
+            )
             st.rerun()
         except Exception as e:
             st.error(str(e))
@@ -866,6 +876,7 @@ if st.session_state.get("lesson_ready") and "lesson" in st.session_state:
         practice_mode=L["practice_mode"],
         audio_offset=L["audio_offset"],
         auto_play=L.get("auto_play", False),
+        score_id=L.get("score_id", ""),
     )
 
     if L.get("auto_play") and not IS_CLOUD:

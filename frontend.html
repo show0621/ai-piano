@@ -1035,6 +1035,59 @@
             color: #FFD54F;
             text-shadow: 0 0 24px rgba(255, 213, 100, 0.6);
         }
+        #finaleOverlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 55;
+            background: rgba(28, 24, 20, 0.88);
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            pointer-events: auto;
+        }
+        #finaleOverlay.show { display: flex; }
+        .finale-card {
+            max-width: 420px;
+            width: 100%;
+            padding: 28px 22px 24px;
+            border-radius: 12px;
+            background: linear-gradient(165deg, #F7F3EB 0%, #EDE4D6 100%);
+            border: 1px solid #C9B8A4;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+            text-align: center;
+        }
+        .finale-score {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6B5742;
+            margin: 0 0 12px;
+            line-height: 1.3;
+        }
+        .finale-comment {
+            font-size: 1.05rem;
+            color: #5A4A3A;
+            margin: 0 0 8px;
+            line-height: 1.55;
+        }
+        .finale-comment-en {
+            font-size: 0.92rem;
+            color: #8B7355;
+            font-style: italic;
+            margin: 0 0 20px;
+            line-height: 1.5;
+        }
+        .finale-card button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 10px 22px;
+            border: 1px solid #C9B8A4;
+            border-radius: 6px;
+            background: #E8DED0;
+            color: #4A4035;
+            cursor: pointer;
+        }
         body.layout-compact .canvas-wrap {
             flex: 0 0 auto;
             min-height: 0;
@@ -1151,6 +1204,14 @@
             <div id="countdownOverlay" aria-live="polite">
                 <span id="countdownNum">3</span>
             </div>
+            <div id="finaleOverlay" aria-live="polite" hidden>
+                <div class="finale-card">
+                    <p class="finale-score" id="finaleScoreText">得到 0 分!!</p>
+                    <p class="finale-comment" id="finaleCommentZh"></p>
+                    <p class="finale-comment-en" id="finaleCommentEn"></p>
+                    <button type="button" id="btnFinaleClose">再彈一次</button>
+                </div>
+            </div>
             <div id="screenFlash"></div>
             <div id="edgeGlow"></div>
             <div id="comboMilestone"></div>
@@ -1264,6 +1325,9 @@
         const AUDIO_OFFSET = {{AUDIO_OFFSET}};
         const PRACTICE_MODE = "{{PRACTICE_MODE}}";
         const AUTO_PLAY_ON_LOAD = {{AUTO_PLAY}};
+        const SONG_TITLE = "{{SONG_TITLE}}";
+        const SCORE_ID = "{{SCORE_ID}}";
+        const IS_JIANNDANAI = SCORE_ID === 'jianndanai' || /簡單愛/i.test(SONG_TITLE);
 
         const WHITE_KEYS = [
             { pitch: 60, key: 'a', label: 'C4', kn: 'A', octave: 1, whiteIdx: 0 },
@@ -1733,7 +1797,8 @@
             '火力 MAX！！', '連擊炸裂！', '節奏爆棚！', '王者降臨！', '無敵狀態！',
         ];
         let teachTimeouts = [], autoTimeouts = [];
-        let loopEnabled = PRACTICE_MODE === 'chorus';
+        let loopEnabled = !IS_JIANNDANAI && PRACTICE_MODE === 'chorus';
+        let songFinished = false;
         let useInternalClock = !AUDIO_SRC;
         let clockStart = 0, clockPausedAt = 0, isPlaying = false;
         let screenShake = 0;
@@ -2023,6 +2088,86 @@
             feedbackText = text;
             feedbackColor = color;
             feedbackTimer = 35;
+        }
+
+        function getSongDuration() {
+            if (!notes.length) return 0;
+            return Math.max(...notes.map(n => n.start_time + n.duration));
+        }
+
+        function calcPlayScore() {
+            const total = stats.hits + stats.mistakes;
+            if (!total) return 0;
+            const acc = stats.hits / total;
+            const comboBonus = Math.min(stats.maxCombo * 1.5, 15);
+            return Math.min(100, Math.round(acc * 85 + comboBonus));
+        }
+
+        function getJianndanaiComment(score) {
+            if (score >= 85) {
+                return {
+                    zh: '太神拉!!\n你是大神!!',
+                    en: 'You are absolutely legendary!!',
+                };
+            }
+            return {
+                zh: '繼續練，會更好的～',
+                en: 'Forgive me, okay? Life is still long — I want to walk through it with you.',
+            };
+        }
+
+        function showJianndanaiFinale() {
+            const score = calcPlayScore();
+            const c = getJianndanaiComment(score);
+            const overlay = document.getElementById('finaleOverlay');
+            const scoreEl = document.getElementById('finaleScoreText');
+            const zhEl = document.getElementById('finaleCommentZh');
+            const enEl = document.getElementById('finaleCommentEn');
+            if (!overlay || !scoreEl) return;
+            scoreEl.textContent = '得到 ' + score + ' 分!!';
+            if (zhEl) {
+                if (score >= 85) zhEl.innerHTML = '太神拉!!<br>你是大神!!';
+                else zhEl.textContent = c.zh;
+            }
+            if (enEl) enEl.textContent = c.en;
+            overlay.hidden = false;
+            overlay.classList.add('show');
+        }
+
+        function hideJianndanaiFinale() {
+            const overlay = document.getElementById('finaleOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.hidden = true;
+        }
+
+        function completeJianndanaiSong() {
+            if (songFinished) return;
+            songFinished = true;
+            loopEnabled = false;
+            isPlaying = false;
+            if (!useInternalClock) audio.pause();
+            else clockPausedAt = getCurrentTime();
+            clearModes();
+            updatePlayButtonLabels();
+            showJianndanaiFinale();
+        }
+
+        function isSongPlaythroughComplete() {
+            if (!notes.length) return false;
+            const t = getCurrentTime();
+            const end = getSongDuration() + HIT_WINDOW;
+            if (t < end) return false;
+            return notes.every(n => n.isHit || n.isMissed);
+        }
+
+        const btnFinaleClose = document.getElementById('btnFinaleClose');
+        if (btnFinaleClose) {
+            btnFinaleClose.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideJianndanaiFinale();
+                restart();
+            });
         }
 
         function getNoteCenterX(pitch) {
@@ -2527,10 +2672,14 @@
             const t = getCurrentTime();
             const now = performance.now();
 
-            if (loopEnabled && isPlaying) {
+            if (loopEnabled && isPlaying && !IS_JIANNDANAI && !songFinished) {
                 const ls = parseFloat(document.getElementById('loopStart').value) || 0;
                 const le = parseFloat(document.getElementById('loopEnd').value) || 999;
                 if (t >= le) seekTo(ls);
+            }
+
+            if (IS_JIANNDANAI && isPlaying && !teachMode && !autoPlayMode && !songFinished) {
+                if (isSongPlaythroughComplete()) completeJianndanaiSong();
             }
 
             notes.forEach(note => {
@@ -2737,6 +2886,8 @@
 
         function restart() {
             clearModes();
+            songFinished = false;
+            hideJianndanaiFinale();
             isPlaying = false;
             if (!useInternalClock) { audio.pause(); audio.currentTime = AUDIO_OFFSET; }
             clockPausedAt = 0;
@@ -2797,7 +2948,8 @@
                 isPlaying = false;
                 teachMode = false;
                 if (!useInternalClock) audio.pause();
-                showFeedback('おしまい', '#C9B8A4');
+                if (IS_JIANNDANAI) completeJianndanaiSong();
+                else showFeedback('おしまい', '#C9B8A4');
             }, maxT * 1100 / getSpeed()));
         }
 
@@ -2813,7 +2965,8 @@
                 isPlaying = false;
                 autoPlayMode = false;
                 if (!useInternalClock) audio.pause();
-                showFeedback('自動演奏終', '#C9B8A4');
+                if (IS_JIANNDANAI) completeJianndanaiSong();
+                else showFeedback('自動演奏終', '#C9B8A4');
             }, maxT * 1100 / getSpeed()));
         }
 
@@ -2821,7 +2974,9 @@
             const last = notes[notes.length - 1];
             const dur = last.start_time + last.duration + 1;
             document.getElementById('loopEnd').value = Math.ceil(dur);
-            if (PRACTICE_MODE === 'chorus') {
+            if (IS_JIANNDANAI) {
+                loopEnabled = false;
+            } else if (PRACTICE_MODE === 'chorus') {
                 document.getElementById('loopStart').value = 0;
                 document.getElementById('loopEnd').value = Math.ceil(dur);
                 loopEnabled = true;
