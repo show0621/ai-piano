@@ -922,12 +922,16 @@
             flex-direction: column;
             flex: 1 1 auto;
             min-height: 0;
+            max-height: 100%;
             height: 100%;
+            overflow: hidden;
         }
         body.input-touch.mode-port.profile-phone .canvas-wrap,
         body.input-touch.mode-port.profile-tablet .canvas-wrap {
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: stretch;
@@ -938,10 +942,10 @@
         }
         body.input-touch.mode-port.profile-phone .canvas-wrap #gameCanvas,
         body.input-touch.mode-port.profile-tablet .canvas-wrap #gameCanvas {
-            flex: 1 1 auto;
+            flex: 0 0 auto;
             width: 100% !important;
             max-width: 100% !important;
-            min-height: 200px;
+            min-height: 0;
             height: auto !important;
         }
         body.input-touch.mode-port.profile-phone .game-hud,
@@ -1504,7 +1508,18 @@
         }
 
         function portraitTouchHudReserve() {
-            return 68;
+            const hud = document.querySelector('.game-hud');
+            if (hud && hud.offsetHeight > 0) return Math.ceil(hud.getBoundingClientRect().height);
+            return 72;
+        }
+
+        /** 直向觸碰：canvas 高度 = 可視區 − 底部按鈕列（避免超出螢幕滑不動） */
+        function portraitTouchCanvasHeight(viewH) {
+            const pf = document.querySelector('.playfield');
+            const avail = pf && pf.clientHeight > 0 ? pf.clientHeight : viewH;
+            const hudH = portraitTouchHudReserve();
+            const cap = Math.floor(viewH * 0.56);
+            return Math.max(200, Math.min(cap, Math.floor(avail - hudH - 6)));
         }
 
         function refineCanvasHeight(maxRatio) {
@@ -1522,13 +1537,12 @@
             });
         }
 
-        /** 直向觸碰：遊戲框盡量拉高，底部留給 ▶ / ⚙ */
+        /** 直向觸碰：依實際 playfield 高度重算，確保 ▶ / ⚙ 在同一屏內 */
         function refineCanvasHeightPortraitTouch() {
             requestAnimationFrame(() => {
                 if (!isTouchProfile() || isLandscapeView() || playInputMode !== 'touch') return;
                 const vh = viewportHeight();
-                const reserve = portraitTouchHudReserve();
-                const h2 = Math.max(200, Math.floor(vh - reserve - 12));
+                const h2 = portraitTouchCanvasHeight(vh);
                 if (Math.abs(h2 - layout.canvasH) <= 4) return;
                 layout.canvasH = h2;
                 layout.pianoTop = h2 - 4;
@@ -1587,13 +1601,13 @@
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
                 h = Math.max(200, Math.min(Math.floor(viewH - measureChromeHeight() - 12), Math.round(w * 0.46)));
             } else if (profile === 'phone' && !land && playInputMode === 'touch') {
-                document.documentElement.style.height = viewH + 'px';
-                document.body.style.height = viewH + 'px';
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
                 const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
                 w = Math.floor(viewW - 8);
                 keyW = Math.max(minKeyWidth(), Math.floor((w - 12) / 14));
                 keyH = 48;
-                h = Math.max(200, Math.floor(viewH - portraitTouchHudReserve() - 12));
+                h = portraitTouchCanvasHeight(viewH);
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
             } else if (profile === 'phone' && !land) {
@@ -1606,12 +1620,12 @@
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
             } else if (profile === 'tablet' && !land && playInputMode === 'touch') {
-                document.documentElement.style.height = viewH + 'px';
-                document.body.style.height = viewH + 'px';
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
                 w = Math.floor(Math.min(availW, window.innerWidth - 8));
                 keyW = Math.max(minKeyWidth(), Math.floor((w - 16) / 14));
                 keyH = 52;
-                h = Math.max(220, Math.floor(viewH - portraitTouchHudReserve() - 16));
+                h = portraitTouchCanvasHeight(viewH);
                 document.documentElement.style.setProperty('--key-w', keyW + 'px');
                 document.documentElement.style.setProperty('--key-h', keyH + 'px');
             } else if (land && playInputMode === 'touch' && isTouchProfile()) {
