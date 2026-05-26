@@ -17,6 +17,13 @@ try {
     if (-not $root) { exit 0 }
     Set-Location $root
 
+    # 僅允許 ai-piano 倉庫自動推送，避免其他專案誤觸 hook
+    $remote = (git remote get-url origin 2>$null) -join ""
+    if ($remote -notmatch 'show0621/ai-piano') {
+        Write-Log "Skipped (remote is not show0621/ai-piano): $remote"
+        exit 0
+    }
+
     $disableFile = Join-Path $root ".cursor/auto-sync.disabled"
     if (Test-Path $disableFile) {
         Write-Log "Skipped (auto-sync disabled)."
