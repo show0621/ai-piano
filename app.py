@@ -784,7 +784,11 @@ elif audio_source == "🌸 示範曲":
     if st.button("載入示範曲", type="primary", key="btn_demo"):
         try:
             notes = get_demo_score(ent["id"])
-            title = f"{ent['artist']} · {ent['title']}"
+            title = (
+                ent["title"]
+                if ent["id"] == "jianndanai"
+                else f"{ent['artist']} · {ent['title']}"
+            )
             load_score_lesson(notes, title, force_full=bool(ent.get("full")))
             st.rerun()
         except Exception as e:

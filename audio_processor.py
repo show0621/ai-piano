@@ -146,7 +146,7 @@ _KEY_SCALES: dict[str, tuple[int, list[int]]] = {
 
 DEMO_CATALOG = [
     {"id": "twinkle", "title": "小星星", "artist": "兒歌 · 範例", "full": False},
-    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫 · 範例", "full": True},
+    {"id": "jianndanai", "title": "簡單愛TO EJ，謝謝曾經的陪伴", "artist": "周杰倫 · 範例", "full": True},
     # 兒歌
     {"id": "liangzhilaohu", "title": "兩隻老虎", "artist": "兒歌", "full": False},
     {"id": "xiaomifeng", "title": "小蜜蜂", "artist": "兒歌", "full": False},
