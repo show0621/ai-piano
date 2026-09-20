@@ -1,0 +1,3071 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>簡單愛 TO EJ 謝謝曾經的陪伴</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600&family=Zen+Kaku+Gothic+New:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --key-w: 34px;
+            --key-h: 84px;
+        }
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            margin: 0;
+            padding: 12px 8px 16px;
+            text-align: center;
+            font-family: 'Zen Kaku Gothic New', 'Noto Sans TC', sans-serif;
+            color: #4A4035;
+            background: linear-gradient(180deg, #F7F3EB 0%, #EDE8DF 100%);
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        html, body.profile-phone.layout-compact,
+        html, body.profile-tablet.layout-compact {
+            height: 100%;
+            height: 100dvh;
+            max-height: 100dvh;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            background: #2C2824;
+        }
+        /* PC：自然捲動，完整顯示雙排琴鍵與鍵盤提示 */
+        body.profile-desktop {
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 100%;
+        }
+        body.profile-desktop .game-shell {
+            padding-bottom: 12px;
+        }
+        body.profile-desktop .mobile-dock { display: none !important; }
+        body.profile-desktop .keyboard-hint-desktop { display: block !important; }
+        body.profile-desktop .touch-hint { display: none !important; }
+        body.profile-desktop .p-key .kn { font-size: 1rem; }
+        /* 手機／平板橫向：緊湊全螢幕 */
+        body.layout-compact {
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        .game-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        body.layout-compact .game-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            max-height: 100dvh;
+            max-width: none;
+            margin: 0;
+            overflow: hidden;
+        }
+        body.layout-compact .game-shell > .piano-section { order: 3; }
+        body.layout-compact .game-shell > .playfield { order: 1; flex: 1; min-height: 0; }
+        body.profile-desktop .playfield-chrome { order: 0; }
+        body.profile-desktop .playfield { order: 1; }
+        body.profile-desktop .piano-section { order: 2; }
+        body.profile-desktop .mobile-dock { display: none !important; }
+        .playfield { width: 100%; }
+        body.layout-compact .playfield {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: stretch;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+        /* 觸碰橫向：色塊區滿版（HUD／抽屜為浮層不占高度） */
+        body.input-touch.mode-land .game-shell {
+            height: 100dvh;
+            max-height: 100dvh;
+        }
+        body.input-touch.mode-land .playfield {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: 100%;
+        }
+        body.input-touch.mode-land .canvas-wrap {
+            position: absolute;
+            inset: 0;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+            display: block;
+        }
+        body.input-touch.mode-land #gameCanvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            border: none;
+            border-radius: 0;
+        }
+        body.layout-compact .playfield-chrome {
+            flex-shrink: 0;
+            width: 100%;
+            padding: 2px 4px 0;
+        }
+        /* iPad 直向：可練習（捲動），僅 iPhone 直向鎖定 */
+        body.profile-tablet.mode-port .game-shell {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .game-header { margin-bottom: 6px; }
+        h3 {
+            margin: 0 0 4px;
+            font-family: 'Noto Serif JP', 'Noto Serif TC', serif;
+            font-weight: 400;
+            letter-spacing: 0.18em;
+            font-size: 1.1rem;
+            color: #3D3530;
+        }
+        .subtitle {
+            font-size: 0.75rem;
+            letter-spacing: 0.25em;
+            color: #8B7355;
+            margin-bottom: 12px;
+        }
+        .canvas-wrap {
+            position: relative;
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 1100px;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            vertical-align: top;
+            background: #2C2824;
+            border: 1px solid #C9B8A4;
+            border-radius: 2px;
+            box-shadow: 0 8px 32px rgba(74, 64, 53, 0.12);
+        }
+        #rotateHint {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: linear-gradient(165deg, #2C2824, #4A4035);
+            color: #F7F3EB;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 28px;
+            font-family: 'Noto Serif JP', serif;
+            letter-spacing: 0.12em;
+        }
+        #rotateHint.show { display: flex; }
+        #rotateHint .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            animation: tiltPhone 1.2s ease-in-out infinite;
+        }
+        @keyframes tiltPhone {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(90deg); }
+        }
+        #comboOverlay {
+            position: absolute;
+            right: 4%;
+            top: 28%;
+            pointer-events: none;
+            text-align: right;
+            z-index: 8;
+        }
+        #comboAura {
+            position: absolute;
+            right: -8%;
+            top: 50%;
+            width: 140px;
+            height: 140px;
+            margin-top: -70px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 120, 40, 0.55) 0%, transparent 70%);
+            opacity: 0;
+            transform: scale(0.6);
+            transition: opacity 0.12s, transform 0.2s;
+            filter: blur(8px);
+        }
+        #comboAura.on { opacity: 1; transform: scale(1); }
+        #comboAura.heat-high {
+            width: 200px;
+            height: 200px;
+            margin-top: -100px;
+            background: radial-gradient(circle, rgba(255, 200, 0, 0.7) 0%, rgba(255, 60, 0, 0.35) 45%, transparent 72%);
+            animation: auraPulse 0.35s ease-in-out infinite;
+        }
+        #comboAura.heat-max {
+            width: 260px;
+            height: 260px;
+            margin-top: -130px;
+            background: radial-gradient(circle, rgba(255, 255, 200, 0.85) 0%, rgba(255, 140, 0, 0.55) 40%, rgba(255, 40, 0, 0.25) 65%, transparent 78%);
+            animation: auraPulse 0.18s ease-in-out infinite;
+        }
+        @keyframes auraPulse {
+            0%, 100% { transform: scale(1); filter: blur(8px) brightness(1); }
+            50% { transform: scale(1.12); filter: blur(10px) brightness(1.35); }
+        }
+        #comboNumber {
+            position: relative;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 3.8rem;
+            font-weight: 900;
+            line-height: 1;
+            color: #FF6D00;
+            -webkit-text-stroke: 1px rgba(120, 30, 0, 0.35);
+            text-shadow:
+                0 0 16px rgba(255, 100, 30, 1),
+                0 0 32px rgba(255, 60, 0, 0.75),
+                0 3px 0 #8B2500,
+                0 6px 12px rgba(0, 0, 0, 0.5);
+            transform: scale(1);
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        #comboNumber.visible { opacity: 1; }
+        #comboNumber.bump {
+            animation: comboBump 0.2s cubic-bezier(0.15, 1.55, 0.35, 1);
+        }
+        #comboNumber.mega {
+            color: #FFD600;
+            font-size: 4.6rem;
+            text-shadow:
+                0 0 24px rgba(255, 220, 0, 1),
+                0 0 48px rgba(255, 120, 0, 0.85),
+                0 4px 0 #B8860B,
+                0 8px 16px rgba(0, 0, 0, 0.45);
+        }
+        #comboNumber.ultra {
+            color: #FFFDE7;
+            font-size: 5.4rem;
+            animation: comboUltra 0.4s ease-out;
+        }
+        #comboNumber.fire {
+            color: #FF3D00;
+            font-size: 4.8rem;
+            animation: comboFire 0.22s ease-in-out infinite;
+            text-shadow:
+                0 0 28px #FF6D00,
+                0 0 56px rgba(255, 200, 0, 0.9),
+                0 4px 0 #BF360C;
+        }
+        #comboNumber.inferno {
+            color: #FFEB3B;
+            font-size: 5.8rem;
+            animation: comboInferno 0.16s ease-in-out infinite;
+            text-shadow:
+                0 0 32px #FF5722,
+                0 0 64px #FFD54F,
+                0 0 96px rgba(255, 80, 0, 0.65),
+                0 5px 0 #E65100;
+        }
+        #comboNumber.godlike {
+            color: #FFFFFF;
+            font-size: 6.2rem;
+            animation: comboGodlike 0.12s ease-in-out infinite;
+            text-shadow:
+                0 0 20px #FF1744,
+                0 0 40px #FF9100,
+                0 0 60px #FFEA00,
+                0 0 80px #76FF03,
+                0 5px 0 #D50000;
+        }
+        @keyframes comboFire {
+            0%, 100% { transform: scale(1) rotate(-3deg) skewX(-2deg); }
+            50% { transform: scale(1.12) rotate(3deg) skewX(2deg); }
+        }
+        @keyframes comboInferno {
+            0% { transform: scale(1.1) rotate(-4deg); filter: brightness(1.4) hue-rotate(0deg); }
+            50% { transform: scale(1.22) rotate(4deg); filter: brightness(1.7) hue-rotate(8deg); }
+            100% { transform: scale(1.08) rotate(-3deg); filter: brightness(1.35) hue-rotate(-5deg); }
+        }
+        @keyframes comboGodlike {
+            0%, 100% { transform: scale(1.15) rotate(-2deg); filter: brightness(1.5) saturate(1.4); }
+            33% { transform: scale(1.28) rotate(2deg); filter: brightness(1.8) saturate(1.6) hue-rotate(15deg); }
+            66% { transform: scale(1.2) rotate(-1deg); filter: brightness(1.65) saturate(1.5) hue-rotate(-10deg); }
+        }
+        #comboLabel {
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.28em;
+            color: #FFB74D;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.12s;
+            text-shadow: 0 0 8px rgba(255, 140, 0, 0.8);
+        }
+        #comboLabel.visible { opacity: 1; }
+        #comboLabel.rage {
+            font-size: 1.05rem;
+            color: #FFEB3B;
+            letter-spacing: 0.2em;
+            animation: labelShake 0.15s ease-in-out infinite;
+        }
+        @keyframes labelShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        #comboMilestone {
+            position: absolute;
+            left: 50%;
+            top: 22%;
+            transform: translateX(-50%) scale(0.3);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            color: #FFEB3B;
+            opacity: 0;
+            z-index: 9;
+            white-space: nowrap;
+            text-shadow:
+                0 0 20px #FF6D00,
+                0 0 40px rgba(255, 200, 0, 0.9),
+                0 4px 0 #BF360C,
+                3px 3px 0 rgba(0, 0, 0, 0.4);
+        }
+        #comboMilestone.show {
+            animation: milestonePop 0.85s cubic-bezier(0.12, 1.45, 0.28, 1) forwards;
+        }
+        @keyframes milestonePop {
+            0% { opacity: 0; transform: translateX(-50%) scale(0.2) rotate(-8deg); }
+            20% { opacity: 1; transform: translateX(-50%) scale(1.35) rotate(4deg); }
+            45% { opacity: 1; transform: translateX(-50%) scale(1.1) rotate(-2deg); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.25) translateY(-36px) rotate(6deg); }
+        }
+        #edgeGlow {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 3;
+            opacity: 0;
+            box-shadow: inset 0 0 60px rgba(255, 120, 0, 0);
+            border-radius: 2px;
+        }
+        #edgeGlow.on {
+            animation: edgeGlowFlash 0.35s ease-out forwards;
+        }
+        @keyframes edgeGlowFlash {
+            0% { opacity: 1; box-shadow: inset 0 0 80px rgba(255, 200, 60, 0.85), inset 0 0 120px rgba(255, 80, 0, 0.45); }
+            100% { opacity: 0; box-shadow: inset 0 0 20px rgba(255, 120, 0, 0); }
+        }
+        #judgmentPop {
+            position: absolute;
+            left: 50%;
+            top: 54%;
+            transform: translate(-50%, -50%) scale(0.3);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            opacity: 0;
+            z-index: 6;
+            white-space: nowrap;
+        }
+        #judgmentPop.show {
+            animation: judgmentPop 0.5s cubic-bezier(0.12, 1.35, 0.25, 1) forwards;
+        }
+        #judgmentPop.good {
+            color: #B9F6CA;
+            text-shadow: 0 0 14px rgba(129, 199, 132, 0.95), 0 2px 0 #2E7D32;
+        }
+        #rapidBanner {
+            position: absolute;
+            left: 50%;
+            top: 14%;
+            transform: translateX(-50%) scale(0.35);
+            pointer-events: none;
+            font-family: 'Noto Serif JP', 'Noto Sans TC', sans-serif;
+            font-size: 3.2rem;
+            font-weight: 900;
+            color: #FF1744;
+            letter-spacing: 0.04em;
+            opacity: 0;
+            z-index: 7;
+            white-space: nowrap;
+            -webkit-text-stroke: 1px rgba(100, 0, 0, 0.4);
+            text-shadow:
+                0 0 24px #FF6D00,
+                0 0 48px rgba(255, 230, 0, 1),
+                0 0 72px rgba(255, 60, 0, 0.6),
+                0 4px 0 #B71C1C,
+                3px 3px 0 rgba(0, 0, 0, 0.35);
+        }
+        #rapidBanner.show {
+            animation: rapidBanner 0.75s cubic-bezier(0.1, 1.5, 0.22, 1) forwards;
+        }
+        #judgmentPop.perfect {
+            color: #FFEB3B;
+            font-size: 3.4rem;
+            text-shadow:
+                0 0 24px #FF9800,
+                0 0 48px rgba(255, 235, 59, 1),
+                0 0 72px rgba(255, 120, 0, 0.7),
+                0 3px 0 #E65100,
+                0 6px 0 rgba(0, 0, 0, 0.25);
+        }
+        #screenFlash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(255, 200, 100, 0.35) 0%, transparent 70%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 4;
+            border-radius: 2px;
+        }
+        #screenFlash.on {
+            animation: screenFlash 0.25s ease-out forwards;
+        }
+        @keyframes comboBump {
+            0% { transform: scale(2.2) rotate(-4deg); }
+            55% { transform: scale(0.92) rotate(2deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+        @keyframes comboUltra {
+            0% { transform: scale(2.8); filter: brightness(2); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        @keyframes judgmentPop {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+            35% { opacity: 1; transform: translate(-50%, -58%) scale(1.35); }
+            70% { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -72%) scale(0.85); }
+        }
+        @keyframes rapidBanner {
+            0% { opacity: 0; transform: translateX(-50%) scale(0.25) rotate(-14deg); }
+            15% { opacity: 1; transform: translateX(-50%) scale(1.55) rotate(5deg); }
+            35% { opacity: 1; transform: translateX(-50%) scale(1.25) rotate(-3deg); }
+            55% { opacity: 1; transform: translateX(-50%) scale(1.35) rotate(2deg); }
+            100% { opacity: 0; transform: translateX(-50%) scale(1.4) translateY(-42px) rotate(8deg); }
+        }
+        @keyframes screenFlash {
+            0% { opacity: 0.7; }
+            100% { opacity: 0; }
+        }
+        #statCombo.hot { color: #E85D3A; font-weight: 600; }
+        #statPlayTimer {
+            font-variant-numeric: tabular-nums;
+            color: #6B5742;
+        }
+        #statPlayTimer.near-end {
+            color: #E85D3A;
+            font-weight: 600;
+        }
+        .stats-bar {
+            display: flex; justify-content: center; gap: 24px;
+            margin: 10px 0; font-size: 0.85rem;
+            color: #6B5E52; letter-spacing: 0.06em;
+        }
+        .controls {
+            margin-top: 12px;
+            display: flex; flex-wrap: wrap;
+            justify-content: center; gap: 8px; align-items: center;
+        }
+        button, select, input[type="number"] {
+            font-family: inherit;
+            padding: 8px 14px;
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            border-radius: 2px;
+            border: 1px solid #C9B8A4;
+            background: #F7F3EB;
+            color: #4A4035;
+        }
+        button.primary {
+            background: #8B7355;
+            color: #F7F3EB;
+            border-color: #8B7355;
+        }
+        button.active-mode {
+            background: #A8B5A0;
+            color: #2C3828;
+            border-color: #8A9A86;
+        }
+        button.secondary { background: #EFEBE3; }
+        .keyboard-hint {
+            margin-top: 10px;
+            font-size: 0.72rem;
+            color: #8B7355;
+            letter-spacing: 0.08em;
+            line-height: 1.6;
+        }
+        .octave-label {
+            margin: 12px 0 4px;
+            font-size: 0.68rem;
+            color: #A89888;
+            letter-spacing: 0.2em;
+            font-family: 'Noto Serif JP', serif;
+        }
+        .piano-wrap {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            overflow: visible;
+            padding-bottom: 4px;
+            touch-action: none;
+        }
+        .piano-octave {
+            position: relative;
+            display: flex;
+            flex: 0 0 auto;
+        }
+        .piano-octave .white-row {
+            display: flex;
+            flex-direction: row;
+        }
+        .piano-octave .black-row {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 62%;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .piano-section { width: 100%; max-width: 1100px; margin: 0 auto; }
+        .piano-section .piano-rows {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+        .piano-section .piano-wrap {
+            justify-content: center;
+            flex-wrap: nowrap;
+            width: 100%;
+        }
+        .p-key {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+            transition: background 0.08s, transform 0.06s, box-shadow 0.08s;
+        }
+        .p-key.white {
+            width: var(--white-w, var(--key-w));
+            min-width: var(--white-w, var(--key-w));
+            height: var(--key-h);
+            background: linear-gradient(180deg, #FFFEFB 0%, #F0EBE3 55%, #E4DDD2 100%);
+            color: #4A4035;
+            border: 1px solid #C9BFB0;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 6px;
+            font-size: 0.62rem;
+            box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.06);
+        }
+        .p-key.black {
+            position: absolute;
+            top: 0;
+            width: calc(var(--white-w, var(--key-w)) * 0.58);
+            min-width: 10px;
+            height: 100%;
+            background: linear-gradient(180deg, #3D3834 0%, #1A1715 100%);
+            color: #D4C9B8;
+            border: 1px solid #0D0C0B;
+            border-radius: 0 0 4px 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            padding-bottom: 3px;
+            font-size: 0.48rem;
+            pointer-events: auto;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            z-index: 3;
+        }
+        .p-key.white + .p-key.white { border-left: 1px solid #B8AEA0; }
+        .touch-hint { display: none; margin-top: 8px; }
+        .touch-device .keyboard-hint-desktop { display: none; }
+        .touch-device .touch-hint { display: block; }
+        /* 手機／平板橫向緊湊模式：由 JS 加 layout-compact */
+        body.layout-compact .game-header {
+            margin: 0;
+            padding: 2px 0;
+        }
+        body.layout-compact .game-header h3 {
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            margin: 0;
+        }
+        body.layout-compact .game-header .subtitle { display: none; }
+        body.layout-compact .stats-bar {
+            font-size: 0.65rem;
+            gap: 10px;
+            margin: 2px 0;
+        }
+        body.layout-compact .controls {
+            gap: 4px;
+            margin: 2px 0 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        body.layout-compact .controls button,
+        body.layout-compact .controls select {
+            min-height: 36px;
+            padding: 4px 8px;
+            font-size: 0.7rem;
+        }
+        body.layout-compact .controls label { font-size: 0.65rem; }
+        body.layout-compact .controls input[type="number"] {
+            width: 44px !important;
+            font-size: 0.7rem;
+        }
+        body.layout-compact .ctrl-ab { display: none !important; }
+        body.layout-compact .playfield-chrome .controls { display: none !important; }
+        body.layout-compact .keyboard-hint { display: none !important; }
+        body.layout-compact .p-key .kn {
+            display: block;
+            font-size: 0.62rem;
+            line-height: 1;
+        }
+        body.layout-compact .p-key span:not(.kn) { font-size: 0.5rem; opacity: 0.9; }
+        .mobile-dock {
+            display: none;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 6px 8px;
+            padding-bottom: max(6px, env(safe-area-inset-bottom));
+            background: rgba(247, 243, 235, 0.97);
+            border-top: 1px solid #D4C9B8;
+            z-index: 30;
+        }
+        /* iPhone／iPad：操作列在 mobile-tool-panel 內 */
+        body.profile-phone .playfield-chrome .controls,
+        body.profile-tablet .playfield-chrome .controls { display: none !important; }
+        /* 手機遊戲風 HUD（不占版面） */
+        .game-hud {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 28;
+            pointer-events: none;
+        }
+        body.profile-phone .game-hud,
+        body.profile-tablet .game-hud {
+            display: block;
+        }
+        body.profile-phone .playfield-chrome,
+        body.profile-tablet .playfield-chrome {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 26;
+            pointer-events: none;
+            padding: max(4px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+            background: linear-gradient(180deg, rgba(12, 10, 8, 0.55) 0%, rgba(12, 10, 8, 0) 72%);
+        }
+        body.profile-phone .playfield-chrome .game-header,
+        body.profile-tablet .playfield-chrome .game-header,
+        body.profile-phone .playfield-chrome .controls,
+        body.profile-tablet .playfield-chrome .controls {
+            display: none !important;
+        }
+        body.profile-phone .playfield-chrome .stats-bar,
+        body.profile-tablet .playfield-chrome .stats-bar {
+            display: flex;
+            justify-content: flex-start;
+            gap: 6px;
+            flex-wrap: wrap;
+            pointer-events: none;
+            margin: 0;
+        }
+        body.profile-phone .playfield-chrome .stats-bar span,
+        body.profile-tablet .playfield-chrome .stats-bar span {
+            font-size: 0.68rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.42);
+            color: #FFF8F0;
+            letter-spacing: 0.04em;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        .hud-fabs {
+            position: absolute;
+            right: max(10px, env(safe-area-inset-right));
+            bottom: max(10px, env(safe-area-inset-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .hud-fab {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 248, 240, 0.35);
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .hud-fab.play {
+            background: linear-gradient(145deg, #A08060 0%, #6B5742 100%);
+            color: #FFF8F0;
+            font-size: 1.05rem;
+        }
+        .hud-fab.play.active-mode {
+            background: linear-gradient(145deg, #C9A070 0%, #8B7355 100%);
+            box-shadow: 0 0 20px rgba(255, 180, 80, 0.45);
+        }
+        .hud-fab.menu {
+            background: rgba(30, 26, 22, 0.78);
+            color: #F7F3EB;
+            font-size: 1.35rem;
+        }
+        /* 右側設定抽屜（手遊風格） */
+        .game-drawer {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            pointer-events: none;
+        }
+        body.profile-phone .game-drawer,
+        body.profile-tablet .game-drawer {
+            display: block;
+        }
+        .game-drawer.open {
+            pointer-events: auto;
+        }
+        .drawer-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0);
+            transition: background 0.25s ease;
+        }
+        .game-drawer.open .drawer-backdrop {
+            background: rgba(0, 0, 0, 0.52);
+        }
+        .drawer-panel {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: min(82vw, 300px);
+            max-width: 100%;
+            background: linear-gradient(180deg, #F7F3EB 0%, #EDE8DF 100%);
+            box-shadow: -12px 0 40px rgba(0, 0, 0, 0.28);
+            transform: translateX(100%);
+            transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 16px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .game-drawer.open .drawer-panel {
+            transform: translateX(0);
+        }
+        .drawer-head {
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #D4C9B8;
+        }
+        .drawer-head h3 {
+            margin: 0 0 4px;
+            font-size: 1rem;
+            letter-spacing: 0.12em;
+            text-align: left;
+        }
+        .drawer-head .subtitle {
+            margin: 0;
+            text-align: left;
+            font-size: 0.68rem;
+        }
+        .drawer-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .drawer-actions .dock-btn,
+        .drawer-actions .dock-speed,
+        .drawer-actions .dock-mode {
+            width: 100%;
+            min-height: 48px;
+            font-size: 0.95rem;
+            border-radius: 8px;
+        }
+        .drawer-actions .dock-btn.primary {
+            min-height: 52px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .drawer-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .drawer-row label {
+            flex: 0 0 auto;
+            font-size: 0.72rem;
+            min-width: 3.2em;
+        }
+        .drawer-row select {
+            flex: 1;
+            min-height: 44px;
+            border-radius: 8px;
+            border: 1px solid #C9B8A4;
+            background: #FFFDF9;
+            font-size: 0.88rem;
+        }
+        .drawer-close {
+            margin-top: 12px;
+            width: 100%;
+            min-height: 44px;
+            border: 1px solid #C9B8A4;
+            border-radius: 8px;
+            background: #EFEBE3;
+            color: #4A4035;
+            font-size: 0.9rem;
+        }
+        body.input-touch .mobile-tool-panel,
+        body.input-touch .mobile-tool-toggle {
+            display: none !important;
+        }
+        body.profile-desktop .game-drawer,
+        body.profile-desktop .game-hud {
+            display: none !important;
+        }
+        body.profile-desktop .playfield-chrome {
+            position: static;
+            pointer-events: auto;
+            padding: 0;
+            background: transparent;
+        }
+        body.profile-desktop .playfield-chrome .game-header,
+        body.profile-desktop .playfield-chrome .controls {
+            display: block !important;
+        }
+        body.profile-desktop .playfield-chrome .stats-bar {
+            justify-content: center;
+            margin: 2px 0 6px;
+        }
+        body.profile-desktop .playfield-chrome .stats-bar span {
+            font-size: inherit;
+            padding: 0;
+            border-radius: 0;
+            background: transparent;
+            color: inherit;
+            backdrop-filter: none;
+        }
+        body.profile-desktop .mobile-tool-panel {
+            display: contents;
+        }
+        /* 觸碰色塊模式：隱藏琴鍵、放大下落區 */
+        body.input-touch.profile-phone .piano-section,
+        body.input-touch.profile-tablet .piano-section {
+            display: none !important;
+        }
+        body.input-touch .canvas-wrap {
+            flex: 1 1 auto;
+            min-height: 0;
+            touch-action: none;
+        }
+        body.input-touch #gameCanvas {
+            cursor: pointer;
+            touch-action: none;
+        }
+        body.input-touch .touch-hint-keyboard { display: none; }
+        body.input-touch .touch-hint-blocks { display: block; }
+        body:not(.input-touch) .touch-hint-blocks { display: none; }
+        /* 手機橫向：HUD 固定於視窗右下角（不依賴捲動） */
+        body.input-touch.mode-land.profile-phone .game-hud,
+        body.input-touch.mode-land.profile-tablet .game-hud {
+            position: fixed;
+            inset: 0;
+            z-index: 28;
+            pointer-events: none;
+        }
+        body.input-touch.mode-land.profile-phone .hud-fabs,
+        body.input-touch.mode-land.profile-tablet .hud-fabs {
+            position: fixed;
+            bottom: max(4px, env(safe-area-inset-bottom));
+            right: max(8px, env(safe-area-inset-right));
+            z-index: 50;
+        }
+        /* 手機直向觸碰：遊戲框加高，▶ / ⚙ 在左下角橫排（如示意） */
+        body.input-touch.mode-port.profile-phone .playfield,
+        body.input-touch.mode-port.profile-tablet .playfield {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        body.input-touch.mode-port.profile-phone .canvas-wrap,
+        body.input-touch.mode-port.profile-tablet .canvas-wrap {
+            flex: 0 0 auto;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+            width: 100% !important;
+            max-width: none !important;
+            margin: 0 !important;
+        }
+        body.input-touch.mode-port.profile-phone .canvas-wrap #gameCanvas,
+        body.input-touch.mode-port.profile-tablet .canvas-wrap #gameCanvas {
+            flex: 0 0 auto;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-height: 0;
+            height: auto !important;
+        }
+        body.input-touch.mode-port.profile-phone .game-hud,
+        body.input-touch.mode-port.profile-tablet .game-hud {
+            position: relative;
+            inset: auto;
+            flex: 0 0 auto;
+            min-height: 64px;
+            display: flex;
+            align-items: flex-end;
+            pointer-events: none;
+            background: #2C2824;
+        }
+        body.input-touch.mode-port.profile-phone .hud-fabs,
+        body.input-touch.mode-port.profile-tablet .hud-fabs {
+            position: relative;
+            left: max(12px, env(safe-area-inset-left));
+            right: auto;
+            bottom: auto;
+            flex-direction: row;
+            gap: 12px;
+            padding: 10px 12px max(10px, env(safe-area-inset-bottom));
+            justify-content: flex-start;
+            align-items: center;
+        }
+        .hud-fab.play.hud-nudge {
+            animation: hud-nudge 0.85s ease-out 1;
+        }
+        @keyframes hud-nudge {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35); }
+            40% { transform: scale(1.12); box-shadow: 0 0 24px rgba(255, 200, 120, 0.65); }
+        }
+        .mobile-dock .dock-mode {
+            min-height: 44px;
+            max-width: 118px;
+            font-size: 0.72rem;
+            border: 1px solid #C9B8A4;
+            border-radius: 4px;
+            background: #F7F3EB;
+            color: #4A4035;
+            padding: 0 6px;
+        }
+        .mobile-dock .dock-btn {
+            min-height: 48px;
+            padding: 0 16px;
+            border-radius: 4px;
+            border: 1px solid #C9B8A4;
+            background: #F7F3EB;
+            color: #4A4035;
+            font-size: 0.95rem;
+            font-family: inherit;
+            letter-spacing: 0.06em;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mobile-dock .dock-btn.primary {
+            min-width: 132px;
+            background: #8B7355;
+            color: #F7F3EB;
+            border: none;
+            font-weight: 600;
+        }
+        .mobile-dock .dock-btn.active-mode {
+            background: #6B5742;
+        }
+        .mobile-dock .dock-speed {
+            min-height: 44px;
+            font-size: 0.8rem;
+            border: 1px solid #C9B8A4;
+            border-radius: 4px;
+            background: #F7F3EB;
+        }
+        #countdownOverlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            background: rgba(20, 18, 16, 0.72);
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #countdownOverlay.show { display: flex; }
+        #countdownNum {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 4.5rem;
+            color: #FFD54F;
+            text-shadow: 0 0 24px rgba(255, 213, 100, 0.6);
+        }
+        #finaleOverlay {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 55;
+            background: rgba(28, 24, 20, 0.88);
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            pointer-events: auto;
+        }
+        #finaleOverlay.show { display: flex; }
+        .finale-card {
+            max-width: 420px;
+            width: 100%;
+            padding: 28px 22px 24px;
+            border-radius: 12px;
+            background: linear-gradient(165deg, #F7F3EB 0%, #EDE4D6 100%);
+            border: 1px solid #C9B8A4;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+            text-align: center;
+        }
+        .finale-score {
+            font-family: 'Noto Serif JP', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #6B5742;
+            margin: 0 0 12px;
+            line-height: 1.3;
+        }
+        .finale-comment {
+            font-size: 1.05rem;
+            color: #5A4A3A;
+            margin: 0 0 8px;
+            line-height: 1.55;
+        }
+        .finale-comment-en {
+            font-size: 0.92rem;
+            color: #8B7355;
+            font-style: italic;
+            margin: 0 0 20px;
+            line-height: 1.5;
+        }
+        .finale-card button {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 10px 22px;
+            border: 1px solid #C9B8A4;
+            border-radius: 6px;
+            background: #E8DED0;
+            color: #4A4035;
+            cursor: pointer;
+        }
+        body.layout-compact .canvas-wrap {
+            flex: 0 0 auto;
+            min-height: 0;
+            width: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin: 0;
+            max-width: none;
+        }
+        body.layout-compact #gameCanvas {
+            width: auto !important;
+            max-width: 100%;
+            height: auto !important;
+            flex-shrink: 0;
+        }
+        body.layout-compact .octave-label {
+            display: block;
+            margin: 0;
+            font-size: 0.5rem;
+            letter-spacing: 0.12em;
+        }
+        body.profile-tablet.layout-compact .p-key {
+            min-height: 48px;
+        }
+        body.layout-compact .piano-section {
+            flex-shrink: 0;
+            width: 100%;
+            margin: 0;
+            padding: 2px 0 max(4px, env(safe-area-inset-bottom));
+            max-width: none;
+            min-height: calc(var(--key-h) * 2 + 32px);
+            position: relative;
+            z-index: 20;
+            background: linear-gradient(180deg, transparent 0%, rgba(247, 243, 235, 0.98) 12%);
+        }
+        body.layout-compact .piano-section .piano-rows {
+            flex-direction: column;
+            gap: 4px;
+        }
+        body.layout-compact .piano-section .piano-wrap {
+            overflow: visible;
+            padding-bottom: 0;
+        }
+        body.layout-compact .p-key {
+            min-height: 44px;
+            padding-bottom: 4px;
+            font-size: 0.55rem;
+        }
+        body.layout-compact .p-key .kn { font-size: 0.85rem; }
+        body.layout-compact #comboNumber { font-size: 1.8rem; }
+        body.layout-compact #comboNumber.mega { font-size: 2.2rem; }
+        body.layout-compact #judgmentPop { font-size: 1.35rem; }
+        /* iPhone 直向：琴鍵模式提示橫放；觸碰色塊模式可直向滿版練習 */
+        body.profile-phone.mode-port:not(.input-touch) .game-shell {
+            opacity: 0.35;
+            pointer-events: none;
+        }
+        body.profile-phone.mode-port.input-touch .game-shell {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        body.profile-phone.mode-port.input-touch #rotateHint {
+            display: none !important;
+        }
+        body.profile-tablet .touch-hint,
+        body.profile-phone .touch-hint { display: block; }
+        body.profile-desktop .touch-hint { display: none !important; }
+        body.layout-compact .keyboard-hint { display: none !important; }
+        body.touch-device:not(.profile-desktop) .keyboard-hint-desktop {
+            display: none !important;
+        }
+        /* 電腦寬螢幕 */
+        @media (min-width: 1025px) {
+            body { padding: 16px 12px 24px; }
+        }
+        .p-key.white.active {
+            background: linear-gradient(180deg, #FFE8E0 0%, #E8B8A8 100%);
+            transform: translateY(2px);
+            box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+        }
+        .p-key.black.active {
+            background: linear-gradient(180deg, #5A524C 0%, #2A2624 100%);
+            transform: translateY(2px);
+        }
+        .p-key.white.teach { background: linear-gradient(180deg, #E8F0E4 0%, #C8D8C0 100%); }
+        .p-key.black.teach { background: linear-gradient(180deg, #4A5448 0%, #2A3228 100%); }
+        .p-key.white.auto { background: linear-gradient(180deg, #EDE8E0 0%, #D4C9B8 100%); }
+        .p-key.black.auto { background: linear-gradient(180deg, #4A4540 0%, #322E2A 100%); }
+        .p-key .kn {
+            font-size: 0.95rem;
+            color: #6B5742;
+            font-family: 'Noto Serif JP', serif;
+            line-height: 1;
+        }
+        .p-key.black .kn { font-size: 0.55rem; color: #A89888; }
+        .p-key .lbl { font-size: 0.5rem; opacity: 0.75; margin-top: 2px; }
+        label { font-size: 0.75rem; color: #8B7355; }
+        audio { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="rotateHint">
+        <div class="icon">📱↻</div>
+        <p><strong>請將裝置橫放</strong></p>
+        <p style="font-size:0.85rem;opacity:0.85;margin-top:8px;">iPhone 請橫放，可見<strong>兩排</strong>琴鍵（C4–B4 與 C5–B5）</p>
+    </div>
+
+    <div class="game-shell">
+    <div class="playfield">
+        <div class="canvas-wrap">
+            <canvas id="gameCanvas" width="1100" height="420"></canvas>
+            <div id="countdownOverlay" aria-live="polite">
+                <span id="countdownNum">3</span>
+            </div>
+            <div id="finaleOverlay" aria-live="polite" hidden>
+                <div class="finale-card">
+                    <p class="finale-score" id="finaleScoreText">得到 0 分!!</p>
+                    <p class="finale-comment" id="finaleCommentZh"></p>
+                    <p class="finale-comment-en" id="finaleCommentEn"></p>
+                    <button type="button" id="btnFinaleClose">再彈一次</button>
+                </div>
+            </div>
+            <div id="screenFlash"></div>
+            <div id="edgeGlow"></div>
+            <div id="comboMilestone"></div>
+            <div id="comboOverlay">
+                <div id="comboAura"></div>
+                <div id="comboNumber">0</div>
+                <div id="comboLabel">COMBO</div>
+            </div>
+            <div id="judgmentPop"></div>
+            <div id="rapidBanner"></div>
+            <div class="game-hud" id="gameHud" aria-hidden="false">
+                <div class="hud-fabs">
+                    <button type="button" class="hud-fab play" id="btnHudPlay" title="開始跟彈">▶</button>
+                    <button type="button" class="hud-fab menu" id="btnGameMenu" title="設定">⚙</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="playfield-chrome" id="playfieldChrome">
+        <header class="game-header">
+            <h3>簡單愛 TO EJ 謝謝曾經的陪伴</h3>
+            <p class="subtitle" id="modeLabel">練習模式</p>
+        </header>
+        <div class="stats-bar">
+            <span id="statPlayTimer">時間 0:00</span>
+            <span id="statCombo">連擊 0</span>
+            <span id="statAcc">正確率 —</span>
+            <span id="statMiss">漏接 0</span>
+        </div>
+        <div class="controls">
+            <audio id="bgm" preload="auto"></audio>
+            <button id="btnPlay" class="primary" onclick="togglePlay()">跟彈</button>
+            <button id="btnAuto" class="secondary" onclick="startAutoPlay()">自動彈奏</button>
+            <button id="btnTeach" class="secondary" onclick="startTeachMode()">观摩教學</button>
+            <button class="secondary" onclick="restart()">重來</button>
+            <label>速度</label>
+            <select id="speedSel" onchange="setSpeed()">
+                <option value="0.5">0.5×</option>
+                <option value="0.75">0.75×</option>
+                <option value="1" selected>1.0×</option>
+            </select>
+            <label class="ctrl-ab">A–B</label>
+            <input type="number" id="loopStart" value="0" step="0.5" style="width:52px">
+            <span class="ctrl-ab">–</span>
+            <input type="number" id="loopEnd" value="10" step="0.5" style="width:52px">
+            <button class="secondary ctrl-ab" onclick="toggleLoop()">循環</button>
+            <button class="secondary ctrl-ab" onclick="applyChorusLoop()">副歌區間</button>
+        </div>
+    </div>
+
+    <div class="game-drawer" id="gameDrawer" aria-hidden="true">
+        <div class="drawer-backdrop" id="drawerBackdrop"></div>
+        <div class="drawer-panel" role="dialog" aria-label="遊戲設定">
+            <div class="drawer-head">
+                <h3>簡單愛 TO EJ 謝謝曾經的陪伴</h3>
+                <p class="subtitle" id="modeLabelDrawer">練習模式</p>
+            </div>
+            <div class="drawer-actions mobile-dock" id="mobileDock">
+                <button type="button" class="dock-btn primary" id="btnPlayDock">▶ 開始跟彈</button>
+                <button type="button" class="dock-btn" id="btnAutoDock">♪ 自動彈奏</button>
+                <button type="button" class="dock-btn" id="btnRestartDock">↺ 重來</button>
+                <div class="drawer-row">
+                    <label>彈奏</label>
+                    <select id="inputModeDock" class="dock-mode" aria-label="彈奏方式">
+                        <option value="touch" selected>觸碰色塊</option>
+                        <option value="keyboard">琴鍵彈奏</option>
+                    </select>
+                </div>
+                <div class="drawer-row">
+                    <label>速度</label>
+                    <select id="speedSelDock" class="dock-speed" aria-label="速度">
+                        <option value="0.5">0.5×</option>
+                        <option value="0.75">0.75×</option>
+                        <option value="1" selected>1.0×</option>
+                    </select>
+                </div>
+                <button type="button" class="drawer-close" id="btnDrawerClose">關閉 · 回到全螢幕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 琴鍵模式用：桌面排版 -->
+    <div class="mobile-tool-panel" id="mobileToolPanel" aria-hidden="true"></div>
+
+    <section class="piano-section" aria-label="鋼琴鍵盤">
+        <div class="piano-rows" id="pianoRows">
+            <p class="octave-label">一 · C4–B4</p>
+            <div class="piano-wrap" id="piano-low"></div>
+            <p class="octave-label">二 · C5–B5</p>
+            <div class="piano-wrap" id="piano-high"></div>
+        </div>
+    </section>
+
+    <p class="keyboard-hint keyboard-hint-desktop">
+        電腦鍵盤 — 下排 C4–B4：<b>A S D F G H J</b>　｜　上排 C5–B5：<b>Q W E R T Y U</b>
+    </p>
+    <p class="keyboard-hint touch-hint touch-hint-keyboard">
+        👆 橫放後點<strong>兩排</strong>琴鍵彈奏<br>
+        下排 C4–B4　上排 C5–B5（外接鍵盤：A–J / Q–U）
+    </p>
+    <p class="keyboard-hint touch-hint touch-hint-blocks">
+        👆 <strong>觸碰色塊</strong>：點下落音符彈奏　｜　右下 <strong>▶</strong> 開始、<strong>⚙</strong> 設定
+    </p>
+    </div><!-- .game-shell -->
+
+    <script>
+        const rawScoreData = [{"pitch": 69, "start_time": 0.25, "end_time": 0.484, "duration": 0.234}, {"pitch": 72, "start_time": 0.5, "end_time": 0.734, "duration": 0.234}, {"pitch": 72, "start_time": 0.75, "end_time": 0.984, "duration": 0.234}, {"pitch": 72, "start_time": 1, "end_time": 1.234, "duration": 0.234}, {"pitch": 69, "start_time": 1.25, "end_time": 1.484, "duration": 0.234}, {"pitch": 72, "start_time": 1.5, "end_time": 1.964, "duration": 0.464}, {"pitch": 69, "start_time": 2.25, "end_time": 2.484, "duration": 0.234}, {"pitch": 69, "start_time": 2.5, "end_time": 2.734, "duration": 0.234}, {"pitch": 72, "start_time": 2.75, "end_time": 2.984, "duration": 0.234}, {"pitch": 72, "start_time": 3, "end_time": 3.234, "duration": 0.234}, {"pitch": 69, "start_time": 3.25, "end_time": 3.484, "duration": 0.234}, {"pitch": 72, "start_time": 3.5, "end_time": 3.964, "duration": 0.464}, {"pitch": 69, "start_time": 4.25, "end_time": 4.484, "duration": 0.234}, {"pitch": 69, "start_time": 4.5, "end_time": 4.734, "duration": 0.234}, {"pitch": 72, "start_time": 4.75, "end_time": 4.984, "duration": 0.234}, {"pitch": 72, "start_time": 5, "end_time": 5.234, "duration": 0.234}, {"pitch": 69, "start_time": 5.25, "end_time": 5.484, "duration": 0.234}, {"pitch": 72, "start_time": 5.5, "end_time": 5.734, "duration": 0.234}, {"pitch": 67, "start_time": 5.75, "end_time": 5.87, "duration": 0.12}, {"pitch": 69, "start_time": 5.875, "end_time": 5.995, "duration": 0.12}, {"pitch": 72, "start_time": 6, "end_time": 6.234, "duration": 0.234}, {"pitch": 69, "start_time": 6.25, "end_time": 6.484, "duration": 0.234}, {"pitch": 72, "start_time": 6.5, "end_time": 6.734, "duration": 0.234}, {"pitch": 74, "start_time": 6.75, "end_time": 6.984, "duration": 0.234}, {"pitch": 74, "start_time": 7, "end_time": 7.464, "duration": 0.464}, {"pitch": 72, "start_time": 7.5, "end_time": 7.964, "duration": 0.464}, {"pitch": 69, "start_time": 8.25, "end_time": 8.484, "duration": 0.234}, {"pitch": 69, "start_time": 8.5, "end_time": 8.734, "duration": 0.234}, {"pitch": 72, "start_time": 8.75, "end_time": 8.984, "duration": 0.234}, {"pitch": 72, "start_time": 9, "end_time": 9.234, "duration": 0.234}, {"pitch": 69, "start_time": 9.25, "end_time": 9.484, "duration": 0.234}, {"pitch": 72, "start_time": 9.5, "end_time": 9.964, "duration": 0.464}, {"pitch": 69, "start_time": 10.25, "end_time": 10.484, "duration": 0.234}, {"pitch": 69, "start_time": 10.5, "end_time": 10.734, "duration": 0.234}, {"pitch": 72, "start_time": 10.75, "end_time": 10.984, "duration": 0.234}, {"pitch": 72, "start_time": 11, "end_time": 11.234, "duration": 0.234}, {"pitch": 69, "start_time": 11.25, "end_time": 11.484, "duration": 0.234}, {"pitch": 72, "start_time": 11.5, "end_time": 11.964, "duration": 0.464}, {"pitch": 69, "start_time": 12.25, "end_time": 12.484, "duration": 0.234}, {"pitch": 69, "start_time": 12.5, "end_time": 12.734, "duration": 0.234}, {"pitch": 72, "start_time": 12.75, "end_time": 12.984, "duration": 0.234}, {"pitch": 72, "start_time": 13, "end_time": 13.234, "duration": 0.234}, {"pitch": 69, "start_time": 13.25, "end_time": 13.484, "duration": 0.234}, {"pitch": 72, "start_time": 13.5, "end_time": 13.734, "duration": 0.234}, {"pitch": 67, "start_time": 13.75, "end_time": 13.87, "duration": 0.12}, {"pitch": 69, "start_time": 13.875, "end_time": 13.995, "duration": 0.12}, {"pitch": 72, "start_time": 14, "end_time": 14.234, "duration": 0.234}, {"pitch": 69, "start_time": 14.25, "end_time": 14.484, "duration": 0.234}, {"pitch": 72, "start_time": 14.5, "end_time": 14.734, "duration": 0.234}, {"pitch": 74, "start_time": 14.75, "end_time": 14.984, "duration": 0.234}, {"pitch": 74, "start_time": 15, "end_time": 15.464, "duration": 0.464}, {"pitch": 72, "start_time": 15.5, "end_time": 15.964, "duration": 0.464}, {"pitch": 72, "start_time": 16.25, "end_time": 16.484, "duration": 0.234}, {"pitch": 72, "start_time": 16.5, "end_time": 16.964, "duration": 0.464}, {"pitch": 72, "start_time": 17, "end_time": 17.234, "duration": 0.234}, {"pitch": 72, "start_time": 17.25, "end_time": 17.714, "duration": 0.464}, {"pitch": 72, "start_time": 17.75, "end_time": 17.984, "duration": 0.234}, {"pitch": 71, "start_time": 18, "end_time": 18.234, "duration": 0.234}, {"pitch": 69, "start_time": 18.25, "end_time": 18.484, "duration": 0.234}, {"pitch": 71, "start_time": 18.5, "end_time": 18.734, "duration": 0.234}, {"pitch": 72, "start_time": 18.75, "end_time": 18.984, "duration": 0.234}, {"pitch": 72, "start_time": 19, "end_time": 19.464, "duration": 0.464}, {"pitch": 67, "start_time": 19.5, "end_time": 19.734, "duration": 0.234}, {"pitch": 72, "start_time": 19.75, "end_time": 19.984, "duration": 0.234}, {"pitch": 72, "start_time": 20.25, "end_time": 20.484, "duration": 0.234}, {"pitch": 72, "start_time": 20.5, "end_time": 20.964, "duration": 0.464}, {"pitch": 72, "start_time": 21, "end_time": 21.234, "duration": 0.234}, {"pitch": 72, "start_time": 21.25, "end_time": 21.714, "duration": 0.464}, {"pitch": 72, "start_time": 21.75, "end_time": 21.984, "duration": 0.234}, {"pitch": 71, "start_time": 22, "end_time": 22.234, "duration": 0.234}, {"pitch": 69, "start_time": 22.25, "end_time": 22.484, "duration": 0.234}, {"pitch": 67, "start_time": 22.5, "end_time": 22.734, "duration": 0.234}, {"pitch": 67, "start_time": 22.75, "end_time": 23.214, "duration": 0.464}, {"pitch": 65, "start_time": 23.25, "end_time": 23.484, "duration": 0.234}, {"pitch": 65, "start_time": 23.5, "end_time": 23.734, "duration": 0.234}, {"pitch": 67, "start_time": 23.75, "end_time": 23.984, "duration": 0.234}, {"pitch": 67, "start_time": 24.25, "end_time": 24.484, "duration": 0.234}, {"pitch": 72, "start_time": 24.5, "end_time": 24.964, "duration": 0.464}, {"pitch": 72, "start_time": 25, "end_time": 25.234, "duration": 0.234}, {"pitch": 72, "start_time": 25.25, "end_time": 25.484, "duration": 0.234}, {"pitch": 67, "start_time": 25.5, "end_time": 25.734, "duration": 0.234}, {"pitch": 72, "start_time": 25.75, "end_time": 25.984, "duration": 0.234}, {"pitch": 71, "start_time": 26, "end_time": 26.234, "duration": 0.234}, {"pitch": 72, "start_time": 26.25, "end_time": 26.484, "duration": 0.234}, {"pitch": 71, "start_time": 26.5, "end_time": 26.734, "duration": 0.234}, {"pitch": 72, "start_time": 26.75, "end_time": 27.214, "duration": 0.464}, {"pitch": 74, "start_time": 27.25, "end_time": 27.484, "duration": 0.234}, {"pitch": 76, "start_time": 27.5, "end_time": 27.964, "duration": 0.464}, {"pitch": 77, "start_time": 28, "end_time": 28.234, "duration": 0.234}, {"pitch": 77, "start_time": 28.25, "end_time": 28.484, "duration": 0.234}, {"pitch": 77, "start_time": 28.5, "end_time": 28.734, "duration": 0.234}, {"pitch": 76, "start_time": 28.75, "end_time": 28.984, "duration": 0.234}, {"pitch": 76, "start_time": 29, "end_time": 29.464, "duration": 0.464}, {"pitch": 74, "start_time": 29.5, "end_time": 29.734, "duration": 0.234}, {"pitch": 79, "start_time": 29.75, "end_time": 29.984, "duration": 0.234}, {"pitch": 77, "start_time": 30, "end_time": 30.234, "duration": 0.234}, {"pitch": 77, "start_time": 30.25, "end_time": 30.484, "duration": 0.234}, {"pitch": 77, "start_time": 30.5, "end_time": 30.734, "duration": 0.234}, {"pitch": 76, "start_time": 30.75, "end_time": 30.984, "duration": 0.234}, {"pitch": 74, "start_time": 31, "end_time": 31.464, "duration": 0.464}, {"pitch": 72, "start_time": 31.5, "end_time": 31.964, "duration": 0.464}, {"pitch": 67, "start_time": 32.25, "end_time": 32.484, "duration": 0.234}, {"pitch": 72, "start_time": 32.5, "end_time": 32.734, "duration": 0.234}, {"pitch": 74, "start_time": 32.75, "end_time": 32.984, "duration": 0.234}, {"pitch": 76, "start_time": 33, "end_time": 33.234, "duration": 0.234}, {"pitch": 74, "start_time": 33.25, "end_time": 33.484, "duration": 0.234}, {"pitch": 76, "start_time": 33.5, "end_time": 33.734, "duration": 0.234}, {"pitch": 77, "start_time": 33.75, "end_time": 33.984, "duration": 0.234}, {"pitch": 79, "start_time": 34, "end_time": 34.234, "duration": 0.234}, {"pitch": 79, "start_time": 34.25, "end_time": 34.484, "duration": 0.234}, {"pitch": 79, "start_time": 34.5, "end_time": 34.734, "duration": 0.234}, {"pitch": 77, "start_time": 34.75, "end_time": 34.984, "duration": 0.234}, {"pitch": 76, "start_time": 35, "end_time": 35.464, "duration": 0.464}, {"pitch": 74, "start_time": 35.5, "end_time": 35.964, "duration": 0.464}, {"pitch": 67, "start_time": 36.25, "end_time": 36.484, "duration": 0.234}, {"pitch": 72, "start_time": 36.5, "end_time": 36.734, "duration": 0.234}, {"pitch": 74, "start_time": 36.75, "end_time": 36.984, "duration": 0.234}, {"pitch": 76, "start_time": 37, "end_time": 37.234, "duration": 0.234}, {"pitch": 74, "start_time": 37.25, "end_time": 37.484, "duration": 0.234}, {"pitch": 76, "start_time": 37.5, "end_time": 37.734, "duration": 0.234}, {"pitch": 77, "start_time": 37.75, "end_time": 37.984, "duration": 0.234}, {"pitch": 79, "start_time": 38, "end_time": 38.234, "duration": 0.234}, {"pitch": 79, "start_time": 38.25, "end_time": 38.484, "duration": 0.234}, {"pitch": 79, "start_time": 38.5, "end_time": 38.734, "duration": 0.234}, {"pitch": 81, "start_time": 38.75, "end_time": 38.984, "duration": 0.234}, {"pitch": 79, "start_time": 39, "end_time": 39.464, "duration": 0.464}, {"pitch": 76, "start_time": 39.5, "end_time": 39.964, "duration": 0.464}, {"pitch": 72, "start_time": 40, "end_time": 40.464, "duration": 0.464}, {"pitch": 72, "start_time": 40.5, "end_time": 40.734, "duration": 0.234}, {"pitch": 69, "start_time": 40.75, "end_time": 40.984, "duration": 0.234}, {"pitch": 74, "start_time": 41, "end_time": 41.234, "duration": 0.234}, {"pitch": 74, "start_time": 41.25, "end_time": 41.484, "duration": 0.234}, {"pitch": 76, "start_time": 41.5, "end_time": 41.734, "duration": 0.234}, {"pitch": 76, "start_time": 41.75, "end_time": 41.984, "duration": 0.234}, {"pitch": 72, "start_time": 42, "end_time": 42.464, "duration": 0.464}, {"pitch": 79, "start_time": 42.5, "end_time": 42.734, "duration": 0.234}, {"pitch": 72, "start_time": 42.75, "end_time": 42.984, "duration": 0.234}, {"pitch": 67, "start_time": 43, "end_time": 43.234, "duration": 0.234}, {"pitch": 72, "start_time": 43.25, "end_time": 43.484, "duration": 0.234}, {"pitch": 71, "start_time": 43.5, "end_time": 43.734, "duration": 0.234}, {"pitch": 72, "start_time": 43.75, "end_time": 43.984, "duration": 0.234}, {"pitch": 72, "start_time": 44.5, "end_time": 44.734, "duration": 0.234}, {"pitch": 69, "start_time": 44.75, "end_time": 44.984, "duration": 0.234}, {"pitch": 74, "start_time": 45, "end_time": 45.234, "duration": 0.234}, {"pitch": 74, "start_time": 45.25, "end_time": 45.484, "duration": 0.234}, {"pitch": 76, "start_time": 45.5, "end_time": 45.734, "duration": 0.234}, {"pitch": 76, "start_time": 45.75, "end_time": 45.984, "duration": 0.234}, {"pitch": 77, "start_time": 46, "end_time": 46.234, "duration": 0.234}, {"pitch": 77, "start_time": 46.25, "end_time": 46.484, "duration": 0.234}, {"pitch": 77, "start_time": 46.5, "end_time": 46.734, "duration": 0.234}, {"pitch": 76, "start_time": 46.75, "end_time": 46.984, "duration": 0.234}, {"pitch": 74, "start_time": 47, "end_time": 47.464, "duration": 0.464}, {"pitch": 72, "start_time": 47.5, "end_time": 47.964, "duration": 0.464}, {"pitch": 67, "start_time": 48.25, "end_time": 48.484, "duration": 0.234}, {"pitch": 72, "start_time": 48.5, "end_time": 48.734, "duration": 0.234}, {"pitch": 74, "start_time": 48.75, "end_time": 48.984, "duration": 0.234}, {"pitch": 76, "start_time": 49, "end_time": 49.234, "duration": 0.234}, {"pitch": 74, "start_time": 49.25, "end_time": 49.484, "duration": 0.234}, {"pitch": 76, "start_time": 49.5, "end_time": 49.734, "duration": 0.234}, {"pitch": 77, "start_time": 49.75, "end_time": 49.984, "duration": 0.234}, {"pitch": 79, "start_time": 50, "end_time": 50.234, "duration": 0.234}, {"pitch": 79, "start_time": 50.25, "end_time": 50.484, "duration": 0.234}, {"pitch": 79, "start_time": 50.5, "end_time": 50.734, "duration": 0.234}, {"pitch": 77, "start_time": 50.75, "end_time": 50.984, "duration": 0.234}, {"pitch": 76, "start_time": 51, "end_time": 51.464, "duration": 0.464}, {"pitch": 74, "start_time": 51.5, "end_time": 51.964, "duration": 0.464}, {"pitch": 67, "start_time": 52.25, "end_time": 52.484, "duration": 0.234}, {"pitch": 72, "start_time": 52.5, "end_time": 52.734, "duration": 0.234}, {"pitch": 74, "start_time": 52.75, "end_time": 52.984, "duration": 0.234}, {"pitch": 76, "start_time": 53, "end_time": 53.234, "duration": 0.234}, {"pitch": 74, "start_time": 53.25, "end_time": 53.484, "duration": 0.234}, {"pitch": 76, "start_time": 53.5, "end_time": 53.734, "duration": 0.234}, {"pitch": 77, "start_time": 53.75, "end_time": 53.984, "duration": 0.234}, {"pitch": 79, "start_time": 54, "end_time": 54.234, "duration": 0.234}, {"pitch": 79, "start_time": 54.25, "end_time": 54.484, "duration": 0.234}, {"pitch": 79, "start_time": 54.5, "end_time": 54.734, "duration": 0.234}, {"pitch": 81, "start_time": 54.75, "end_time": 54.984, "duration": 0.234}, {"pitch": 79, "start_time": 55, "end_time": 55.464, "duration": 0.464}, {"pitch": 76, "start_time": 55.5, "end_time": 55.964, "duration": 0.464}, {"pitch": 72, "start_time": 56, "end_time": 56.464, "duration": 0.464}, {"pitch": 72, "start_time": 56.5, "end_time": 56.734, "duration": 0.234}, {"pitch": 69, "start_time": 56.75, "end_time": 56.984, "duration": 0.234}, {"pitch": 74, "start_time": 57, "end_time": 57.234, "duration": 0.234}, {"pitch": 74, "start_time": 57.25, "end_time": 57.484, "duration": 0.234}, {"pitch": 76, "start_time": 57.5, "end_time": 57.734, "duration": 0.234}, {"pitch": 76, "start_time": 57.75, "end_time": 57.984, "duration": 0.234}, {"pitch": 72, "start_time": 58, "end_time": 58.464, "duration": 0.464}, {"pitch": 79, "start_time": 58.5, "end_time": 58.734, "duration": 0.234}, {"pitch": 72, "start_time": 58.75, "end_time": 58.984, "duration": 0.234}, {"pitch": 67, "start_time": 59, "end_time": 59.234, "duration": 0.234}, {"pitch": 72, "start_time": 59.25, "end_time": 59.484, "duration": 0.234}, {"pitch": 71, "start_time": 59.5, "end_time": 59.734, "duration": 0.234}, {"pitch": 72, "start_time": 59.75, "end_time": 59.984, "duration": 0.234}, {"pitch": 72, "start_time": 60.5, "end_time": 60.734, "duration": 0.234}, {"pitch": 69, "start_time": 60.75, "end_time": 60.984, "duration": 0.234}, {"pitch": 74, "start_time": 61, "end_time": 61.234, "duration": 0.234}, {"pitch": 74, "start_time": 61.25, "end_time": 61.484, "duration": 0.234}, {"pitch": 76, "start_time": 61.5, "end_time": 61.734, "duration": 0.234}, {"pitch": 76, "start_time": 61.75, "end_time": 61.984, "duration": 0.234}, {"pitch": 77, "start_time": 62, "end_time": 62.234, "duration": 0.234}, {"pitch": 77, "start_time": 62.25, "end_time": 62.484, "duration": 0.234}, {"pitch": 76, "start_time": 62.5, "end_time": 62.964, "duration": 0.464}, {"pitch": 74, "start_time": 63, "end_time": 63.234, "duration": 0.234}, {"pitch": 72, "start_time": 63.25, "end_time": 63.484, "duration": 0.234}, {"pitch": 72, "start_time": 63.5, "end_time": 63.964, "duration": 0.464}, {"pitch": 72, "start_time": 64, "end_time": 65.844, "duration": 1.844}, {"pitch": 60, "start_time": 64.5, "end_time": 64.734, "duration": 0.234}, {"pitch": 60, "start_time": 65.5, "end_time": 65.734, "duration": 0.234}, {"pitch": 72, "start_time": 66, "end_time": 66.234, "duration": 0.234}, {"pitch": 71, "start_time": 66.25, "end_time": 66.484, "duration": 0.234}, {"pitch": 71, "start_time": 66.5, "end_time": 66.734, "duration": 0.234}, {"pitch": 69, "start_time": 66.75, "end_time": 66.984, "duration": 0.234}, {"pitch": 69, "start_time": 67, "end_time": 67.234, "duration": 0.234}, {"pitch": 67, "start_time": 67.25, "end_time": 67.484, "duration": 0.234}, {"pitch": 69, "start_time": 67.5, "end_time": 67.734, "duration": 0.234}, {"pitch": 71, "start_time": 67.75, "end_time": 67.984, "duration": 0.234}, {"pitch": 72, "start_time": 68, "end_time": 69.844, "duration": 1.844}, {"pitch": 72, "start_time": 70, "end_time": 71.38, "duration": 1.38}, {"pitch": 72, "start_time": 71.5, "end_time": 71.734, "duration": 0.234}, {"pitch": 74, "start_time": 71.75, "end_time": 71.984, "duration": 0.234}, {"pitch": 76, "start_time": 72, "end_time": 73.844, "duration": 1.844}, {"pitch": 60, "start_time": 72.5, "end_time": 72.734, "duration": 0.234}, {"pitch": 60, "start_time": 73.5, "end_time": 73.734, "duration": 0.234}, {"pitch": 76, "start_time": 74, "end_time": 74.234, "duration": 0.234}, {"pitch": 74, "start_time": 74.25, "end_time": 74.484, "duration": 0.234}, {"pitch": 74, "start_time": 74.5, "end_time": 74.734, "duration": 0.234}, {"pitch": 72, "start_time": 74.75, "end_time": 74.984, "duration": 0.234}, {"pitch": 72, "start_time": 75, "end_time": 75.234, "duration": 0.234}, {"pitch": 71, "start_time": 75.25, "end_time": 75.484, "duration": 0.234}, {"pitch": 72, "start_time": 75.5, "end_time": 75.734, "duration": 0.234}, {"pitch": 74, "start_time": 75.75, "end_time": 75.984, "duration": 0.234}, {"pitch": 76, "start_time": 76, "end_time": 77.844, "duration": 1.844}, {"pitch": 76, "start_time": 78, "end_time": 79.844, "duration": 1.844}, {"pitch": 69, "start_time": 80.25, "end_time": 80.484, "duration": 0.234}, {"pitch": 69, "start_time": 80.5, "end_time": 80.734, "duration": 0.234}, {"pitch": 72, "start_time": 80.75, "end_time": 80.984, "duration": 0.234}, {"pitch": 72, "start_time": 81, "end_time": 81.234, "duration": 0.234}, {"pitch": 69, "start_time": 81.25, "end_time": 81.484, "duration": 0.234}, {"pitch": 72, "start_time": 81.5, "end_time": 81.964, "duration": 0.464}, {"pitch": 69, "start_time": 82.25, "end_time": 82.484, "duration": 0.234}, {"pitch": 69, "start_time": 82.5, "end_time": 82.734, "duration": 0.234}, {"pitch": 72, "start_time": 82.75, "end_time": 82.984, "duration": 0.234}, {"pitch": 72, "start_time": 83, "end_time": 83.234, "duration": 0.234}, {"pitch": 69, "start_time": 83.25, "end_time": 83.484, "duration": 0.234}, {"pitch": 72, "start_time": 83.5, "end_time": 83.964, "duration": 0.464}, {"pitch": 69, "start_time": 84.25, "end_time": 84.484, "duration": 0.234}, {"pitch": 69, "start_time": 84.5, "end_time": 84.734, "duration": 0.234}, {"pitch": 72, "start_time": 84.75, "end_time": 84.984, "duration": 0.234}, {"pitch": 72, "start_time": 85, "end_time": 85.234, "duration": 0.234}, {"pitch": 69, "start_time": 85.25, "end_time": 85.484, "duration": 0.234}, {"pitch": 72, "start_time": 85.5, "end_time": 85.734, "duration": 0.234}, {"pitch": 67, "start_time": 85.75, "end_time": 85.87, "duration": 0.12}, {"pitch": 69, "start_time": 85.875, "end_time": 85.995, "duration": 0.12}, {"pitch": 72, "start_time": 86, "end_time": 86.234, "duration": 0.234}, {"pitch": 69, "start_time": 86.25, "end_time": 86.484, "duration": 0.234}, {"pitch": 72, "start_time": 86.5, "end_time": 86.734, "duration": 0.234}, {"pitch": 74, "start_time": 86.75, "end_time": 86.984, "duration": 0.234}, {"pitch": 74, "start_time": 87, "end_time": 87.464, "duration": 0.464}, {"pitch": 72, "start_time": 87.5, "end_time": 87.964, "duration": 0.464}, {"pitch": 72, "start_time": 88.25, "end_time": 88.484, "duration": 0.234}, {"pitch": 72, "start_time": 88.5, "end_time": 88.964, "duration": 0.464}, {"pitch": 72, "start_time": 89, "end_time": 89.234, "duration": 0.234}, {"pitch": 72, "start_time": 89.25, "end_time": 89.714, "duration": 0.464}, {"pitch": 72, "start_time": 89.75, "end_time": 89.984, "duration": 0.234}, {"pitch": 71, "start_time": 90, "end_time": 90.234, "duration": 0.234}, {"pitch": 69, "start_time": 90.25, "end_time": 90.484, "duration": 0.234}, {"pitch": 71, "start_time": 90.5, "end_time": 90.734, "duration": 0.234}, {"pitch": 72, "start_time": 90.75, "end_time": 90.984, "duration": 0.234}, {"pitch": 72, "start_time": 91, "end_time": 91.464, "duration": 0.464}, {"pitch": 67, "start_time": 91.5, "end_time": 91.734, "duration": 0.234}, {"pitch": 72, "start_time": 91.75, "end_time": 91.984, "duration": 0.234}, {"pitch": 72, "start_time": 92.25, "end_time": 92.484, "duration": 0.234}, {"pitch": 72, "start_time": 92.5, "end_time": 92.964, "duration": 0.464}, {"pitch": 72, "start_time": 93, "end_time": 93.234, "duration": 0.234}, {"pitch": 72, "start_time": 93.25, "end_time": 93.714, "duration": 0.464}, {"pitch": 72, "start_time": 93.75, "end_time": 93.984, "duration": 0.234}, {"pitch": 71, "start_time": 94, "end_time": 94.234, "duration": 0.234}, {"pitch": 69, "start_time": 94.25, "end_time": 94.484, "duration": 0.234}, {"pitch": 67, "start_time": 94.5, "end_time": 94.734, "duration": 0.234}, {"pitch": 67, "start_time": 94.75, "end_time": 95.214, "duration": 0.464}, {"pitch": 65, "start_time": 95.25, "end_time": 95.484, "duration": 0.234}, {"pitch": 65, "start_time": 95.5, "end_time": 95.734, "duration": 0.234}, {"pitch": 67, "start_time": 95.75, "end_time": 95.984, "duration": 0.234}, {"pitch": 67, "start_time": 96.25, "end_time": 96.484, "duration": 0.234}, {"pitch": 72, "start_time": 96.5, "end_time": 96.964, "duration": 0.464}, {"pitch": 72, "start_time": 97, "end_time": 97.234, "duration": 0.234}, {"pitch": 72, "start_time": 97.25, "end_time": 97.484, "duration": 0.234}, {"pitch": 67, "start_time": 97.5, "end_time": 97.734, "duration": 0.234}, {"pitch": 72, "start_time": 97.75, "end_time": 97.984, "duration": 0.234}, {"pitch": 71, "start_time": 98, "end_time": 98.234, "duration": 0.234}, {"pitch": 72, "start_time": 98.25, "end_time": 98.484, "duration": 0.234}, {"pitch": 71, "start_time": 98.5, "end_time": 98.734, "duration": 0.234}, {"pitch": 72, "start_time": 98.75, "end_time": 99.214, "duration": 0.464}, {"pitch": 74, "start_time": 99.25, "end_time": 99.484, "duration": 0.234}, {"pitch": 76, "start_time": 99.5, "end_time": 99.964, "duration": 0.464}, {"pitch": 77, "start_time": 100, "end_time": 100.234, "duration": 0.234}, {"pitch": 77, "start_time": 100.25, "end_time": 100.484, "duration": 0.234}, {"pitch": 77, "start_time": 100.5, "end_time": 100.734, "duration": 0.234}, {"pitch": 76, "start_time": 100.75, "end_time": 100.984, "duration": 0.234}, {"pitch": 76, "start_time": 101, "end_time": 101.464, "duration": 0.464}, {"pitch": 74, "start_time": 101.5, "end_time": 101.734, "duration": 0.234}, {"pitch": 79, "start_time": 101.75, "end_time": 101.984, "duration": 0.234}, {"pitch": 77, "start_time": 102, "end_time": 102.234, "duration": 0.234}, {"pitch": 77, "start_time": 102.25, "end_time": 102.484, "duration": 0.234}, {"pitch": 77, "start_time": 102.5, "end_time": 102.734, "duration": 0.234}, {"pitch": 76, "start_time": 102.75, "end_time": 102.984, "duration": 0.234}, {"pitch": 74, "start_time": 103, "end_time": 103.464, "duration": 0.464}, {"pitch": 72, "start_time": 103.5, "end_time": 103.964, "duration": 0.464}, {"pitch": 67, "start_time": 104.25, "end_time": 104.484, "duration": 0.234}, {"pitch": 72, "start_time": 104.5, "end_time": 104.734, "duration": 0.234}, {"pitch": 74, "start_time": 104.75, "end_time": 104.984, "duration": 0.234}, {"pitch": 76, "start_time": 105, "end_time": 105.234, "duration": 0.234}, {"pitch": 74, "start_time": 105.25, "end_time": 105.484, "duration": 0.234}, {"pitch": 76, "start_time": 105.5, "end_time": 105.734, "duration": 0.234}, {"pitch": 77, "start_time": 105.75, "end_time": 105.984, "duration": 0.234}, {"pitch": 79, "start_time": 106, "end_time": 106.234, "duration": 0.234}, {"pitch": 79, "start_time": 106.25, "end_time": 106.484, "duration": 0.234}, {"pitch": 79, "start_time": 106.5, "end_time": 106.734, "duration": 0.234}, {"pitch": 77, "start_time": 106.75, "end_time": 106.984, "duration": 0.234}, {"pitch": 76, "start_time": 107, "end_time": 107.464, "duration": 0.464}, {"pitch": 74, "start_time": 107.5, "end_time": 107.964, "duration": 0.464}, {"pitch": 67, "start_time": 108.25, "end_time": 108.484, "duration": 0.234}, {"pitch": 72, "start_time": 108.5, "end_time": 108.734, "duration": 0.234}, {"pitch": 74, "start_time": 108.75, "end_time": 108.984, "duration": 0.234}, {"pitch": 76, "start_time": 109, "end_time": 109.234, "duration": 0.234}, {"pitch": 74, "start_time": 109.25, "end_time": 109.484, "duration": 0.234}, {"pitch": 76, "start_time": 109.5, "end_time": 109.734, "duration": 0.234}, {"pitch": 77, "start_time": 109.75, "end_time": 109.984, "duration": 0.234}, {"pitch": 79, "start_time": 110, "end_time": 110.234, "duration": 0.234}, {"pitch": 79, "start_time": 110.25, "end_time": 110.484, "duration": 0.234}, {"pitch": 79, "start_time": 110.5, "end_time": 110.734, "duration": 0.234}, {"pitch": 81, "start_time": 110.75, "end_time": 110.984, "duration": 0.234}, {"pitch": 79, "start_time": 111, "end_time": 111.464, "duration": 0.464}, {"pitch": 76, "start_time": 111.5, "end_time": 111.964, "duration": 0.464}, {"pitch": 72, "start_time": 112, "end_time": 112.464, "duration": 0.464}, {"pitch": 72, "start_time": 112.5, "end_time": 112.734, "duration": 0.234}, {"pitch": 69, "start_time": 112.75, "end_time": 112.984, "duration": 0.234}, {"pitch": 74, "start_time": 113, "end_time": 113.234, "duration": 0.234}, {"pitch": 74, "start_time": 113.25, "end_time": 113.484, "duration": 0.234}, {"pitch": 76, "start_time": 113.5, "end_time": 113.734, "duration": 0.234}, {"pitch": 76, "start_time": 113.75, "end_time": 113.984, "duration": 0.234}, {"pitch": 72, "start_time": 114, "end_time": 114.464, "duration": 0.464}, {"pitch": 79, "start_time": 114.5, "end_time": 114.734, "duration": 0.234}, {"pitch": 72, "start_time": 114.75, "end_time": 114.984, "duration": 0.234}, {"pitch": 67, "start_time": 115, "end_time": 115.234, "duration": 0.234}, {"pitch": 72, "start_time": 115.25, "end_time": 115.484, "duration": 0.234}, {"pitch": 71, "start_time": 115.5, "end_time": 115.734, "duration": 0.234}, {"pitch": 72, "start_time": 115.75, "end_time": 115.984, "duration": 0.234}, {"pitch": 72, "start_time": 116.5, "end_time": 116.734, "duration": 0.234}, {"pitch": 69, "start_time": 116.75, "end_time": 116.984, "duration": 0.234}, {"pitch": 74, "start_time": 117, "end_time": 117.234, "duration": 0.234}, {"pitch": 74, "start_time": 117.25, "end_time": 117.484, "duration": 0.234}, {"pitch": 76, "start_time": 117.5, "end_time": 117.734, "duration": 0.234}, {"pitch": 76, "start_time": 117.75, "end_time": 117.984, "duration": 0.234}, {"pitch": 77, "start_time": 118, "end_time": 118.234, "duration": 0.234}, {"pitch": 77, "start_time": 118.25, "end_time": 118.484, "duration": 0.234}, {"pitch": 77, "start_time": 118.5, "end_time": 118.734, "duration": 0.234}, {"pitch": 76, "start_time": 118.75, "end_time": 118.984, "duration": 0.234}, {"pitch": 74, "start_time": 119, "end_time": 119.464, "duration": 0.464}, {"pitch": 72, "start_time": 119.5, "end_time": 119.964, "duration": 0.464}, {"pitch": 67, "start_time": 120.25, "end_time": 120.484, "duration": 0.234}, {"pitch": 72, "start_time": 120.5, "end_time": 120.734, "duration": 0.234}, {"pitch": 74, "start_time": 120.75, "end_time": 120.984, "duration": 0.234}, {"pitch": 76, "start_time": 121, "end_time": 121.234, "duration": 0.234}, {"pitch": 74, "start_time": 121.25, "end_time": 121.484, "duration": 0.234}, {"pitch": 76, "start_time": 121.5, "end_time": 121.734, "duration": 0.234}, {"pitch": 77, "start_time": 121.75, "end_time": 121.984, "duration": 0.234}, {"pitch": 79, "start_time": 122, "end_time": 122.234, "duration": 0.234}, {"pitch": 79, "start_time": 122.25, "end_time": 122.484, "duration": 0.234}, {"pitch": 79, "start_time": 122.5, "end_time": 122.734, "duration": 0.234}, {"pitch": 77, "start_time": 122.75, "end_time": 122.984, "duration": 0.234}, {"pitch": 76, "start_time": 123, "end_time": 123.464, "duration": 0.464}, {"pitch": 74, "start_time": 123.5, "end_time": 123.964, "duration": 0.464}, {"pitch": 67, "start_time": 124.25, "end_time": 124.484, "duration": 0.234}, {"pitch": 72, "start_time": 124.5, "end_time": 124.734, "duration": 0.234}, {"pitch": 74, "start_time": 124.75, "end_time": 124.984, "duration": 0.234}, {"pitch": 76, "start_time": 125, "end_time": 125.234, "duration": 0.234}, {"pitch": 74, "start_time": 125.25, "end_time": 125.484, "duration": 0.234}, {"pitch": 76, "start_time": 125.5, "end_time": 125.734, "duration": 0.234}, {"pitch": 77, "start_time": 125.75, "end_time": 125.984, "duration": 0.234}, {"pitch": 79, "start_time": 126, "end_time": 126.234, "duration": 0.234}, {"pitch": 79, "start_time": 126.25, "end_time": 126.484, "duration": 0.234}, {"pitch": 79, "start_time": 126.5, "end_time": 126.734, "duration": 0.234}, {"pitch": 81, "start_time": 126.75, "end_time": 126.984, "duration": 0.234}, {"pitch": 79, "start_time": 127, "end_time": 127.464, "duration": 0.464}, {"pitch": 76, "start_time": 127.5, "end_time": 127.964, "duration": 0.464}, {"pitch": 72, "start_time": 128, "end_time": 128.464, "duration": 0.464}, {"pitch": 72, "start_time": 128.5, "end_time": 128.734, "duration": 0.234}, {"pitch": 69, "start_time": 128.75, "end_time": 128.984, "duration": 0.234}, {"pitch": 74, "start_time": 129, "end_time": 129.234, "duration": 0.234}, {"pitch": 74, "start_time": 129.25, "end_time": 129.484, "duration": 0.234}, {"pitch": 76, "start_time": 129.5, "end_time": 129.734, "duration": 0.234}, {"pitch": 76, "start_time": 129.75, "end_time": 129.984, "duration": 0.234}, {"pitch": 72, "start_time": 130, "end_time": 130.464, "duration": 0.464}, {"pitch": 79, "start_time": 130.5, "end_time": 130.734, "duration": 0.234}, {"pitch": 72, "start_time": 130.75, "end_time": 130.984, "duration": 0.234}, {"pitch": 67, "start_time": 131, "end_time": 131.234, "duration": 0.234}, {"pitch": 72, "start_time": 131.25, "end_time": 131.484, "duration": 0.234}, {"pitch": 71, "start_time": 131.5, "end_time": 131.734, "duration": 0.234}, {"pitch": 72, "start_time": 131.75, "end_time": 131.984, "duration": 0.234}, {"pitch": 72, "start_time": 132.5, "end_time": 132.734, "duration": 0.234}, {"pitch": 69, "start_time": 132.75, "end_time": 132.984, "duration": 0.234}, {"pitch": 74, "start_time": 133, "end_time": 133.234, "duration": 0.234}, {"pitch": 74, "start_time": 133.25, "end_time": 133.484, "duration": 0.234}, {"pitch": 76, "start_time": 133.5, "end_time": 133.734, "duration": 0.234}, {"pitch": 76, "start_time": 133.75, "end_time": 133.984, "duration": 0.234}, {"pitch": 77, "start_time": 134, "end_time": 134.234, "duration": 0.234}, {"pitch": 77, "start_time": 134.25, "end_time": 134.484, "duration": 0.234}, {"pitch": 76, "start_time": 134.5, "end_time": 134.964, "duration": 0.464}, {"pitch": 74, "start_time": 135, "end_time": 135.234, "duration": 0.234}, {"pitch": 72, "start_time": 135.25, "end_time": 135.484, "duration": 0.234}, {"pitch": 72, "start_time": 135.5, "end_time": 135.964, "duration": 0.464}, {"pitch": 72, "start_time": 136, "end_time": 137.844, "duration": 1.844}, {"pitch": 60, "start_time": 136.5, "end_time": 136.734, "duration": 0.234}, {"pitch": 60, "start_time": 137.5, "end_time": 137.734, "duration": 0.234}, {"pitch": 72, "start_time": 138, "end_time": 138.234, "duration": 0.234}, {"pitch": 71, "start_time": 138.25, "end_time": 138.484, "duration": 0.234}, {"pitch": 71, "start_time": 138.5, "end_time": 138.734, "duration": 0.234}, {"pitch": 69, "start_time": 138.75, "end_time": 138.984, "duration": 0.234}, {"pitch": 69, "start_time": 139, "end_time": 139.234, "duration": 0.234}, {"pitch": 67, "start_time": 139.25, "end_time": 139.484, "duration": 0.234}, {"pitch": 69, "start_time": 139.5, "end_time": 139.734, "duration": 0.234}, {"pitch": 71, "start_time": 139.75, "end_time": 139.984, "duration": 0.234}, {"pitch": 72, "start_time": 140, "end_time": 141.844, "duration": 1.844}, {"pitch": 72, "start_time": 142, "end_time": 143.38, "duration": 1.38}, {"pitch": 72, "start_time": 143.5, "end_time": 143.734, "duration": 0.234}, {"pitch": 74, "start_time": 143.75, "end_time": 143.984, "duration": 0.234}, {"pitch": 76, "start_time": 144, "end_time": 145.844, "duration": 1.844}, {"pitch": 60, "start_time": 144.5, "end_time": 144.734, "duration": 0.234}, {"pitch": 60, "start_time": 145.5, "end_time": 145.734, "duration": 0.234}, {"pitch": 76, "start_time": 146, "end_time": 146.234, "duration": 0.234}, {"pitch": 74, "start_time": 146.25, "end_time": 146.484, "duration": 0.234}, {"pitch": 74, "start_time": 146.5, "end_time": 146.734, "duration": 0.234}, {"pitch": 72, "start_time": 146.75, "end_time": 146.984, "duration": 0.234}, {"pitch": 72, "start_time": 147, "end_time": 147.234, "duration": 0.234}, {"pitch": 71, "start_time": 147.25, "end_time": 147.484, "duration": 0.234}, {"pitch": 72, "start_time": 147.5, "end_time": 147.734, "duration": 0.234}, {"pitch": 74, "start_time": 147.75, "end_time": 147.984, "duration": 0.234}, {"pitch": 76, "start_time": 148, "end_time": 149.844, "duration": 1.844}, {"pitch": 76, "start_time": 150, "end_time": 151.844, "duration": 1.844}, {"pitch": 60, "start_time": 152, "end_time": 152.464, "duration": 0.464}, {"pitch": 67, "start_time": 152.25, "end_time": 152.484, "duration": 0.234}, {"pitch": 72, "start_time": 152.5, "end_time": 152.734, "duration": 0.234}, {"pitch": 74, "start_time": 152.75, "end_time": 152.984, "duration": 0.234}, {"pitch": 76, "start_time": 153, "end_time": 153.234, "duration": 0.234}, {"pitch": 74, "start_time": 153.25, "end_time": 153.484, "duration": 0.234}, {"pitch": 76, "start_time": 153.5, "end_time": 153.734, "duration": 0.234}, {"pitch": 77, "start_time": 153.75, "end_time": 153.984, "duration": 0.234}, {"pitch": 79, "start_time": 154, "end_time": 154.234, "duration": 0.234}, {"pitch": 79, "start_time": 154.25, "end_time": 154.484, "duration": 0.234}, {"pitch": 79, "start_time": 154.5, "end_time": 154.734, "duration": 0.234}, {"pitch": 77, "start_time": 154.75, "end_time": 154.984, "duration": 0.234}, {"pitch": 76, "start_time": 155, "end_time": 155.464, "duration": 0.464}, {"pitch": 74, "start_time": 155.5, "end_time": 155.964, "duration": 0.464}, {"pitch": 67, "start_time": 156.25, "end_time": 156.484, "duration": 0.234}, {"pitch": 72, "start_time": 156.5, "end_time": 156.734, "duration": 0.234}, {"pitch": 74, "start_time": 156.75, "end_time": 156.984, "duration": 0.234}, {"pitch": 76, "start_time": 157, "end_time": 157.234, "duration": 0.234}, {"pitch": 74, "start_time": 157.25, "end_time": 157.484, "duration": 0.234}, {"pitch": 76, "start_time": 157.5, "end_time": 157.734, "duration": 0.234}, {"pitch": 77, "start_time": 157.75, "end_time": 157.984, "duration": 0.234}, {"pitch": 79, "start_time": 158, "end_time": 158.234, "duration": 0.234}, {"pitch": 79, "start_time": 158.25, "end_time": 158.484, "duration": 0.234}, {"pitch": 79, "start_time": 158.5, "end_time": 158.734, "duration": 0.234}, {"pitch": 81, "start_time": 158.75, "end_time": 158.984, "duration": 0.234}, {"pitch": 79, "start_time": 159, "end_time": 159.464, "duration": 0.464}, {"pitch": 76, "start_time": 159.5, "end_time": 159.964, "duration": 0.464}, {"pitch": 72, "start_time": 160, "end_time": 160.464, "duration": 0.464}, {"pitch": 72, "start_time": 160.5, "end_time": 160.734, "duration": 0.234}, {"pitch": 69, "start_time": 160.75, "end_time": 160.984, "duration": 0.234}, {"pitch": 74, "start_time": 161, "end_time": 161.234, "duration": 0.234}, {"pitch": 74, "start_time": 161.25, "end_time": 161.484, "duration": 0.234}, {"pitch": 76, "start_time": 161.5, "end_time": 161.734, "duration": 0.234}, {"pitch": 76, "start_time": 161.75, "end_time": 161.984, "duration": 0.234}, {"pitch": 72, "start_time": 162, "end_time": 162.464, "duration": 0.464}, {"pitch": 79, "start_time": 162.5, "end_time": 162.734, "duration": 0.234}, {"pitch": 72, "start_time": 162.75, "end_time": 162.984, "duration": 0.234}, {"pitch": 67, "start_time": 163, "end_time": 163.234, "duration": 0.234}, {"pitch": 72, "start_time": 163.25, "end_time": 163.484, "duration": 0.234}, {"pitch": 71, "start_time": 163.5, "end_time": 163.734, "duration": 0.234}, {"pitch": 72, "start_time": 163.75, "end_time": 163.984, "duration": 0.234}, {"pitch": 72, "start_time": 164.5, "end_time": 164.734, "duration": 0.234}, {"pitch": 69, "start_time": 164.75, "end_time": 164.984, "duration": 0.234}, {"pitch": 74, "start_time": 165, "end_time": 165.234, "duration": 0.234}, {"pitch": 74, "start_time": 165.25, "end_time": 165.484, "duration": 0.234}, {"pitch": 76, "start_time": 165.5, "end_time": 165.734, "duration": 0.234}, {"pitch": 76, "start_time": 165.75, "end_time": 165.984, "duration": 0.234}, {"pitch": 77, "start_time": 166, "end_time": 166.234, "duration": 0.234}, {"pitch": 77, "start_time": 166.25, "end_time": 166.484, "duration": 0.234}, {"pitch": 76, "start_time": 166.5, "end_time": 166.734, "duration": 0.234}, {"pitch": 76, "start_time": 166.75, "end_time": 166.984, "duration": 0.234}, {"pitch": 74, "start_time": 167, "end_time": 167.464, "duration": 0.464}, {"pitch": 72, "start_time": 167.5, "end_time": 167.964, "duration": 0.464}, {"pitch": 67, "start_time": 168.25, "end_time": 168.484, "duration": 0.234}, {"pitch": 72, "start_time": 168.5, "end_time": 168.734, "duration": 0.234}, {"pitch": 74, "start_time": 168.75, "end_time": 168.984, "duration": 0.234}, {"pitch": 76, "start_time": 169, "end_time": 169.234, "duration": 0.234}, {"pitch": 74, "start_time": 169.25, "end_time": 169.484, "duration": 0.234}, {"pitch": 76, "start_time": 169.5, "end_time": 169.734, "duration": 0.234}, {"pitch": 77, "start_time": 169.75, "end_time": 169.984, "duration": 0.234}, {"pitch": 79, "start_time": 170, "end_time": 170.234, "duration": 0.234}, {"pitch": 79, "start_time": 170.25, "end_time": 170.484, "duration": 0.234}, {"pitch": 79, "start_time": 170.5, "end_time": 170.734, "duration": 0.234}, {"pitch": 77, "start_time": 170.75, "end_time": 170.984, "duration": 0.234}, {"pitch": 76, "start_time": 171, "end_time": 171.464, "duration": 0.464}, {"pitch": 74, "start_time": 171.5, "end_time": 171.964, "duration": 0.464}, {"pitch": 67, "start_time": 172.25, "end_time": 172.484, "duration": 0.234}, {"pitch": 72, "start_time": 172.5, "end_time": 172.734, "duration": 0.234}, {"pitch": 74, "start_time": 172.75, "end_time": 172.984, "duration": 0.234}, {"pitch": 76, "start_time": 173, "end_time": 173.234, "duration": 0.234}, {"pitch": 74, "start_time": 173.25, "end_time": 173.484, "duration": 0.234}, {"pitch": 76, "start_time": 173.5, "end_time": 173.734, "duration": 0.234}, {"pitch": 77, "start_time": 173.75, "end_time": 173.984, "duration": 0.234}, {"pitch": 79, "start_time": 174, "end_time": 174.234, "duration": 0.234}, {"pitch": 79, "start_time": 174.25, "end_time": 174.484, "duration": 0.234}, {"pitch": 79, "start_time": 174.5, "end_time": 174.734, "duration": 0.234}, {"pitch": 81, "start_time": 174.75, "end_time": 174.984, "duration": 0.234}, {"pitch": 79, "start_time": 175, "end_time": 175.464, "duration": 0.464}, {"pitch": 76, "start_time": 175.5, "end_time": 175.964, "duration": 0.464}, {"pitch": 72, "start_time": 176, "end_time": 176.464, "duration": 0.464}, {"pitch": 72, "start_time": 176.5, "end_time": 176.734, "duration": 0.234}, {"pitch": 69, "start_time": 176.75, "end_time": 176.984, "duration": 0.234}, {"pitch": 74, "start_time": 177, "end_time": 177.234, "duration": 0.234}, {"pitch": 74, "start_time": 177.25, "end_time": 177.484, "duration": 0.234}, {"pitch": 76, "start_time": 177.5, "end_time": 177.734, "duration": 0.234}, {"pitch": 76, "start_time": 177.75, "end_time": 177.984, "duration": 0.234}, {"pitch": 72, "start_time": 178, "end_time": 178.464, "duration": 0.464}, {"pitch": 79, "start_time": 178.5, "end_time": 178.734, "duration": 0.234}, {"pitch": 72, "start_time": 178.75, "end_time": 178.984, "duration": 0.234}, {"pitch": 67, "start_time": 179, "end_time": 179.234, "duration": 0.234}, {"pitch": 72, "start_time": 179.25, "end_time": 179.484, "duration": 0.234}, {"pitch": 71, "start_time": 179.5, "end_time": 179.734, "duration": 0.234}, {"pitch": 72, "start_time": 179.75, "end_time": 179.984, "duration": 0.234}, {"pitch": 72, "start_time": 180.5, "end_time": 180.734, "duration": 0.234}, {"pitch": 69, "start_time": 180.75, "end_time": 180.984, "duration": 0.234}, {"pitch": 74, "start_time": 181, "end_time": 181.234, "duration": 0.234}, {"pitch": 74, "start_time": 181.25, "end_time": 181.484, "duration": 0.234}, {"pitch": 76, "start_time": 181.5, "end_time": 181.734, "duration": 0.234}, {"pitch": 76, "start_time": 181.75, "end_time": 181.984, "duration": 0.234}, {"pitch": 77, "start_time": 182, "end_time": 182.234, "duration": 0.234}, {"pitch": 77, "start_time": 182.25, "end_time": 182.484, "duration": 0.234}, {"pitch": 76, "start_time": 182.5, "end_time": 182.964, "duration": 0.464}, {"pitch": 74, "start_time": 183, "end_time": 183.234, "duration": 0.234}, {"pitch": 72, "start_time": 183.25, "end_time": 183.484, "duration": 0.234}, {"pitch": 72, "start_time": 183.5, "end_time": 183.964, "duration": 0.464}, {"pitch": 76, "start_time": 184, "end_time": 184.464, "duration": 0.464}, {"pitch": 67, "start_time": 184.25, "end_time": 184.484, "duration": 0.234}, {"pitch": 72, "start_time": 184.5, "end_time": 184.734, "duration": 0.234}, {"pitch": 77, "start_time": 184.75, "end_time": 185.214, "duration": 0.464}, {"pitch": 62, "start_time": 185, "end_time": 185.234, "duration": 0.234}, {"pitch": 72, "start_time": 185.25, "end_time": 185.484, "duration": 0.234}, {"pitch": 71, "start_time": 185.5, "end_time": 185.734, "duration": 0.234}, {"pitch": 72, "start_time": 185.75, "end_time": 185.984, "duration": 0.234}, {"pitch": 79, "start_time": 186, "end_time": 186.464, "duration": 0.464}, {"pitch": 64, "start_time": 186.25, "end_time": 186.484, "duration": 0.234}, {"pitch": 72, "start_time": 186.5, "end_time": 186.734, "duration": 0.234}, {"pitch": 77, "start_time": 186.75, "end_time": 187.214, "duration": 0.464}, {"pitch": 62, "start_time": 187, "end_time": 187.234, "duration": 0.234}, {"pitch": 72, "start_time": 187.25, "end_time": 187.484, "duration": 0.234}, {"pitch": 71, "start_time": 187.5, "end_time": 187.734, "duration": 0.234}, {"pitch": 72, "start_time": 187.75, "end_time": 187.984, "duration": 0.234}, {"pitch": 76, "start_time": 188, "end_time": 188.464, "duration": 0.464}, {"pitch": 67, "start_time": 188.25, "end_time": 188.484, "duration": 0.234}, {"pitch": 72, "start_time": 188.5, "end_time": 188.734, "duration": 0.234}, {"pitch": 77, "start_time": 188.75, "end_time": 189.214, "duration": 0.464}, {"pitch": 62, "start_time": 189, "end_time": 189.234, "duration": 0.234}, {"pitch": 72, "start_time": 189.25, "end_time": 189.484, "duration": 0.234}, {"pitch": 71, "start_time": 189.5, "end_time": 189.734, "duration": 0.234}, {"pitch": 72, "start_time": 189.75, "end_time": 189.984, "duration": 0.234}, {"pitch": 67, "start_time": 190, "end_time": 190.464, "duration": 0.464}, {"pitch": 64, "start_time": 190.25, "end_time": 190.484, "duration": 0.234}, {"pitch": 72, "start_time": 190.5, "end_time": 190.734, "duration": 0.234}, {"pitch": 77, "start_time": 190.75, "end_time": 191.214, "duration": 0.464}, {"pitch": 62, "start_time": 191, "end_time": 191.234, "duration": 0.234}, {"pitch": 72, "start_time": 191.25, "end_time": 191.484, "duration": 0.234}, {"pitch": 71, "start_time": 191.5, "end_time": 191.734, "duration": 0.234}, {"pitch": 72, "start_time": 191.75, "end_time": 191.984, "duration": 0.234}, {"pitch": 76, "start_time": 192, "end_time": 193.844, "duration": 1.844}];
+        const AUDIO_SRC = "";
+        const CHORUS_START = 0;
+        const CHORUS_END = 0;
+        const AUDIO_OFFSET = 0;
+        const PRACTICE_MODE = "full";
+        const AUTO_PLAY_ON_LOAD = false;
+        const SONG_TITLE = "簡單愛 TO EJ 謝謝曾經的陪伴";
+        const SCORE_ID = "jianndanai";
+        const IS_JIANNDANAI = SCORE_ID === 'jianndanai' || /簡單愛/i.test(SONG_TITLE);
+        const JIANNDANAI_MIN_PLAY_SEC = 60;
+        const JIANNDANAI_PASS_SCORE = 70;
+
+        const WHITE_KEYS = [
+            { pitch: 60, key: 'a', label: 'C4', kn: 'A', octave: 1, whiteIdx: 0 },
+            { pitch: 62, key: 's', label: 'D4', kn: 'S', octave: 1, whiteIdx: 1 },
+            { pitch: 64, key: 'd', label: 'E4', kn: 'D', octave: 1, whiteIdx: 2 },
+            { pitch: 65, key: 'f', label: 'F4', kn: 'F', octave: 1, whiteIdx: 3 },
+            { pitch: 67, key: 'g', label: 'G4', kn: 'G', octave: 1, whiteIdx: 4 },
+            { pitch: 69, key: 'h', label: 'A4', kn: 'H', octave: 1, whiteIdx: 5 },
+            { pitch: 71, key: 'j', label: 'B4', kn: 'J', octave: 1, whiteIdx: 6 },
+            { pitch: 72, key: 'q', label: 'C5', kn: 'Q', octave: 2, whiteIdx: 0 },
+            { pitch: 74, key: 'w', label: 'D5', kn: 'W', octave: 2, whiteIdx: 1 },
+            { pitch: 76, key: 'e', label: 'E5', kn: 'E', octave: 2, whiteIdx: 2 },
+            { pitch: 77, key: 'r', label: 'F5', kn: 'R', octave: 2, whiteIdx: 3 },
+            { pitch: 79, key: 't', label: 'G5', kn: 'T', octave: 2, whiteIdx: 4 },
+            { pitch: 81, key: 'y', label: 'A5', kn: 'Y', octave: 2, whiteIdx: 5 },
+            { pitch: 83, key: 'u', label: 'B5', kn: 'U', octave: 2, whiteIdx: 6 },
+        ];
+        const BLACK_KEYS = [
+            { pitch: 61, label: 'C#4', octave: 1, afterWhite: 0 },
+            { pitch: 63, label: 'D#4', octave: 1, afterWhite: 1 },
+            { pitch: 66, label: 'F#4', octave: 1, afterWhite: 3 },
+            { pitch: 68, label: 'G#4', octave: 1, afterWhite: 4 },
+            { pitch: 70, label: 'A#4', octave: 1, afterWhite: 5 },
+            { pitch: 73, label: 'C#5', octave: 2, afterWhite: 0 },
+            { pitch: 75, label: 'D#5', octave: 2, afterWhite: 1 },
+            { pitch: 78, label: 'F#5', octave: 2, afterWhite: 3 },
+            { pitch: 80, label: 'G#5', octave: 2, afterWhite: 4 },
+            { pitch: 82, label: 'A#5', octave: 2, afterWhite: 5 },
+        ];
+        const PITCH_MAP = WHITE_KEYS;
+        const ALL_KEYS = WHITE_KEYS.concat(BLACK_KEYS);
+        const PITCH_MIN = 60, PITCH_MAX = 83;
+        const pitchToKey = Object.fromEntries(ALL_KEYS.map(p => [p.pitch, p]));
+        const keyToPitch = Object.fromEntries(WHITE_KEYS.map(p => [p.key, p.pitch]));
+
+        function nearestWhitePitch(pitch) {
+            let best = WHITE_KEYS[0].pitch;
+            let bestD = Math.abs(pitch - best);
+            WHITE_KEYS.forEach(p => {
+                const d = Math.abs(pitch - p.pitch);
+                if (d < bestD) { bestD = d; best = p.pitch; }
+            });
+            return best;
+        }
+
+        function initNotes(data) {
+            const arr = JSON.parse(JSON.stringify(data || []));
+            arr.forEach(n => {
+                n.isHit = false;
+                n.isMissed = false;
+                const pk = pitchToKey[n.pitch];
+                if (pk) {
+                    n.keyHint = pk.kn || '♯';
+                    n.playable = true;
+                    n.lanePitch = pk.whiteIdx != null ? pk.pitch : nearestWhitePitch(n.pitch);
+                } else {
+                    const near = nearestWhitePitch(n.pitch);
+                    const wp = pitchToKey[near];
+                    n.keyHint = wp ? wp.kn : '?';
+                    n.playable = Math.abs(n.pitch - near) <= 1;
+                    n.lanePitch = near;
+                }
+            });
+            return arr;
+        }
+
+        let notes = initNotes(rawScoreData);
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const audio = document.getElementById('bgm');
+        if (AUDIO_SRC) audio.src = AUDIO_SRC;
+
+        const PIXELS_PER_SECOND = 125;
+        const PERFECT_WINDOW = 0.06;
+        const HIT_WINDOW = 0.2;
+        const ELIMINATE_MS = 380;
+        let layout = {
+            canvasW: 1100, canvasH: 420,
+            keyWidth: 34, canvasLeft: 48,
+            pianoTop: 366, judgeY: 362,
+        };
+
+        let deviceProfile = 'desktop';
+
+        function isTouchDevice() {
+            return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        }
+        function isIPadLike() {
+            const ua = navigator.userAgent || '';
+            return /iPad/i.test(ua)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+        /** desktop | tablet | phone */
+        function detectDeviceProfile() {
+            const short = Math.min(window.innerWidth, window.innerHeight);
+            const long = Math.max(window.innerWidth, window.innerHeight);
+            const finePointer = window.matchMedia('(pointer: fine)').matches;
+            if (!isTouchDevice() || (finePointer && !isIPadLike() && short >= 520)) {
+                return 'desktop';
+            }
+            if (isIPadLike()) return 'tablet';
+            if (short >= 600 || (long >= 900 && short >= 500)) return 'tablet';
+            return 'phone';
+        }
+        function isTouchProfile() {
+            return deviceProfile === 'tablet' || deviceProfile === 'phone';
+        }
+        /** 以實際寬高判斷橫向（支援倒掛 landscape-secondary） */
+        function isLandscapeView() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            if (w > h) return true;
+            const o = screen.orientation;
+            if (o && typeof o.angle === 'number') {
+                const a = ((o.angle % 360) + 360) % 360;
+                return a === 90 || a === 270;
+            }
+            if (typeof window.orientation === 'number') {
+                return Math.abs(window.orientation) === 90;
+            }
+            return false;
+        }
+        function noteW() { return layout.keyWidth - 5; }
+
+        function viewportHeight() {
+            return window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        }
+
+        function chromeSelectors() {
+            if (deviceProfile === 'desktop') {
+                return '.playfield-chrome, .piano-section, .keyboard-hint';
+            }
+            if (playInputMode === 'touch') {
+                return document.body.classList.contains('drawer-open')
+                    ? '.game-drawer .drawer-panel' : '';
+            }
+            return '.playfield-chrome, .piano-section';
+        }
+
+        function measureChromeHeight() {
+            if (isTouchProfile() && playInputMode === 'touch' && !document.body.classList.contains('drawer-open')) {
+                return 0;
+            }
+            const sel = chromeSelectors();
+            if (!sel) return 0;
+            let total = 0;
+            document.querySelectorAll(sel).forEach(el => {
+                if (!el || el.offsetParent === null) return;
+                const st = getComputedStyle(el);
+                if (st.display === 'none' || st.visibility === 'hidden') return;
+                total += el.getBoundingClientRect().height;
+            });
+            return Math.ceil(total) + 4;
+        }
+
+        function setGameDrawerOpen(open) {
+            const drawer = document.getElementById('gameDrawer');
+            if (!drawer || !isTouchProfile()) return;
+            drawer.classList.toggle('open', open);
+            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            document.body.classList.toggle('drawer-open', open);
+            applyLayout();
+        }
+
+        function openGameDrawer() {
+            setGameDrawerOpen(true);
+        }
+
+        function closeGameDrawer() {
+            setGameDrawerOpen(false);
+        }
+
+        /** 橫向：固定 HUD 在右下角並提示 ▶（iframe 內無捲軸，不靠 scrollIntoView） */
+        function ensureHudVisible() {
+            if (!isTouchProfile() || !isLandscapeView()) return;
+            closeGameDrawer();
+            applyLayout();
+            const play = document.getElementById('btnHudPlay');
+            if (play) {
+                play.classList.remove('hud-nudge');
+                void play.offsetWidth;
+                play.classList.add('hud-nudge');
+            }
+        }
+
+        window.addEventListener('message', (ev) => {
+            if (!ev.data || ev.data.type !== 'ai-piano-landscape') return;
+            setTimeout(ensureHudVisible, 50);
+            setTimeout(ensureHudVisible, 350);
+        });
+
+        function toggleGameDrawer() {
+            const drawer = document.getElementById('gameDrawer');
+            if (!drawer) return;
+            setGameDrawerOpen(!drawer.classList.contains('open'));
+        }
+
+        function applyInputMode(mode, persist) {
+            if (mode !== 'touch' && mode !== 'keyboard') mode = 'keyboard';
+            playInputMode = mode;
+            document.body.classList.toggle('input-touch', mode === 'touch');
+            const dockSel = document.getElementById('inputModeDock');
+            if (dockSel && dockSel.value !== mode) dockSel.value = mode;
+            if (persist && isTouchProfile()) {
+                try { localStorage.setItem('pianoInputMode', mode); } catch (e) { /* ignore */ }
+                setTimeout(closeGameDrawer, 280);
+            }
+            applyLayout();
+        }
+
+        function initInputMode() {
+            if (!isTouchProfile()) {
+                applyInputMode('keyboard', false);
+                return;
+            }
+            applyInputMode('touch', false);
+            closeGameDrawer();
+        }
+
+        function applyProfileClasses() {
+            const profile = detectDeviceProfile();
+            const land = isLandscapeView();
+            document.body.classList.remove(
+                'profile-desktop', 'profile-tablet', 'profile-phone',
+                'layout-compact', 'mode-land', 'mode-port',
+                'touch-device', 'touch-play'
+            );
+            document.body.classList.add('profile-' + profile);
+            document.body.classList.toggle('mode-land', land);
+            document.body.classList.toggle('mode-port', !land);
+            if (profile !== 'desktop') {
+                document.body.classList.add('touch-device', 'layout-compact', 'touch-play');
+            }
+            deviceProfile = profile;
+            return { profile, land };
+        }
+
+        function minKeyWidth() {
+            if (deviceProfile === 'desktop') return 30;
+            if (deviceProfile === 'tablet') return 24;
+            return 20;
+        }
+
+        function portraitTouchHudReserve() {
+            const hud = document.querySelector('.game-hud');
+            if (hud && hud.offsetHeight > 0) return Math.ceil(hud.getBoundingClientRect().height);
+            return 72;
+        }
+
+        /** 直向觸碰：canvas 高度 = 可視區 − 底部按鈕列（避免超出螢幕滑不動） */
+        function portraitTouchCanvasHeight(viewH) {
+            const pf = document.querySelector('.playfield');
+            const avail = pf && pf.clientHeight > 0 ? pf.clientHeight : viewH;
+            const hudH = portraitTouchHudReserve();
+            const cap = Math.floor(viewH * 0.56);
+            return Math.max(200, Math.min(cap, Math.floor(avail - hudH - 6)));
+        }
+
+        function refineCanvasHeight(maxRatio) {
+            requestAnimationFrame(() => {
+                const vh = viewportHeight();
+                const ch = measureChromeHeight();
+                const maxH = Math.round(layout.canvasW * maxRatio);
+                const h2 = Math.max(120, Math.min(Math.floor(vh - ch - 8), maxH));
+                if (Math.abs(h2 - layout.canvasH) <= 4) return;
+                layout.canvasH = h2;
+                layout.pianoTop = h2 - 4;
+                layout.judgeY = layout.pianoTop - 4;
+                canvas.height = h2;
+                canvas.style.height = h2 + 'px';
+            });
+        }
+
+        /** 直向觸碰：依實際 playfield 高度重算，確保 ▶ / ⚙ 在同一屏內 */
+        function refineCanvasHeightPortraitTouch() {
+            requestAnimationFrame(() => {
+                if (!isTouchProfile() || isLandscapeView() || playInputMode !== 'touch') return;
+                const vh = viewportHeight();
+                const h2 = portraitTouchCanvasHeight(vh);
+                if (Math.abs(h2 - layout.canvasH) <= 4) return;
+                layout.canvasH = h2;
+                layout.pianoTop = h2 - 4;
+                layout.judgeY = layout.pianoTop - 4;
+                canvas.width = layout.canvasW;
+                canvas.height = h2;
+                canvas.style.width = '100%';
+                canvas.style.height = h2 + 'px';
+            });
+        }
+
+        function syncPianoToCanvas(w, keyW, left) {
+            const rows = document.getElementById('pianoRows');
+            const low = document.getElementById('piano-low');
+            const high = document.getElementById('piano-high');
+            const whiteW = keyW;
+            const rowW = whiteW * 7;
+            document.documentElement.style.setProperty('--white-w', Math.round(whiteW) + 'px');
+            if (rows) {
+                rows.style.width = (rowW * 2) + 'px';
+                rows.style.maxWidth = '100%';
+                rows.style.marginLeft = 'auto';
+                rows.style.marginRight = 'auto';
+            }
+            if (low) low.style.width = rowW + 'px';
+            if (high) high.style.width = rowW + 'px';
+            const sec = document.querySelector('.piano-section');
+            if (sec) {
+                sec.style.width = '100%';
+                sec.style.maxWidth = w + 'px';
+                sec.style.marginLeft = 'auto';
+                sec.style.marginRight = 'auto';
+                sec.style.paddingLeft = '0';
+            }
+            const cwrap = document.querySelector('.canvas-wrap');
+            if (cwrap) {
+                cwrap.style.maxWidth = w + 'px';
+            }
+        }
+
+        function applyLayout() {
+            const wrap = document.querySelector('.canvas-wrap');
+            const availW = wrap ? Math.max(280, wrap.clientWidth) : Math.min(1100, window.innerWidth - 16);
+            const { profile, land } = applyProfileClasses();
+            const viewH = viewportHeight();
+            let w, h, keyW, keyH;
+            const pad = profile === 'desktop' ? 56 : 8;
+
+            if (profile === 'desktop') {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(1100, availW) - pad) / 14));
+                w = keyW * 14 + pad;
+                keyH = Math.min(92, Math.max(76, Math.round(keyW * 2.35)));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                h = Math.max(200, Math.min(Math.floor(viewH - measureChromeHeight() - 12), Math.round(w * 0.46)));
+            } else if (profile === 'phone' && !land && playInputMode === 'touch') {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                w = Math.floor(viewW - 8);
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 12) / 14));
+                keyH = 48;
+                h = portraitTouchCanvasHeight(viewH);
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (profile === 'phone' && !land) {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(availW, 900) - 28) / 14));
+                w = keyW * 14 + 28;
+                keyH = 64;
+                h = Math.floor(Math.max(140, Math.min(w * 0.34, 280)));
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (profile === 'tablet' && !land && playInputMode === 'touch') {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                w = Math.floor(Math.min(availW, window.innerWidth - 8));
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 16) / 14));
+                keyH = 52;
+                h = portraitTouchCanvasHeight(viewH);
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+            } else if (land && playInputMode === 'touch' && isTouchProfile()) {
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                w = Math.floor(viewW);
+                keyW = Math.max(minKeyWidth(), Math.floor((w - 12) / 14));
+                const left = Math.max(0, Math.floor((w - keyW * 14) / 2));
+                h = Math.floor(viewH);
+                keyH = 48;
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                layout = {
+                    canvasW: w, canvasH: h,
+                    keyWidth: keyW, canvasLeft: left,
+                    pianoTop: h - 4, judgeY: h - 8,
+                };
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                syncPianoToCanvas(w, keyW, left);
+                document.body.classList.toggle('layout-landscape', true);
+                document.body.classList.toggle('layout-portrait', false);
+                const rh = document.getElementById('rotateHint');
+                if (rh) rh.classList.remove('show');
+                return;
+            } else if (land) {
+                document.documentElement.style.height = viewH + 'px';
+                document.body.style.height = viewH + 'px';
+                const viewW = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(viewW - 8, availW) - 8) / 14));
+                w = keyW * 14 + 8;
+                keyH = profile === 'tablet'
+                    ? Math.min(58, Math.max(44, Math.floor(viewH * 0.115)))
+                    : Math.min(48, Math.max(36, Math.floor(viewH * 0.10)));
+                document.documentElement.style.setProperty('--key-h', Math.round(keyH) + 'px');
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                h = Math.max(100, Math.min(Math.floor(viewH - measureChromeHeight() - 6), profile === 'tablet' ? 400 : 340));
+            } else {
+                document.documentElement.style.height = '';
+                document.body.style.height = '';
+                keyW = Math.max(minKeyWidth(), Math.floor((Math.min(availW, 1000) - 32) / 14));
+                w = keyW * 14 + 32;
+                keyH = 66;
+                document.documentElement.style.setProperty('--key-w', keyW + 'px');
+                document.documentElement.style.setProperty('--key-h', keyH + 'px');
+                h = Math.max(160, Math.min(Math.floor(viewH - measureChromeHeight() - 12), 340));
+            }
+
+            const left = Math.max(4, Math.floor((w - keyW * 14) / 2));
+            const compactLand = profile !== 'desktop' && land;
+            const pianoTop = compactLand
+                ? h - 4
+                : h - Math.max(44, Math.round(h * 0.128));
+            layout = {
+                canvasW: w, canvasH: h,
+                keyWidth: keyW, canvasLeft: left,
+                pianoTop, judgeY: pianoTop - 4,
+            };
+
+            canvas.width = w;
+            canvas.height = h;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+
+            syncPianoToCanvas(w, keyW, left);
+
+            document.body.classList.toggle('layout-landscape', land);
+            document.body.classList.toggle('layout-portrait', !land);
+
+            const rh = document.getElementById('rotateHint');
+            if (rh) {
+                rh.classList.toggle('show', profile === 'phone' && !land && playInputMode !== 'touch');
+            }
+
+            if (profile === 'desktop') {
+                refineCanvasHeight(0.48);
+            } else if (land && playInputMode === 'touch' && isTouchProfile()) {
+                /* 觸碰橫向已滿版，不再縮小 */
+            } else if (land) {
+                const ratio = profile === 'tablet' ? 0.42 : 0.38;
+                refineCanvasHeight(ratio);
+            } else if (profile === 'tablet' && !land && playInputMode === 'touch') {
+                refineCanvasHeightPortraitTouch();
+            } else if (profile === 'tablet') {
+                refineCanvasHeight(playInputMode === 'touch' ? 0.48 : 0.36);
+            } else if (profile === 'phone' && playInputMode === 'touch' && !land) {
+                refineCanvasHeightPortraitTouch();
+            } else if (profile === 'phone' && playInputMode === 'touch') {
+                refineCanvasHeight(0.44);
+            }
+        }
+        const RAPID_WINDOW_MS = 520;
+
+        let animationId = null;
+        let stats = { hits: 0, mistakes: 0, combo: 0, maxCombo: 0 };
+        let feedbackText = '', feedbackColor = '#E8DED0', feedbackTimer = 0;
+        let teachMode = false, autoPlayMode = false;
+        let playInputMode = 'keyboard'; // keyboard | touch（iPhone/iPad 可切換）
+        const TOUCH_HIT_PAD = 16;
+        const AUTO_HYPE_LINES = [
+            '暴擊！！', '熱血全開！！', '超神！', '無雙！', '完美暴擊！',
+            '火力 MAX！！', '連擊炸裂！', '節奏爆棚！', '王者降臨！', '無敵狀態！',
+        ];
+        let teachTimeouts = [], autoTimeouts = [];
+        let loopEnabled = !IS_JIANNDANAI && PRACTICE_MODE === 'chorus';
+        let songFinished = false;
+        let useInternalClock = !AUDIO_SRC;
+        let clockStart = 0, clockPausedAt = 0, isPlaying = false;
+        let screenShake = 0;
+        let particles = [];
+        let hitRings = [];
+        let hitBursts = [];
+        let recentHitTimes = [];
+        let lastRapidBannerAt = 0;
+
+        const comboEl = document.getElementById('comboNumber');
+        const comboLabelEl = document.getElementById('comboLabel');
+        const comboAuraEl = document.getElementById('comboAura');
+        const comboMilestoneEl = document.getElementById('comboMilestone');
+        const judgmentEl = document.getElementById('judgmentPop');
+        const rapidBannerEl = document.getElementById('rapidBanner');
+        const screenFlashEl = document.getElementById('screenFlash');
+        const edgeGlowEl = document.getElementById('edgeGlow');
+        const statComboEl = document.getElementById('statCombo');
+        let comboHeat = 0;
+        let lastMilestoneCombo = 0;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const keyEls = {};
+
+        document.getElementById('modeLabel').textContent =
+            PRACTICE_MODE === 'chorus' ? '副歌練習 · サビ' : '整首練習 · フル';
+
+        const pianoLow = document.getElementById('piano-low');
+        const pianoHigh = document.getElementById('piano-high');
+
+        function bindPianoKey(el, pitch) {
+            let lastFire = 0;
+            const tap = (e) => {
+                if (e.pointerType === 'mouse' && e.buttons !== 1 && e.type === 'pointerdown') return;
+                if (e.cancelable) e.preventDefault();
+                e.stopPropagation();
+                const now = performance.now();
+                if (now - lastFire < 70) return;
+                lastFire = now;
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                onKeyPress(pitch);
+            };
+            el.addEventListener('pointerdown', tap);
+            el.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        function buildPianoOctave(container, octave) {
+            const wrap = document.createElement('div');
+            wrap.className = 'piano-octave';
+            const whiteRow = document.createElement('div');
+            whiteRow.className = 'white-row';
+            const blackRow = document.createElement('div');
+            blackRow.className = 'black-row';
+
+            WHITE_KEYS.filter(p => p.octave === octave).forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'p-key white';
+                el.id = 'pk-' + p.pitch;
+                el.innerHTML = `<span class="kn">${p.kn}</span><span class="lbl">${p.label}</span>`;
+                bindPianoKey(el, p.pitch);
+                whiteRow.appendChild(el);
+                keyEls[p.pitch] = el;
+            });
+
+            BLACK_KEYS.filter(p => p.octave === octave).forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'p-key black';
+                el.id = 'pk-' + p.pitch;
+                const leftPct = ((p.afterWhite + 0.72) / 7) * 100;
+                el.style.left = `calc(${leftPct}% - var(--white-w, var(--key-w)) * 0.29)`;
+                el.innerHTML = `<span class="lbl">${p.label.replace('4', '').replace('5', '')}</span>`;
+                bindPianoKey(el, p.pitch);
+                blackRow.appendChild(el);
+                keyEls[p.pitch] = el;
+            });
+
+            wrap.appendChild(whiteRow);
+            wrap.appendChild(blackRow);
+            container.appendChild(wrap);
+        }
+
+        function buildPianoKeyboard() {
+            if (pianoLow) { pianoLow.innerHTML = ''; buildPianoOctave(pianoLow, 1); }
+            if (pianoHigh) { pianoHigh.innerHTML = ''; buildPianoOctave(pianoHigh, 2); }
+        }
+        buildPianoKeyboard();
+
+        applyProfileClasses();
+
+        const btnPlayDock = document.getElementById('btnPlayDock');
+        if (btnPlayDock) {
+            btnPlayDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeGameDrawer();
+                togglePlay();
+            });
+        }
+        const speedSelDock = document.getElementById('speedSelDock');
+        if (speedSelDock) {
+            speedSelDock.addEventListener('change', () => setSpeedFrom(speedSelDock));
+        }
+        const btnRestartDock = document.getElementById('btnRestartDock');
+        if (btnRestartDock) {
+            btnRestartDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                restart();
+            });
+        }
+        const btnAutoDock = document.getElementById('btnAutoDock');
+        if (btnAutoDock) {
+            btnAutoDock.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeGameDrawer();
+                startAutoPlay();
+            });
+        }
+        const inputModeDock = document.getElementById('inputModeDock');
+        if (inputModeDock) {
+            inputModeDock.addEventListener('change', () => {
+                applyInputMode(inputModeDock.value, true);
+            });
+        }
+        const btnGameMenu = document.getElementById('btnGameMenu');
+        if (btnGameMenu) {
+            btnGameMenu.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openGameDrawer();
+            });
+        }
+        const btnHudPlay = document.getElementById('btnHudPlay');
+        if (btnHudPlay) {
+            btnHudPlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeGameDrawer();
+                togglePlay();
+            });
+        }
+        const drawerBackdrop = document.getElementById('drawerBackdrop');
+        if (drawerBackdrop) {
+            drawerBackdrop.addEventListener('click', closeGameDrawer);
+        }
+        const btnDrawerClose = document.getElementById('btnDrawerClose');
+        if (btnDrawerClose) {
+            btnDrawerClose.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeGameDrawer();
+            });
+        }
+
+        function canvasPointFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return null;
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clientX = e.clientX != null ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : null);
+            const clientY = e.clientY != null ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : null);
+            if (clientX == null || clientY == null) return null;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY,
+            };
+        }
+
+        function getNoteRect(note, t) {
+            const dist = (note.start_time - t) * PIXELS_PER_SECOND;
+            const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
+            const y = layout.pianoTop - dist - h;
+            const x = getNoteX(note.pitch);
+            const w = noteW();
+            return { x, y, w, h, dist };
+        }
+
+        function findTouchedNote(px, py) {
+            if (!isPlaying || teachMode || autoPlayMode) return null;
+            const t = getCurrentTime();
+            let best = null;
+            let bestScore = Infinity;
+            notes.forEach(note => {
+                if (note.isHit || note.isMissed || !note.playable) return;
+                const r = getNoteRect(note, t);
+                if (py < r.y - TOUCH_HIT_PAD || py > r.y + r.h + TOUCH_HIT_PAD) return;
+                if (px < r.x - TOUCH_HIT_PAD || px > r.x + r.w + TOUCH_HIT_PAD) return;
+                const timeDelta = Math.abs(note.start_time - t);
+                if (timeDelta > HIT_WINDOW * 1.35) return;
+                const score = timeDelta * 100 + Math.abs(r.dist) * 0.5;
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = note;
+                }
+            });
+            return best;
+        }
+
+        function onCanvasTouchPlay(e) {
+            if (playInputMode !== 'touch' || !isTouchProfile()) return;
+            if (teachMode || autoPlayMode || !isPlaying) return;
+            const pt = canvasPointFromEvent(e);
+            if (!pt) return;
+            const note = findTouchedNote(pt.x, pt.y);
+            if (!note) return;
+            if (e.cancelable) e.preventDefault();
+            const t = getCurrentTime();
+            const delta = Math.abs(note.start_time - t);
+            registerHit(note, delta);
+            playSynth(note.pitch, 0.22);
+            updateStatsUI();
+        }
+
+        canvas.style.touchAction = 'none';
+        canvas.addEventListener('pointerdown', onCanvasTouchPlay, { passive: false });
+
+        function midiToFreq(midi) {
+            return 440 * Math.pow(2, (midi - 69) / 12);
+        }
+
+        function playSynth(midi, dur = 0.35) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = midiToFreq(midi);
+            gain.gain.setValueAtTime(0.28, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        }
+
+        function highlightKey(keyOrPitch, cls) {
+            const pitch = typeof keyOrPitch === 'number'
+                ? keyOrPitch
+                : (keyToPitch[keyOrPitch] != null ? keyToPitch[keyOrPitch] : null);
+            if (pitch == null) return;
+            const el = keyEls[pitch];
+            if (!el) return;
+            el.classList.remove('active', 'teach', 'auto');
+            if (cls) el.classList.add(cls);
+        }
+
+        function clearKeyHighlights() {
+            Object.values(keyEls).forEach(el => el.classList.remove('active', 'teach', 'auto'));
+        }
+
+        function getSpeed() {
+            return parseFloat(document.getElementById('speedSel').value);
+        }
+
+        function getCurrentTime() {
+            if (useInternalClock) {
+                if (!isPlaying) return clockPausedAt;
+                return clockPausedAt + (performance.now() - clockStart) / 1000 * getSpeed();
+            }
+            return audio.currentTime - AUDIO_OFFSET;
+        }
+
+        function getNoteX(pitch) {
+            const pk = pitchToKey[pitch];
+            if (pk && pk.whiteIdx != null) {
+                const idx = PITCH_MAP.findIndex(p => p.pitch === pitch);
+                if (idx >= 0) return layout.canvasLeft + idx * layout.keyWidth;
+            }
+            if (pk && pk.afterWhite != null) {
+                const base = PITCH_MAP.findIndex(p => p.octave === pk.octave && p.whiteIdx === 0);
+                if (base >= 0) {
+                    return layout.canvasLeft + (base + pk.afterWhite + 0.68) * layout.keyWidth;
+                }
+            }
+            const lane = nearestWhitePitch(pitch);
+            const idx = PITCH_MAP.findIndex(p => p.pitch === lane);
+            if (idx >= 0) return layout.canvasLeft + idx * layout.keyWidth;
+            return layout.canvasLeft + 6.5 * layout.keyWidth;
+        }
+
+        function formatClock(sec) {
+            const s = Math.max(0, Math.floor(sec));
+            return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+        }
+
+        function updatePlayTimer() {
+            const el = document.getElementById('statPlayTimer');
+            if (!el) return;
+            const t = isPlaying ? getCurrentTime() : (clockPausedAt || 0);
+            let label = '時間 ' + formatClock(t);
+            if (IS_JIANNDANAI) {
+                label += ' / ' + formatClock(JIANNDANAI_MIN_PLAY_SEC) + ' 結算';
+                const near = isPlaying && t >= JIANNDANAI_MIN_PLAY_SEC - 5 && t < JIANNDANAI_MIN_PLAY_SEC;
+                el.classList.toggle('near-end', near);
+            } else {
+                el.classList.remove('near-end');
+            }
+            el.textContent = label;
+        }
+
+        function updateStatsUI() {
+            const total = stats.hits + stats.mistakes;
+            const acc = total ? Math.round((stats.hits / total) * 100) : 100;
+            statComboEl.textContent = '連擊 ' + stats.combo;
+            statComboEl.classList.toggle('hot', stats.combo >= 10);
+            document.getElementById('statAcc').textContent = '正確率 ' + acc + '%';
+            document.getElementById('statMiss').textContent = '漏接 ' + stats.mistakes;
+            updatePlayTimer();
+        }
+
+        function showFeedback(text, color) {
+            feedbackText = text;
+            feedbackColor = color;
+            feedbackTimer = 35;
+        }
+
+        function getSongDuration() {
+            if (!notes.length) return 0;
+            return Math.max(...notes.map(n => n.start_time + n.duration));
+        }
+
+        function calcPlayScore() {
+            const total = stats.hits + stats.mistakes;
+            if (!total) return 0;
+            const acc = stats.hits / total;
+            const comboBonus = Math.min(stats.maxCombo * 1.5, 15);
+            return Math.min(100, Math.round(acc * 85 + comboBonus));
+        }
+
+        function getJianndanaiComment(score) {
+            if (score >= JIANNDANAI_PASS_SCORE) {
+                return {
+                    zh: '原諒我的著急，陪我久一點',
+                    en: 'Forgive my impatience — stay with me a little longer.',
+                };
+            }
+            return {
+                zh: '繼續練，會更好的～',
+                en: '',
+            };
+        }
+
+        function showJianndanaiFinale() {
+            const score = calcPlayScore();
+            const c = getJianndanaiComment(score);
+            const overlay = document.getElementById('finaleOverlay');
+            const scoreEl = document.getElementById('finaleScoreText');
+            const zhEl = document.getElementById('finaleCommentZh');
+            const enEl = document.getElementById('finaleCommentEn');
+            if (!overlay || !scoreEl) return;
+            scoreEl.textContent = '得到 ' + score + ' 分!!';
+            if (zhEl) zhEl.textContent = c.zh;
+            if (enEl) enEl.textContent = c.en;
+            overlay.hidden = false;
+            overlay.classList.add('show');
+            updatePlayTimer();
+        }
+
+        function hideJianndanaiFinale() {
+            const overlay = document.getElementById('finaleOverlay');
+            if (!overlay) return;
+            overlay.classList.remove('show');
+            overlay.hidden = true;
+        }
+
+        function completeJianndanaiSong() {
+            if (songFinished) return;
+            songFinished = true;
+            loopEnabled = false;
+            isPlaying = false;
+            if (!useInternalClock) audio.pause();
+            else clockPausedAt = getCurrentTime();
+            clearModes();
+            updatePlayButtonLabels();
+            showJianndanaiFinale();
+        }
+
+        function isSongPlaythroughComplete() {
+            if (!notes.length) return false;
+            const t = getCurrentTime();
+            if (IS_JIANNDANAI && t >= JIANNDANAI_MIN_PLAY_SEC) return true;
+            const end = getSongDuration() + HIT_WINDOW;
+            if (t < end) return false;
+            return notes.every(n => n.isHit || n.isMissed);
+        }
+
+        function jianndanaiFinaleDelaySec() {
+            const maxT = notes.length ? Math.max(...notes.map(n => n.start_time + n.duration)) + 1 : 8;
+            return IS_JIANNDANAI ? Math.min(maxT, JIANNDANAI_MIN_PLAY_SEC) : maxT;
+        }
+
+        const btnFinaleClose = document.getElementById('btnFinaleClose');
+        if (btnFinaleClose) {
+            btnFinaleClose.addEventListener('click', (e) => {
+                e.preventDefault();
+                hideJianndanaiFinale();
+                restart();
+            });
+        }
+
+        function getNoteCenterX(pitch) {
+            return getNoteX(pitch) + noteW() / 2;
+        }
+
+        function spawnParticles(cx, cy, perfect, count) {
+            const heat = comboHeat;
+            const n = count || (perfect ? 22 + Math.min(heat, 20) : 14 + Math.min(heat, 10));
+            const baseHue = perfect
+                ? (heat >= 30 ? 8 + Math.random() * 50 : 42)
+                : 18;
+            for (let i = 0; i < n; i++) {
+                const angle = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+                const speed = (perfect ? 5 + heat * 0.08 : 3.2) + Math.random() * 4;
+                particles.push({
+                    x: cx, y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - (1.4 + heat * 0.02),
+                    life: 1,
+                    decay: 0.024 + Math.random() * 0.018,
+                    size: (perfect ? 5 : 3) + Math.random() * (4 + heat * 0.08),
+                    hue: baseHue + Math.random() * 28,
+                });
+            }
+            if (heat >= 15 && perfect) {
+                for (let j = 0; j < 8; j++) {
+                    particles.push({
+                        x: cx + (Math.random() - 0.5) * 40,
+                        y: cy,
+                        vx: (Math.random() - 0.5) * 6,
+                        vy: -4 - Math.random() * 5,
+                        life: 1,
+                        decay: 0.02,
+                        size: 2 + Math.random() * 3,
+                        hue: 45 + Math.random() * 15,
+                    });
+                }
+            }
+        }
+
+        function spawnHitRing(cx, cy, perfect, combo) {
+            const boost = Math.min((combo || 1) * 0.04, 0.35);
+            hitRings.push({
+                x: cx, y: cy,
+                radius: perfect ? 8 : 6,
+                maxRadius: (perfect ? 52 : 38) * (1 + boost),
+                life: 1,
+                perfect,
+            });
+        }
+
+        function spawnHitBurst(cx, cy, combo) {
+            if (combo < 2) return;
+            let text = '+';
+            let color = '#FFE082';
+            if (combo >= 30) {
+                text = '無雙 ' + combo;
+                color = '#FFEB3B';
+            } else if (combo >= 20) {
+                text = combo + ' 連擊!!';
+                color = '#FFEB3B';
+            } else if (combo >= 10) {
+                text = combo + ' COMBO';
+                color = '#FFAB40';
+            } else if (combo >= 5) {
+                text = combo + ' 連!';
+                color = '#FF8A65';
+            }
+            hitBursts.push({
+                x: cx, y: cy - 24,
+                text, color,
+                life: 1,
+                vy: -2.8,
+                scale: 1 + Math.min(combo, 40) * 0.015,
+            });
+        }
+
+        function flashScreen(intensity) {
+            screenFlashEl.style.opacity = String(intensity || 0.5);
+            screenFlashEl.classList.remove('on');
+            void screenFlashEl.offsetWidth;
+            screenFlashEl.classList.add('on');
+        }
+
+        function flashEdge() {
+            if (!edgeGlowEl) return;
+            edgeGlowEl.classList.remove('on');
+            void edgeGlowEl.offsetWidth;
+            edgeGlowEl.classList.add('on');
+        }
+
+        function showMilestone(text) {
+            if (!comboMilestoneEl) return;
+            comboMilestoneEl.textContent = text;
+            comboMilestoneEl.classList.remove('show');
+            void comboMilestoneEl.offsetWidth;
+            comboMilestoneEl.classList.add('show');
+            flashEdge();
+            flashScreen(0.75);
+            screenShake = Math.max(screenShake, 16);
+        }
+
+        function checkComboMilestone(combo) {
+            const marks = [5, 10, 20, 30, 50, 100];
+            for (const m of marks) {
+                if (combo >= m && lastMilestoneCombo < m) {
+                    lastMilestoneCombo = m;
+                    const msg =
+                        m >= 100 ? '100 連擊！！神！' :
+                        m >= 50 ? '50 連擊！！無雙！' :
+                        m >= 30 ? '30 連擊！！熱血！' :
+                        m >= 20 ? '20 連擊！！' :
+                        m >= 10 ? '10 COMBO！' :
+                        '火力全開！';
+                    showMilestone(msg);
+                    return;
+                }
+            }
+        }
+
+        function showJudgment(kind) {
+            const heat = comboHeat;
+            let text = '不可';
+            if (kind === 'perfect') {
+                text = heat >= 20 ? '完美！！' : heat >= 10 ? '完美！' : '完美';
+            } else if (kind === 'good') {
+                text = heat >= 15 ? '好棒！' : '好';
+            }
+            judgmentEl.textContent = text;
+            judgmentEl.className = kind === 'perfect' ? 'perfect' : kind === 'good' ? 'good' : '';
+            judgmentEl.classList.remove('show');
+            void judgmentEl.offsetWidth;
+            judgmentEl.classList.add('show');
+        }
+
+        function showRapidBanner(count) {
+            const now = performance.now();
+            if (now - lastRapidBannerAt < 280) return;
+            lastRapidBannerAt = now;
+            rapidBannerEl.textContent = count >= 5 ? '神速 ' + count + ' 連！！' : count + ' 連擊！！';
+            rapidBannerEl.classList.remove('show');
+            void rapidBannerEl.offsetWidth;
+            rapidBannerEl.classList.add('show');
+            flashScreen(Math.min(0.45 + count * 0.06, 0.9));
+            flashEdge();
+            screenShake = Math.min(10 + count * 2.2, 22);
+        }
+
+        function updateComboDisplay(combo) {
+            comboHeat = combo;
+            if (comboAuraEl) {
+                comboAuraEl.classList.toggle('on', combo >= 3);
+                comboAuraEl.classList.toggle('heat-high', combo >= 15);
+                comboAuraEl.classList.toggle('heat-max', combo >= 30);
+            }
+            if (combo < 2) {
+                comboEl.classList.remove('visible', 'bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
+                comboLabelEl.classList.remove('visible', 'rage');
+                return;
+            }
+            comboEl.textContent = combo;
+            comboEl.classList.add('visible');
+            comboLabelEl.classList.add('visible');
+            comboLabelEl.classList.toggle('rage', combo >= 20);
+            comboLabelEl.textContent =
+                combo >= 50 ? '超神連擊' :
+                combo >= 30 ? '無雙模式' :
+                combo >= 20 ? '熱血全開' :
+                combo >= 10 ? '連擊加速' :
+                combo >= 5 ? 'COMBO' : 'COMBO';
+
+            comboEl.classList.remove('bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
+            void comboEl.offsetWidth;
+            comboEl.classList.add('bump');
+            if (combo >= 50) comboEl.classList.add('ultra', 'inferno', 'godlike');
+            else if (combo >= 30) comboEl.classList.add('inferno', 'fire');
+            else if (combo >= 20) comboEl.classList.add('mega', 'fire');
+            else if (combo >= 15) comboEl.classList.add('fire');
+            else if (combo >= 10) comboEl.classList.add('mega');
+        }
+
+        function resetFx() {
+            particles = [];
+            hitRings = [];
+            hitBursts = [];
+            recentHitTimes = [];
+            screenShake = 0;
+            comboHeat = 0;
+            lastMilestoneCombo = 0;
+            comboEl.classList.remove('visible', 'bump', 'mega', 'ultra', 'fire', 'inferno', 'godlike');
+            comboLabelEl.classList.remove('visible', 'rage');
+            if (comboAuraEl) comboAuraEl.classList.remove('on', 'heat-high', 'heat-max');
+            judgmentEl.classList.remove('show');
+            rapidBannerEl.classList.remove('show');
+            if (comboMilestoneEl) comboMilestoneEl.classList.remove('show');
+        }
+
+        function registerHit(note, delta) {
+            const perfect = delta <= PERFECT_WINDOW;
+            const cx = getNoteCenterX(note.pitch);
+            const now = performance.now();
+
+            note.isHit = true;
+            note.eliminateAt = now;
+            note.hitPerfect = perfect;
+
+            stats.hits++;
+            stats.combo++;
+            if (stats.combo > stats.maxCombo) stats.maxCombo = stats.combo;
+
+            const comboNow = stats.combo;
+            const particleN = perfect
+                ? 20 + Math.min(comboNow * 2, 40)
+                : 14 + Math.min(comboNow, 18);
+            spawnParticles(cx, layout.judgeY, perfect, particleN);
+            spawnHitRing(cx, layout.judgeY, perfect, comboNow);
+            spawnHitBurst(cx, layout.judgeY, comboNow);
+            showJudgment(perfect ? 'perfect' : 'good');
+            updateComboDisplay(comboNow);
+            checkComboMilestone(comboNow);
+
+            const shake = (perfect ? 5 : 2.5) + Math.min(comboNow * 0.55, 18);
+            screenShake = Math.max(screenShake, shake);
+            const flashAmt = 0.22 + Math.min(comboNow * 0.022, 0.45);
+            flashScreen(flashAmt);
+            if (comboNow >= 10) flashEdge();
+
+            if (comboNow % 10 === 0 && comboNow >= 10) {
+                flashScreen(0.8);
+                screenShake = Math.max(screenShake, 18);
+                showFeedback(comboNow + ' 連擊！！', '#FFEB3B');
+                spawnParticles(cx, layout.judgeY, true, 48);
+            } else if (comboNow % 5 === 0 && comboNow >= 5) {
+                flashScreen(0.55);
+                flashEdge();
+                showFeedback('火力全開！', '#FFAB40');
+            }
+
+            if (autoPlayMode && perfect && comboNow % 6 === 0) {
+                const hype = AUTO_HYPE_LINES[comboNow % AUTO_HYPE_LINES.length];
+                showFeedback(hype, '#FF6D00');
+                flashScreen(0.65);
+                flashEdge();
+                screenShake = Math.max(screenShake, 12 + Math.min(comboNow * 0.3, 16));
+                spawnParticles(cx, layout.judgeY, true, 36 + Math.min(comboNow, 24));
+            }
+
+            recentHitTimes.push(now);
+            recentHitTimes = recentHitTimes.filter(t => now - t < RAPID_WINDOW_MS);
+            if (recentHitTimes.length >= 3) {
+                showRapidBanner(recentHitTimes.length);
+            }
+        }
+
+        function registerMiss(note) {
+            note.isMissed = true;
+            note.missAt = performance.now();
+            stats.mistakes++;
+            stats.combo = 0;
+            recentHitTimes = [];
+            lastMilestoneCombo = 0;
+            updateComboDisplay(0);
+            showJudgment('miss');
+            showFeedback('漏接', '#A08078');
+            updateStatsUI();
+        }
+
+        function onKeyPress(keyOrPitch) {
+            const pitch = typeof keyOrPitch === 'number'
+                ? keyOrPitch
+                : keyToPitch[keyOrPitch];
+            if (pitch == null) return;
+            highlightKey(pitch, 'active');
+            playSynth(pitch, 0.25);
+            setTimeout(() => highlightKey(pitch, null), 100);
+            if (teachMode || autoPlayMode || !isPlaying) return;
+            if (playInputMode === 'touch' && isTouchProfile()) return;
+
+            const t = getCurrentTime();
+            const candidates = notes.filter(n => {
+                if (n.isHit || n.isMissed || !n.playable) return false;
+                if (n.pitch !== pitch && Math.abs(n.pitch - pitch) > 1) return false;
+                return Math.abs(n.start_time - t) <= HIT_WINDOW;
+            });
+            if (!candidates.length) {
+                stats.combo = 0;
+                updateComboDisplay(0);
+                updateStatsUI();
+                return;
+            }
+            const hit = candidates.reduce((best, n) =>
+                Math.abs(n.start_time - t) < Math.abs(best.start_time - t) ? n : best
+            );
+            const delta = Math.abs(hit.start_time - t);
+            registerHit(hit, delta);
+            updateStatsUI();
+        }
+
+        window.addEventListener('keydown', e => {
+            if (e.repeat) return;
+            const k = e.key.toLowerCase();
+            if (!keyToPitch[k]) return;
+            if (deviceProfile === 'phone' && isLandscapeView() && window.innerWidth < 900) {
+                return;
+            }
+            e.preventDefault();
+            onKeyPress(k);
+        });
+
+        function drawJudgeLine() {
+            const heat = comboHeat;
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / (heat >= 20 ? 120 : 280));
+            const heatBoost = Math.min(heat * 0.012, 0.45);
+            const grad = ctx.createLinearGradient(0, layout.judgeY - 24, 0, layout.judgeY + 24);
+            grad.addColorStop(0, 'rgba(255, 120, 40, 0)');
+            grad.addColorStop(0.5, `rgba(255, ${160 + heat * 2}, ${80 + heat}, ${0.28 + pulse * 0.2 + heatBoost})`);
+            grad.addColorStop(1, 'rgba(255, 120, 40, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, layout.judgeY - 22, canvas.width, 44);
+
+            const lineW = heat >= 30 ? 5 : heat >= 15 ? 4 : 3;
+            ctx.strokeStyle = heat >= 20
+                ? `rgba(255, ${200 + pulse * 40}, 80, ${0.75 + pulse * 0.2})`
+                : `rgba(255, 213, 140, ${0.55 + pulse * 0.25 + heatBoost})`;
+            ctx.lineWidth = lineW;
+            ctx.beginPath();
+            ctx.moveTo(layout.canvasLeft, layout.judgeY);
+            ctx.lineTo(layout.canvasLeft + PITCH_MAP.length * layout.keyWidth, layout.judgeY);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(layout.canvasLeft, layout.judgeY + 2);
+            ctx.lineTo(layout.canvasLeft + PITCH_MAP.length * layout.keyWidth, layout.judgeY + 2);
+            ctx.stroke();
+        }
+
+        function drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge) {
+            const cx = x + w / 2;
+            const cy = y + h / 2;
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.scale(scale, scale);
+            ctx.translate(-cx, -cy);
+            ctx.globalAlpha = alpha;
+
+            if (note.isMissed) {
+                ctx.fillStyle = 'rgba(90, 82, 78, 0.45)';
+            } else if (nearJudge) {
+                const g = ctx.createLinearGradient(x, y, x, y + h);
+                g.addColorStop(0, 'rgba(255, 220, 160, 0.98)');
+                g.addColorStop(1, 'rgba(232, 93, 58, 0.95)');
+                ctx.fillStyle = g;
+            } else if (note.playable) {
+                ctx.fillStyle = 'rgba(232, 160, 120, 0.92)';
+            } else {
+                ctx.fillStyle = 'rgba(140, 130, 120, 0.4)';
+            }
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeStyle = nearJudge ? 'rgba(255, 248, 230, 0.85)' : 'rgba(247, 243, 235, 0.5)';
+            ctx.lineWidth = nearJudge ? 2 : 1;
+            ctx.strokeRect(x, y, w, h);
+            if (!note.isMissed && alpha > 0.4 && note.keyHint && note.keyHint !== '?') {
+                drawNoteKeyLetter(x, y, w, h, note.keyHint, nearJudge, alpha);
+            }
+            ctx.restore();
+        }
+
+        function drawNoteKeyLetter(x, y, w, h, letter, nearJudge, alpha) {
+            const fontSize = Math.max(13, Math.min(Math.floor(layout.keyWidth * 0.68), h * 0.55, 26));
+            const cx = x + w / 2;
+            const cy = y + h - Math.max(4, fontSize * 0.15);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.font = `900 ${fontSize}px "Zen Kaku Gothic New", "Noto Sans TC", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.strokeStyle = nearJudge ? 'rgba(191, 54, 12, 0.95)' : 'rgba(60, 45, 35, 0.9)';
+            ctx.lineWidth = Math.max(2.5, fontSize * 0.14);
+            ctx.lineJoin = 'round';
+            ctx.strokeText(letter, cx, cy);
+            ctx.fillStyle = nearJudge ? '#FFFDE7' : '#FFF8F0';
+            ctx.fillText(letter, cx, cy);
+            ctx.restore();
+        }
+
+        function drawEliminatingNote(note, now) {
+            const elapsed = now - note.eliminateAt;
+            const p = Math.min(1, elapsed / ELIMINATE_MS);
+            const cx = getNoteCenterX(note.pitch);
+            const w = noteW();
+            const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
+            const scale = 1 + (note.hitPerfect ? 0.35 : 0.2) * (1 - p);
+            const alpha = 1 - Math.pow(p, 0.85);
+            const y = layout.judgeY - h / 2 - p * 28;
+            const x = cx - (w * scale) / 2;
+
+            drawNoteBlock(x, y, w * scale, h * scale, note, alpha, 1, true);
+
+            if (p < 0.5) {
+                ctx.save();
+                ctx.globalAlpha = (0.5 - p) * 1.2;
+                ctx.strokeStyle = note.hitPerfect ? '#FFD54F' : '#FFAB76';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(cx, layout.judgeY, 12 + p * 40, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function drawHitBursts() {
+            hitBursts = hitBursts.filter(b => {
+                b.life -= 0.028;
+                if (b.life <= 0) return false;
+                b.y += b.vy;
+                b.vy *= 0.96;
+                const s = b.scale * (0.85 + b.life * 0.35);
+                ctx.save();
+                ctx.globalAlpha = b.life;
+                ctx.textAlign = 'center';
+                ctx.font = `900 ${Math.round(14 + s * 8)}px "Noto Serif JP", sans-serif`;
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 3;
+                ctx.strokeText(b.text, b.x, b.y);
+                ctx.fillStyle = b.color;
+                ctx.fillText(b.text, b.x, b.y);
+                ctx.restore();
+                return true;
+            });
+        }
+
+        function drawParticlesAndRings() {
+            hitRings = hitRings.filter(r => {
+                r.life -= 0.045;
+                if (r.life <= 0) return false;
+                const expand = 1 + (1 - r.life) * 2.5;
+                const rad = r.radius + (r.maxRadius - r.radius) * (1 - r.life) * expand;
+                ctx.save();
+                ctx.globalAlpha = r.life * (r.perfect ? 0.9 : 0.7);
+                ctx.strokeStyle = r.perfect ? '#FFD54F' : '#FF8A65';
+                ctx.lineWidth = r.perfect ? 4 : 2.5;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, rad, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+                return true;
+            });
+
+            particles = particles.filter(pt => {
+                pt.life -= pt.decay;
+                if (pt.life <= 0) return false;
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.vy += 0.12;
+                ctx.save();
+                ctx.globalAlpha = pt.life;
+                ctx.fillStyle = `hsl(${pt.hue}, 90%, 62%)`;
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, pt.size * pt.life, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                return true;
+            });
+        }
+
+        function draw() {
+            const shakeX = screenShake > 0 ? (Math.random() - 0.5) * screenShake : 0;
+            const shakeY = screenShake > 0 ? (Math.random() - 0.5) * screenShake * 0.6 : 0;
+            if (screenShake > 0) screenShake *= 0.82;
+
+            ctx.save();
+            ctx.translate(shakeX, shakeY);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#252220';
+            ctx.fillRect(0, layout.pianoTop, canvas.width, canvas.height - layout.pianoTop);
+
+            const splitX = layout.canvasLeft + 7 * layout.keyWidth;
+            ctx.strokeStyle = '#4A4540';
+            ctx.setLineDash([4, 6]);
+            ctx.beginPath();
+            ctx.moveTo(splitX, 0);
+            ctx.lineTo(splitX, layout.pianoTop);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            PITCH_MAP.forEach((p, i) => {
+                const x = layout.canvasLeft + i * layout.keyWidth + layout.keyWidth / 2;
+                ctx.strokeStyle = '#353230';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, layout.pianoTop);
+                ctx.stroke();
+            });
+
+            drawJudgeLine();
+
+            const t = getCurrentTime();
+            const now = performance.now();
+
+            if (loopEnabled && isPlaying && !IS_JIANNDANAI && !songFinished) {
+                const ls = parseFloat(document.getElementById('loopStart').value) || 0;
+                const le = parseFloat(document.getElementById('loopEnd').value) || 999;
+                if (t >= le) seekTo(ls);
+            }
+
+            if (IS_JIANNDANAI && isPlaying && !teachMode && !autoPlayMode && !songFinished) {
+                if (isSongPlaythroughComplete()) completeJianndanaiSong();
+            }
+
+            notes.forEach(note => {
+                if (!autoPlayMode && !teachMode && !note.isHit && !note.isMissed &&
+                    t > note.start_time + HIT_WINDOW) {
+                    registerMiss(note);
+                }
+
+                if (note.isHit && note.eliminateAt) {
+                    if (now - note.eliminateAt < ELIMINATE_MS) {
+                        drawEliminatingNote(note, now);
+                    }
+                    return;
+                }
+                if (note.isHit) return;
+
+                const dist = (note.start_time - t) * PIXELS_PER_SECOND;
+                const h = Math.max(10, note.duration * PIXELS_PER_SECOND);
+                const y = layout.pianoTop - dist - h;
+                const x = getNoteX(note.pitch);
+                const w = noteW();
+                if (y > canvas.height || y + h < 0) return;
+
+                let alpha = 1;
+                let scale = 1;
+                const nearJudge = dist < 35 && dist > -15 && !note.isMissed;
+                const touchTarget = playInputMode === 'touch' && isTouchProfile()
+                    && !note.isMissed && !note.isHit && dist < 55 && dist > -25;
+
+                if (note.isMissed && note.missAt) {
+                    const mp = Math.min(1, (now - note.missAt) / 500);
+                    alpha = 1 - mp;
+                    scale = 1 - mp * 0.4;
+                    const fallY = y + mp * 40;
+                    drawNoteBlock(x, fallY, w, h, note, alpha, scale, false);
+                    return;
+                }
+
+                if (touchTarget) {
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(255, 200, 80, 0.9)';
+                    ctx.shadowBlur = 14;
+                    drawNoteBlock(x, y, w, h, note, alpha, scale * 1.04, true);
+                    ctx.restore();
+                } else {
+                    drawNoteBlock(x, y, w, h, note, alpha, scale, nearJudge);
+                }
+            });
+
+            drawParticlesAndRings();
+            drawHitBursts();
+
+            if (feedbackTimer > 0) {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.font = '900 28px "Noto Serif JP", "Noto Sans TC", serif';
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+                ctx.lineWidth = 4;
+                ctx.strokeText(feedbackText, canvas.width / 2, layout.pianoTop - 48);
+                ctx.fillStyle = feedbackColor;
+                ctx.fillText(feedbackText, canvas.width / 2, layout.pianoTop - 48);
+                ctx.restore();
+                feedbackTimer--;
+            }
+
+            ctx.restore();
+            if (isPlaying) updatePlayTimer();
+            animationId = requestAnimationFrame(draw);
+        }
+
+        function seekTo(sec) {
+            if (useInternalClock) {
+                clockPausedAt = sec;
+                clockStart = performance.now();
+            } else {
+                audio.currentTime = sec + AUDIO_OFFSET;
+            }
+            notes.forEach(n => {
+                if (n.start_time >= sec - 0.01) {
+                    n.isHit = false;
+                    n.isMissed = false;
+                    delete n.eliminateAt;
+                    delete n.missAt;
+                    delete n.hitPerfect;
+                }
+            });
+            resetFx();
+        }
+
+        function clearModes() {
+            teachMode = false;
+            autoPlayMode = false;
+            teachTimeouts.forEach(clearTimeout);
+            autoTimeouts.forEach(clearTimeout);
+            teachTimeouts = [];
+            autoTimeouts = [];
+            clearKeyHighlights();
+            document.getElementById('btnTeach')?.classList.remove('active-mode');
+            document.getElementById('btnAuto')?.classList.remove('active-mode');
+            document.getElementById('btnAutoDock')?.classList.remove('active-mode');
+            document.getElementById('btnPlay')?.classList.remove('active-mode');
+        }
+
+        function beginPlayback(fromSec) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            isPlaying = true;
+            if (useInternalClock) {
+                clockPausedAt = fromSec || 0;
+                clockStart = performance.now();
+            } else {
+                audio.currentTime = (fromSec || 0) + AUDIO_OFFSET;
+                audio.playbackRate = getSpeed();
+                audio.play().catch(() => {});
+            }
+            if (!animationId) draw();
+        }
+
+        function syncSpeedSelects() {
+            const v = document.getElementById('speedSel').value;
+            const dock = document.getElementById('speedSelDock');
+            if (dock) dock.value = v;
+        }
+
+        function setSpeedFrom(sel) {
+            document.getElementById('speedSel').value = sel.value;
+            setSpeed();
+        }
+
+        function updatePlayButtonLabels() {
+            const playing = isPlaying;
+            const playLabel = playing ? '⏸ 暫停' : '▶ 開始跟彈';
+            const bp = document.getElementById('btnPlay');
+            if (bp) {
+                bp.textContent = playing ? '暫停' : '跟彈';
+                bp.classList.toggle('active-mode', playing);
+            }
+            const dock = document.getElementById('btnPlayDock');
+            if (dock) {
+                dock.textContent = playLabel;
+                dock.classList.toggle('active-mode', playing);
+            }
+            const hudPlay = document.getElementById('btnHudPlay');
+            if (hudPlay) {
+                hudPlay.textContent = playing ? '⏸' : '▶';
+                hudPlay.classList.toggle('active-mode', playing);
+            }
+        }
+
+        let countdownRunning = false;
+        function startWithCountdown(onGo) {
+            if (countdownRunning) return;
+            const overlay = document.getElementById('countdownOverlay');
+            const numEl = document.getElementById('countdownNum');
+            if (!overlay || !numEl) {
+                onGo();
+                return;
+            }
+            countdownRunning = true;
+            let n = 3;
+            const tickMs = 1000;
+            numEl.textContent = String(n);
+            overlay.classList.add('show');
+            const step = () => {
+                n -= 1;
+                if (n > 0) {
+                    numEl.textContent = String(n);
+                    setTimeout(step, tickMs);
+                } else {
+                    overlay.classList.remove('show');
+                    countdownRunning = false;
+                    onGo();
+                }
+            };
+            setTimeout(step, tickMs);
+        }
+
+        function togglePlay() {
+            clearModes();
+            if (isPlaying) {
+                isPlaying = false;
+                if (!useInternalClock) audio.pause();
+                else clockPausedAt = getCurrentTime();
+                cancelAnimationFrame(animationId);
+                animationId = null;
+                updatePlayButtonLabels();
+                return;
+            }
+            const fromStart = getCurrentTime() < 0.05;
+            const go = () => {
+                document.getElementById('btnPlay').classList.add('active-mode');
+                beginPlayback(fromStart ? 0 : getCurrentTime());
+                updatePlayButtonLabels();
+            };
+            if (fromStart) {
+                startWithCountdown(go);
+            } else {
+                go();
+            }
+        }
+
+        function setSpeed() {
+            if (!useInternalClock) audio.playbackRate = getSpeed();
+            syncSpeedSelects();
+        }
+
+        function restart() {
+            clearModes();
+            songFinished = false;
+            hideJianndanaiFinale();
+            isPlaying = false;
+            if (!useInternalClock) { audio.pause(); audio.currentTime = AUDIO_OFFSET; }
+            clockPausedAt = 0;
+            notes = initNotes(rawScoreData);
+            stats = { hits: 0, mistakes: 0, combo: 0, maxCombo: 0 };
+            resetFx();
+            updateStatsUI();
+            draw();
+            cancelAnimationFrame(animationId);
+            animationId = null;
+            updatePlayButtonLabels();
+        }
+
+        function toggleLoop() { loopEnabled = !loopEnabled; }
+
+        function applyChorusLoop() {
+            if (PRACTICE_MODE === 'chorus') {
+                document.getElementById('loopStart').value = 0;
+                const dur = notes.length
+                    ? Math.max(...notes.map(n => n.start_time + n.duration)) + 0.5
+                    : 30;
+                document.getElementById('loopEnd').value = Math.ceil(dur);
+            } else {
+                document.getElementById('loopStart').value = CHORUS_START;
+                document.getElementById('loopEnd').value = CHORUS_END;
+            }
+            loopEnabled = true;
+            showFeedback('副歌區間', '#B8C4B0');
+        }
+
+        function scheduleNotes(mode) {
+            const speed = getSpeed();
+            notes.forEach(note => {
+                if (!note.playable) return;
+                const delay = (note.start_time * 1000) / speed;
+                const id = setTimeout(() => {
+                    if (mode === 'auto') {
+                        const delta = Math.random() * PERFECT_WINDOW * 0.45;
+                        registerHit(note, delta);
+                        updateStatsUI();
+                    }
+                    highlightKey(note.pitch, mode);
+                    playSynth(note.pitch, Math.min(note.duration, 0.55));
+                    setTimeout(() => highlightKey(note.pitch, null), note.duration * 1000 / speed);
+                }, delay);
+                (mode === 'auto' ? autoTimeouts : teachTimeouts).push(id);
+            });
+        }
+
+        function startTeachMode() {
+            restart();
+            teachMode = true;
+            document.getElementById('btnTeach').classList.add('active-mode');
+            beginPlayback(0);
+            scheduleNotes('teach');
+            const endSec = jianndanaiFinaleDelaySec();
+            teachTimeouts.push(setTimeout(() => {
+                isPlaying = false;
+                teachMode = false;
+                if (!useInternalClock) audio.pause();
+                if (IS_JIANNDANAI) completeJianndanaiSong();
+                else showFeedback('おしまい', '#C9B8A4');
+            }, endSec * 1100 / getSpeed()));
+        }
+
+        function startAutoPlay() {
+            restart();
+            autoPlayMode = true;
+            document.getElementById('btnAuto')?.classList.add('active-mode');
+            document.getElementById('btnAutoDock')?.classList.add('active-mode');
+            beginPlayback(0);
+            scheduleNotes('auto');
+            const endSec = jianndanaiFinaleDelaySec();
+            autoTimeouts.push(setTimeout(() => {
+                isPlaying = false;
+                autoPlayMode = false;
+                if (!useInternalClock) audio.pause();
+                if (IS_JIANNDANAI) completeJianndanaiSong();
+                else showFeedback('自動演奏終', '#C9B8A4');
+            }, endSec * 1100 / getSpeed()));
+        }
+
+        if (notes.length) {
+            const last = notes[notes.length - 1];
+            const dur = last.start_time + last.duration + 1;
+            document.getElementById('loopEnd').value = Math.ceil(dur);
+            if (IS_JIANNDANAI) {
+                loopEnabled = false;
+            } else if (PRACTICE_MODE === 'chorus') {
+                document.getElementById('loopStart').value = 0;
+                document.getElementById('loopEnd').value = Math.ceil(dur);
+                loopEnabled = true;
+            } else if (CHORUS_END > CHORUS_START) {
+                document.getElementById('loopStart').value = CHORUS_START;
+                document.getElementById('loopEnd').value = CHORUS_END;
+            }
+        }
+
+        initInputMode();
+        applyLayout();
+        setTimeout(ensureHudVisible, 200);
+        setTimeout(ensureHudVisible, 550);
+        window.addEventListener('resize', () => {
+            applyLayout();
+            if (isLandscapeView()) {
+                setTimeout(ensureHudVisible, 80);
+                setTimeout(ensureHudVisible, 320);
+            }
+        });
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                applyLayout();
+                ensureHudVisible();
+            }, 200);
+            setTimeout(() => {
+                applyLayout();
+                ensureHudVisible();
+            }, 550);
+        });
+        if (screen.orientation && screen.orientation.addEventListener) {
+            screen.orientation.addEventListener('change', () => {
+                setTimeout(() => {
+                    applyLayout();
+                    ensureHudVisible();
+                }, 200);
+                setTimeout(ensureHudVisible, 550);
+            });
+        }
+        if (window.visualViewport) {
+            visualViewport.addEventListener('resize', applyLayout);
+            visualViewport.addEventListener('scroll', applyLayout);
+        }
+
+        updateStatsUI();
+        draw();
+        cancelAnimationFrame(animationId);
+        animationId = null;
+
+        if (AUTO_PLAY_ON_LOAD) {
+            setTimeout(() => startAutoPlay(), 600);
+        }
+    </script>
+</body>
+</html>
