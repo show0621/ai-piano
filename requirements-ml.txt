@@ -1,3 +1,5 @@
-# basic-pitch 依賴 tensorflow（非 tensorflow-cpu）；與 2.15.1 會衝突
+# AI 抓譜（選用 · 本機；Streamlit Cloud 預設不安裝）
+# 需 Python 3.11（不支援 3.12+ / 3.14）
+# pip install -r requirements-ml.txt
 tensorflow==2.15.0
 basic-pitch>=0.3.2,<0.5

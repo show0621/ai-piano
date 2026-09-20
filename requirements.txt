@@ -4,5 +4,7 @@ setuptools>=65.0.0,<81
 pretty_midi==0.2.10
 numpy>=1.26.4,<2.0.0
 
-# AI 抓譜（Streamlit Cloud：Python 3.11 + Memory 2GB+）
--r requirements-ml.txt
+# AI 抓譜（TensorFlow）請本機另裝：
+#   pip install -r requirements-ml.txt
+# 雲端預設不裝 ML，避免 Python 3.14 / 記憶體不足導致部署失敗。
+# Streamlit Cloud Advanced → Python 請選 3.11（見 runtime.txt）。
