@@ -145,7 +145,7 @@ _KEY_SCALES: dict[str, tuple[int, list[int]]] = {
 }
 
 DEMO_CATALOG = [
-    {"id": "jianndanai", "title": "簡單愛 TO EJ 謝謝曾經的陪伴", "artist": "周杰倫 · 範例", "full": True},
+    {"id": "jianndanai", "title": "簡單愛", "artist": "周杰倫 · 範例", "full": True},
 ]
 
 
