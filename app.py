@@ -624,7 +624,7 @@ elif audio_source == "📚 曲庫":
         "已轉好的樂譜（本機 `scores/` 或 GitHub）。**不需 AI**，"
         "雲端最穩。新增曲目：本機轉譜後將 JSON 放入 `scores/` 並 push。"
     )
-    lib_q = st.text_input("篩選曲庫", placeholder="例：小星星、哆啦A夢、卡農", key="lib_filter")
+    lib_q = st.text_input("篩選曲庫", placeholder="例：簡單愛", key="lib_filter")
     entries = search_catalog(lib_q) if lib_q.strip() else list_catalog_entries()
     if not entries:
         st.info("曲庫尚無曲目。可先載入示範曲，或執行 `python tools/export_scores.py` 產生 JSON。")
@@ -774,10 +774,7 @@ elif audio_source == "🔗 直接音檔網址":
 # ── 🌸 示範曲 ──
 elif audio_source == "🌸 示範曲":
     st.markdown("#### 內建示範曲")
-    st.caption(
-        "不需 AI、不需網路，可直接練習。範例：小星星、簡單愛；"
-        "另含 10 首兒歌／動畫主題與貝多芬、卡農等公版古典（C 調簡化主旋律）。"
-    )
+    st.caption("不需 AI、不需網路，可直接練習。目前示範曲：簡單愛。")
     def _demo_label(d: dict) -> str:
         if d.get("id") == "jianndanai":
             return d["title"]

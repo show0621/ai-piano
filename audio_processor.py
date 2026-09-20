@@ -145,25 +145,7 @@ _KEY_SCALES: dict[str, tuple[int, list[int]]] = {
 }
 
 DEMO_CATALOG = [
-    {"id": "twinkle", "title": "小星星", "artist": "兒歌 · 範例", "full": False},
     {"id": "jianndanai", "title": "簡單愛 TO EJ 謝謝曾經的陪伴", "artist": "周杰倫 · 範例", "full": True},
-    # 兒歌
-    {"id": "liangzhilaohu", "title": "兩隻老虎", "artist": "兒歌", "full": False},
-    {"id": "xiaomifeng", "title": "小蜜蜂", "artist": "兒歌", "full": False},
-    {"id": "happy_birthday", "title": "生日快樂", "artist": "兒歌", "full": False},
-    {"id": "fenshuajiang", "title": "粉刷匠", "artist": "兒歌", "full": False},
-    {"id": "molihua", "title": "茉莉花", "artist": "民歌", "full": False},
-    # 動畫
-    {"id": "doraemon", "title": "哆啦A夢", "artist": "動畫主題", "full": False},
-    {"id": "maruko", "title": "櫻桃小丸子", "artist": "動畫主題", "full": False},
-    {"id": "totoro", "title": "龍貓", "artist": "吉卜力", "full": False},
-    {"id": "conan", "title": "名偵探柯南", "artist": "動畫主題", "full": False},
-    {"id": "anpanman", "title": "麵包超人", "artist": "動畫主題", "full": False},
-    # 古典（公版）
-    {"id": "canon", "title": "卡農", "artist": "Pachelbel", "full": False},
-    {"id": "fur_elise", "title": "致愛麗絲", "artist": "Beethoven", "full": False},
-    {"id": "ode_to_joy", "title": "歡樂頌", "artist": "Beethoven", "full": False},
-    {"id": "beethoven_fifth", "title": "命運交響曲（主題）", "artist": "Beethoven", "full": False},
 ]
 
 
